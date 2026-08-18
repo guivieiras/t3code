@@ -331,6 +331,15 @@ type ProjectFileFailureContext = {
   readonly cause?: unknown;
 };
 
+function projectReadFileErrorMessage(props: ProjectFileFailureContext): string {
+  const decodedMessage = decodedProjectErrorMessage(props);
+  if (decodedMessage !== undefined) return decodedMessage;
+  if (props.failure === "binary_file") {
+    return `Workspace file '${props.relativePath}' in '${props.cwd}' is binary and cannot be previewed.`;
+  }
+  return `Failed to read workspace file '${props.relativePath}' in '${props.cwd}'.`;
+}
+
 export class ProjectReadFileError extends Schema.TaggedErrorClass<ProjectReadFileError>()(
   "ProjectReadFileError",
   {
@@ -349,9 +358,7 @@ export class ProjectReadFileError extends Schema.TaggedErrorClass<ProjectReadFil
   constructor(props: ProjectFileFailureContext) {
     super({
       ...props,
-      message:
-        decodedProjectErrorMessage(props) ??
-        `Failed to read workspace file '${props.relativePath}' in '${props.cwd}'.`,
+      message: projectReadFileErrorMessage(props),
     } as any);
   }
 }

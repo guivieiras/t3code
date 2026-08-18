@@ -50,6 +50,7 @@ import { WorkspaceFileImagePreview } from "./WorkspaceFileImagePreview";
 import { WorkspaceFileWebPreview } from "./WorkspaceFileWebPreview";
 import {
   basename,
+  isAudioPreviewFile,
   isBrowserPreviewFile,
   isImagePreviewFile,
   isMarkdownPreviewFile,
@@ -84,7 +85,8 @@ function normalizeRouteLine(value: string | null): number | null {
 }
 
 function defaultViewMode(path: string | null): FileViewMode {
-  return path !== null && (isBrowserPreviewFile(path) || isImagePreviewFile(path))
+  return path !== null &&
+    (isAudioPreviewFile(path) || isBrowserPreviewFile(path) || isImagePreviewFile(path))
     ? "preview"
     : "source";
 }
@@ -100,6 +102,7 @@ function FileContent(props: {
   readonly onRefresh?: () => Promise<void> | void;
 }) {
   const isMarkdown = isMarkdownPreviewFile(props.relativePath);
+  const isAudioFile = isAudioPreviewFile(props.relativePath);
   const isBrowserFile = isBrowserPreviewFile(props.relativePath);
   const isImageFile = isImagePreviewFile(props.relativePath);
 
@@ -115,7 +118,7 @@ function FileContent(props: {
     );
   }
 
-  if (props.activeMode === "preview" && isBrowserFile) {
+  if (props.activeMode === "preview" && (isAudioFile || isBrowserFile)) {
     return <WorkspaceFileWebPreview uri={props.previewUri} />;
   }
 
@@ -490,16 +493,18 @@ export function ThreadFileScreen(props: ThreadFileRouteScreenProps) {
   } | null>(null);
   const [previewRevision, setPreviewRevision] = useState(0);
   const [fullScreenPreview, setFullScreenPreview] = useState<FilePreviewSource | null>(null);
+  const isAudioFile = relativePath !== null && isAudioPreviewFile(relativePath);
   const isBrowserFile = relativePath !== null && isBrowserPreviewFile(relativePath);
   const isImageFile = relativePath !== null && isImagePreviewFile(relativePath);
   const canPreview =
-    relativePath !== null && (isMarkdownPreviewFile(relativePath) || isBrowserFile || isImageFile);
+    relativePath !== null &&
+    (isMarkdownPreviewFile(relativePath) || isAudioFile || isBrowserFile || isImageFile);
   const activeMode =
     relativePath !== null && modeOverride?.path === relativePath
       ? modeOverride.mode
       : defaultViewMode(relativePath);
   const resolvedActiveMode = canPreview ? activeMode : "source";
-  const assetPreviewPath = isBrowserFile || isImageFile ? relativePath : null;
+  const assetPreviewPath = isAudioFile || isBrowserFile || isImageFile ? relativePath : null;
   const assetPreviewUri = useWorkspaceFileAssetUrl({
     cwd,
     environmentId,
@@ -562,7 +567,7 @@ export function ThreadFileScreen(props: ThreadFileRouteScreenProps) {
 
   const fileMenuActions = useMemo(() => {
     if (relativePath === null) return [];
-    const canToggleMode = canPreview && !isImageFile;
+    const canToggleMode = canPreview && !isAudioFile && !isImageFile;
     return [
       canToggleMode
         ? ({
@@ -612,7 +617,7 @@ export function ThreadFileScreen(props: ThreadFileRouteScreenProps) {
             onPress: () => tryOpenExternalUrl(assetPreviewUri, "file-preview"),
           } as const)
         : null,
-      resolvedActiveMode === "preview" && (isBrowserFile || isImageFile)
+      resolvedActiveMode === "preview" && (isAudioFile || isBrowserFile || isImageFile)
         ? ({
             id: "refresh",
             title: "Refresh",
@@ -626,6 +631,7 @@ export function ThreadFileScreen(props: ThreadFileRouteScreenProps) {
     assetPreviewUri,
     previewUri,
     canPreview,
+    isAudioFile,
     isBrowserFile,
     isImageFile,
     relativePath,

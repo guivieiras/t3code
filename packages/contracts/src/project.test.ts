@@ -70,6 +70,15 @@ describe("project RPC errors", () => {
     expect(readError.message).not.toContain(cause.message);
     expect(readError.cause).toBe(cause);
 
+    const binaryReadError = new ProjectReadFileError({
+      cwd: "/workspace",
+      relativePath: "assets/archive.zip",
+      failure: "binary_file",
+    });
+    expect(binaryReadError.message).toBe(
+      "Workspace file 'assets/archive.zip' in '/workspace' is binary and cannot be previewed.",
+    );
+
     const contentSearchError = new ProjectSearchContentsError({
       cwd: "/workspace",
       queryLength: "authorization: Bearer secret-token".length,

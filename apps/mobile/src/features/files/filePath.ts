@@ -1,4 +1,5 @@
 import {
+  isWorkspaceAudioPreviewPath,
   isWorkspaceBrowserPreviewPath,
   isWorkspaceImagePreviewPath,
 } from "@t3tools/shared/filePreview";
@@ -89,6 +90,10 @@ export function resolveWorkspaceRelativeFilePath(
 
 export function isBrowserPreviewFile(path: string): boolean {
   return isWorkspaceBrowserPreviewPath(path);
+}
+
+export function isAudioPreviewFile(path: string): boolean {
+  return isWorkspaceAudioPreviewPath(path);
 }
 
 export function isImagePreviewFile(path: string): boolean {

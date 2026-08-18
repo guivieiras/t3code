@@ -910,53 +910,84 @@ describe("reduceSidebarProjectScopeMenuState", () => {
 });
 
 describe("sortThreadsForSidebar", () => {
-  const sortable = (input: { id: string; createdAt: string }) => ({
+  const sortable = (input: { id: string; createdAt: string; latestUserMessageAt?: string }) => ({
     id: input.id,
     createdAt: input.createdAt,
+    updatedAt: input.createdAt,
+    latestUserMessageAt: input.latestUserMessageAt ?? null,
   });
 
-  it("orders by creation time, newest first, ignoring activity", () => {
-    const sorted = sortThreadsForSidebar([
-      sortable({ id: "oldest", createdAt: "2026-03-09T08:00:00.000Z" }),
-      sortable({ id: "newest", createdAt: "2026-03-09T12:00:00.000Z" }),
-      sortable({ id: "middle", createdAt: "2026-03-09T10:00:00.000Z" }),
-    ]);
+  it("orders by the latest user message when configured for recency", () => {
+    const sorted = sortThreadsForSidebar(
+      [
+        sortable({
+          id: "created-newest",
+          createdAt: "2026-03-09T12:00:00.000Z",
+          latestUserMessageAt: "2026-03-09T12:01:00.000Z",
+        }),
+        sortable({
+          id: "messaged-newest",
+          createdAt: "2026-03-09T08:00:00.000Z",
+          latestUserMessageAt: "2026-03-09T13:00:00.000Z",
+        }),
+      ],
+      "updated_at",
+    );
 
-    expect(sorted.map((thread) => thread.id)).toEqual(["newest", "middle", "oldest"]);
+    expect(sorted.map((thread) => thread.id)).toEqual(["messaged-newest", "created-newest"]);
   });
 
-  it("breaks creation-time ties by id so the order is stable", () => {
-    const sorted = sortThreadsForSidebar([
-      sortable({ id: "b", createdAt: "2026-03-09T10:00:00.000Z" }),
-      sortable({ id: "a", createdAt: "2026-03-09T10:00:00.000Z" }),
-    ]);
+  it("keeps creation order when configured for created time", () => {
+    const sorted = sortThreadsForSidebar(
+      [
+        sortable({
+          id: "created-newest",
+          createdAt: "2026-03-09T12:00:00.000Z",
+          latestUserMessageAt: "2026-03-09T12:01:00.000Z",
+        }),
+        sortable({
+          id: "messaged-newest",
+          createdAt: "2026-03-09T08:00:00.000Z",
+          latestUserMessageAt: "2026-03-09T13:00:00.000Z",
+        }),
+      ],
+      "created_at",
+    );
 
-    expect(sorted.map((thread) => thread.id)).toEqual(["a", "b"]);
+    expect(sorted.map((thread) => thread.id)).toEqual(["created-newest", "messaged-newest"]);
   });
 
   it("surfaces an un-settled thread at the top via its re-entry stamp", () => {
-    const sorted = sortThreadsForSidebar([
-      {
-        id: "old-unsettled",
-        createdAt: "2026-03-09T08:00:00.000Z",
-        unsettledAt: "2026-03-09T13:00:00.000Z",
-      },
-      sortable({ id: "newest", createdAt: "2026-03-09T12:00:00.000Z" }),
-      sortable({ id: "middle", createdAt: "2026-03-09T10:00:00.000Z" }),
-    ]);
+    const sorted = sortThreadsForSidebar(
+      [
+        {
+          id: "old-unsettled",
+          createdAt: "2026-03-09T08:00:00.000Z",
+          updatedAt: "2026-03-09T08:00:00.000Z",
+          unsettledAt: "2026-03-09T13:00:00.000Z",
+        },
+        sortable({ id: "newest", createdAt: "2026-03-09T12:00:00.000Z" }),
+        sortable({ id: "middle", createdAt: "2026-03-09T10:00:00.000Z" }),
+      ],
+      "created_at",
+    );
 
     expect(sorted.map((thread) => thread.id)).toEqual(["old-unsettled", "newest", "middle"]);
   });
 
   it("ignores a re-entry stamp older than the thread's creation", () => {
-    const sorted = sortThreadsForSidebar([
-      {
-        id: "stale-stamp",
-        createdAt: "2026-03-09T10:00:00.000Z",
-        unsettledAt: "2026-03-09T09:00:00.000Z",
-      },
-      sortable({ id: "newest", createdAt: "2026-03-09T12:00:00.000Z" }),
-    ]);
+    const sorted = sortThreadsForSidebar(
+      [
+        {
+          id: "stale-stamp",
+          createdAt: "2026-03-09T10:00:00.000Z",
+          updatedAt: "2026-03-09T10:00:00.000Z",
+          unsettledAt: "2026-03-09T09:00:00.000Z",
+        },
+        sortable({ id: "newest", createdAt: "2026-03-09T12:00:00.000Z" }),
+      ],
+      "created_at",
+    );
 
     expect(sorted.map((thread) => thread.id)).toEqual(["newest", "stale-stamp"]);
   });

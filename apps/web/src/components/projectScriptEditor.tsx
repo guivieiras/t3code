@@ -22,7 +22,10 @@ import {
   keybindingValueForCommand,
   decodeProjectScriptKeybindingRule,
 } from "~/lib/projectScriptKeybindings";
-import { keybindingFromKeyboardEvent } from "~/components/settings/KeybindingsSettings.logic";
+import {
+  isFocusTraversalTabEvent,
+  keybindingFromKeyboardEvent,
+} from "~/components/settings/KeybindingsSettings.logic";
 import { commandForProjectScript, nextProjectScriptId } from "~/projectScripts";
 import {
   AlertDialog,
@@ -175,7 +178,7 @@ export function ProjectScriptEditorDialog({
   }, [request]);
 
   const captureKeybinding = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Tab") return;
+    if (isFocusTraversalTabEvent(event)) return;
     event.preventDefault();
     if (event.key === "Backspace" || event.key === "Delete") {
       setKeybinding("");

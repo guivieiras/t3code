@@ -6,6 +6,7 @@ import {
   buildKeybindingCommandOptions,
   buildWhenVariableOptions,
   commandLabel,
+  isFocusTraversalTabEvent,
   keybindingConflictLabels,
   keybindingFromKeyboardEvent,
   parseWhenExpressionDraft,
@@ -62,6 +63,48 @@ describe("KeybindingsSettings.logic", () => {
         "Win32",
       ),
     ).toBe("mod+shift+k");
+  });
+
+  it("reserves unmodified Tab for focus traversal and captures modified Tab shortcuts", () => {
+    expect(
+      isFocusTraversalTabEvent({
+        key: "Tab",
+        metaKey: false,
+        ctrlKey: false,
+        altKey: false,
+        shiftKey: false,
+      }),
+    ).toBe(true);
+    expect(
+      isFocusTraversalTabEvent({
+        key: "Tab",
+        metaKey: false,
+        ctrlKey: false,
+        altKey: false,
+        shiftKey: true,
+      }),
+    ).toBe(true);
+    expect(
+      isFocusTraversalTabEvent({
+        key: "Tab",
+        metaKey: false,
+        ctrlKey: true,
+        altKey: false,
+        shiftKey: false,
+      }),
+    ).toBe(false);
+    expect(
+      keybindingFromKeyboardEvent(
+        { key: "Tab", metaKey: false, ctrlKey: true, altKey: false, shiftKey: false },
+        "Win32",
+      ),
+    ).toBe("mod+tab");
+    expect(
+      keybindingFromKeyboardEvent(
+        { key: "Tab", metaKey: false, ctrlKey: true, altKey: false, shiftKey: true },
+        "Win32",
+      ),
+    ).toBe("mod+shift+tab");
   });
 
   it("serializes shortcuts and when expressions for upserts", () => {

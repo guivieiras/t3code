@@ -336,3 +336,9 @@ export function keybindingFromKeyboardEvent(
   parts.push(keyToken);
   return parts.join("+");
 }
+
+export function isFocusTraversalTabEvent(
+  event: Pick<KeyboardEvent, "key" | "metaKey" | "ctrlKey" | "altKey" | "shiftKey">,
+): boolean {
+  return event.key === "Tab" && !event.metaKey && !event.ctrlKey && !event.altKey;
+}

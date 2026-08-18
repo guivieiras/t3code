@@ -149,8 +149,21 @@ describe("ClientSettings sidebar", () => {
   it("defaults to the current sidebar with automatic merge and inactivity settling", () => {
     const settings = decodeClientSettings({});
     expect(settings.legacySidebarEnabled).toBe(false);
+    expect(settings.sidebarDensity).toBe("comfortable");
     expect(settings.sidebarAutoSettleAfterDays).toBe(3);
     expect(settings.sidebarAutoSettleOnMerge).toBe(true);
+  });
+
+  it("accepts comfortable and compact sidebar densities", () => {
+    for (const sidebarDensity of ["comfortable", "compact"] as const) {
+      expect(decodeClientSettings({ sidebarDensity }).sidebarDensity).toBe(sidebarDensity);
+      expect(decodeClientSettingsPatch({ sidebarDensity }).sidebarDensity).toBe(sidebarDensity);
+    }
+  });
+
+  it("rejects unsupported sidebar densities", () => {
+    expect(() => decodeClientSettings({ sidebarDensity: "dense" })).toThrow();
+    expect(() => decodeClientSettingsPatch({ sidebarDensity: "dense" })).toThrow();
   });
 
   it("drops the retired sidebar v2 beta keys, resetting everyone to the default", () => {

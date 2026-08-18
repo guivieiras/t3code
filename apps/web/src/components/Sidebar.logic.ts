@@ -1,7 +1,11 @@
 import * as React from "react";
 import { defaultAnimateLayoutChanges, type AnimateLayoutChanges } from "@dnd-kit/sortable";
 import type { ContextMenuItem } from "@t3tools/contracts";
-import type { SidebarProjectSortOrder, SidebarThreadSortOrder } from "@t3tools/contracts/settings";
+import type {
+  SidebarDensity,
+  SidebarProjectSortOrder,
+  SidebarThreadSortOrder,
+} from "@t3tools/contracts/settings";
 import {
   activeThreadAnchorTimestampMs,
   getThreadSortTimestamp,
@@ -30,6 +34,17 @@ export const SIDEBAR_THREAD_PREWARM_LIMIT = 3;
 // after release, replaying the same movement across every affected row.
 export const animatePinnedLayoutChanges: AnimateLayoutChanges = (args) =>
   args.isSorting ? defaultAnimateLayoutChanges(args) : false;
+
+export type SidebarThreadSection = "pinned" | "active" | "snoozed" | "settled";
+export type SidebarThreadRowVariant = "card" | "compact" | "slim";
+
+export function resolveSidebarThreadRowVariant(
+  section: SidebarThreadSection,
+  density: SidebarDensity,
+): SidebarThreadRowVariant {
+  if (section === "snoozed" || section === "settled") return "slim";
+  return density === "compact" ? "compact" : "card";
+}
 
 type SidebarProject = {
   id: string;

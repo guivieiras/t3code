@@ -1,30 +1,34 @@
 import { useAtomValue } from "@effect/atom-react";
+import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import type { EnvironmentId } from "@t3tools/contracts";
 import * as Option from "effect/Option";
 import { useEffect, useRef } from "react";
 
-import { APP_DISPLAY_NAME } from "../../branding";
 import { isElectron } from "../../env";
 import { isLinuxPlatform } from "../../lib/utils";
+import { appAtomRegistry } from "../../rpc/atomRegistry";
 import { useEnvironments } from "../../state/environments";
 import { environmentShell } from "../../state/shell";
+import { environmentThreadDetails } from "../../state/threads";
 import {
+  buildLinuxCompletionNotification,
+  compactFinalResponsePreview,
   trackLinuxCompletionTransitions,
+  type LinuxCompletion,
   type LinuxCompletionTrackerState,
 } from "./LinuxDesktopCompletionNotifications.logic";
 
 let notificationPermissionRequest: Promise<NotificationPermission> | null = null;
+const FINAL_RESPONSE_WAIT_MS = 2_000;
 
-function showCompletionNotification() {
+function showCompletionNotification(input: { readonly title: string; readonly body: string }) {
   if (!("Notification" in window) || Notification.permission === "denied") {
     return;
   }
 
   const show = () => {
     try {
-      const notification = new Notification(APP_DISPLAY_NAME, {
-        body: "An agent turn completed.",
-      });
+      const notification = new Notification(input.title, { body: input.body });
       void notification;
     } catch {
       // Desktop notifications are best-effort; a missing notification daemon
@@ -43,7 +47,68 @@ function showCompletionNotification() {
   });
 }
 
-function EnvironmentCompletionNotifications({ environmentId }: { environmentId: EnvironmentId }) {
+async function readFinalAssistantPreview(
+  environmentId: EnvironmentId,
+  completion: LinuxCompletion,
+): Promise<string | null> {
+  const messageId = completion.assistantMessageId;
+  if (messageId === null) return null;
+
+  const threadAtom = environmentThreadDetails.detailAtom(
+    scopeThreadRef(environmentId, completion.threadId),
+  );
+  const readPreview = () => {
+    const message = appAtomRegistry
+      .get(threadAtom)
+      ?.messages.find((candidate) => candidate.id === messageId && candidate.role === "assistant");
+    return message?.streaming === false ? compactFinalResponsePreview(message.text) : null;
+  };
+  const cachedPreview = readPreview();
+  if (cachedPreview !== null) return cachedPreview;
+
+  return await new Promise<string | null>((resolve) => {
+    let settled = false;
+    let unsubscribe: (() => void) | null = null;
+    const finish = (preview: string | null) => {
+      if (settled) return;
+      settled = true;
+      unsubscribe?.();
+      globalThis.clearTimeout(timeoutId);
+      resolve(preview);
+    };
+    const timeoutId = globalThis.setTimeout(() => finish(readPreview()), FINAL_RESPONSE_WAIT_MS);
+    unsubscribe = appAtomRegistry.subscribe(threadAtom, () => {
+      const preview = readPreview();
+      if (preview !== null) finish(preview);
+    });
+    if (settled) unsubscribe();
+  });
+}
+
+async function notifyCompletion(input: {
+  readonly environmentId: EnvironmentId;
+  readonly environmentLabel: string | null;
+  readonly projectTitle: string | null;
+  readonly completion: LinuxCompletion;
+}) {
+  const assistantPreview = await readFinalAssistantPreview(input.environmentId, input.completion);
+  showCompletionNotification(
+    buildLinuxCompletionNotification({
+      completion: input.completion,
+      assistantPreview,
+      projectTitle: input.projectTitle,
+      environmentLabel: input.environmentLabel,
+    }),
+  );
+}
+
+function EnvironmentCompletionNotifications({
+  environmentId,
+  environmentLabel,
+}: {
+  environmentId: EnvironmentId;
+  environmentLabel: string | null;
+}) {
   const shell = useAtomValue(environmentShell.stateValueAtom(environmentId));
   const trackerRef = useRef<LinuxCompletionTrackerState | null>(null);
 
@@ -58,10 +123,18 @@ function EnvironmentCompletionNotifications({ environmentId }: { environmentId: 
       shell.snapshot.value.threads,
     );
     trackerRef.current = result.nextState;
-    for (const _threadId of result.completedThreadIds) {
-      showCompletionNotification();
+    const projectTitleById = new Map(
+      shell.snapshot.value.projects.map((project) => [project.id, project.title]),
+    );
+    for (const completion of result.completions) {
+      void notifyCompletion({
+        environmentId,
+        environmentLabel,
+        projectTitle: projectTitleById.get(completion.projectId) ?? null,
+        completion,
+      });
     }
-  }, [shell]);
+  }, [environmentId, environmentLabel, shell]);
 
   return null;
 }
@@ -79,6 +152,7 @@ export function LinuxDesktopCompletionNotifications() {
     <EnvironmentCompletionNotifications
       key={environment.environmentId}
       environmentId={environment.environmentId}
+      environmentLabel={environments.length > 1 ? environment.label : null}
     />
   ));
 }

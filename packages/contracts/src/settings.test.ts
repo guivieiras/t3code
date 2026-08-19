@@ -58,6 +58,15 @@ describe("ClientSettings composer context strip", () => {
   });
 });
 
+describe("ClientSettings image path links", () => {
+  it("keeps workspace image links in the drawer by default and accepts modal previews", () => {
+    expect(decodeClientSettings({}).openImagePathLinksInModal).toBe(false);
+    expect(
+      decodeClientSettingsPatch({ openImagePathLinksInModal: true }).openImagePathLinksInModal,
+    ).toBe(true);
+  });
+});
+
 describe("ClientSettings word wrap", () => {
   it("defaults word wrap on", () => {
     expect(decodeClientSettings({}).wordWrap).toBe(true);

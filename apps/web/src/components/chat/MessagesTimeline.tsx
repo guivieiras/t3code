@@ -1481,6 +1481,7 @@ function AssistantTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "mess
           text={messageText}
           cwd={ctx.markdownCwd}
           threadRef={ctx.threadRef ?? undefined}
+          onImageExpand={ctx.onImageExpand}
           isStreaming={Boolean(row.message.streaming)}
           lineBreaks={shouldPreserveAssistantLineBreaks(messageText)}
           skills={ctx.skills}
@@ -1598,6 +1599,7 @@ function ProposedPlanTimelineRow({
         threadRef={ctx.threadRef ?? undefined}
         cwd={ctx.markdownCwd}
         workspaceRoot={ctx.workspaceRoot}
+        onImageExpand={ctx.onImageExpand}
       />
     </div>
   );
@@ -2513,6 +2515,7 @@ const UserMessageBody = memo(function UserMessageBody(props: {
             text={content}
             cwd={props.markdownCwd}
             threadRef={ctx.threadRef ?? undefined}
+            onImageExpand={ctx.onImageExpand}
             skills={props.skills}
             className="text-foreground"
             lineBreaks
@@ -2536,6 +2539,7 @@ const UserMessageBody = memo(function UserMessageBody(props: {
                   text={segment.text.trim()}
                   cwd={props.markdownCwd}
                   threadRef={ctx.threadRef ?? undefined}
+                  onImageExpand={ctx.onImageExpand}
                   skills={props.skills}
                   className="text-foreground"
                   lineBreaks
@@ -2625,6 +2629,7 @@ const UserMessageBody = memo(function UserMessageBody(props: {
           text={props.text}
           cwd={props.markdownCwd}
           threadRef={ctx.threadRef ?? undefined}
+          onImageExpand={ctx.onImageExpand}
           skills={props.skills}
           className="text-foreground"
           lineBreaks
@@ -2651,6 +2656,7 @@ const UserMessageBody = memo(function UserMessageBody(props: {
       text={props.text}
       cwd={props.markdownCwd}
       threadRef={ctx.threadRef ?? undefined}
+      onImageExpand={ctx.onImageExpand}
       skills={props.skills}
       className="text-foreground"
       lineBreaks
@@ -2687,6 +2693,7 @@ function UserMessageReviewCommentCard({ comment }: { comment: ReviewCommentConte
           text={formatReviewCommentFence(fenceLanguage, comment.diff)}
           cwd={ctx.markdownCwd}
           threadRef={ctx.threadRef ?? undefined}
+          onImageExpand={ctx.onImageExpand}
           skills={ctx.skills}
           className="text-foreground"
         />

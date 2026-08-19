@@ -32,6 +32,7 @@ import { stackedThreadToast, toastManager } from "../ui/toast";
 import { projectEnvironment } from "~/state/projects";
 import { useCopyToClipboard } from "~/hooks/useCopyToClipboard";
 import { useAtomCommand } from "~/state/use-atom-command";
+import type { ExpandedImagePreview } from "./ExpandedImagePreview";
 
 export const ProposedPlanCard = memo(function ProposedPlanCard({
   planMarkdown,
@@ -39,12 +40,14 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
   threadRef,
   cwd,
   workspaceRoot,
+  onImageExpand,
 }: {
   planMarkdown: string;
   environmentId: EnvironmentId;
   threadRef?: ScopedThreadRef | undefined;
   cwd: string | undefined;
   workspaceRoot: string | undefined;
+  onImageExpand: (preview: ExpandedImagePreview) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
@@ -177,6 +180,7 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
               cwd={cwd}
               environmentId={environmentId}
               threadRef={threadRef}
+              onImageExpand={onImageExpand}
               isStreaming={false}
             />
           ) : (
@@ -185,6 +189,7 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
               cwd={cwd}
               environmentId={environmentId}
               threadRef={threadRef}
+              onImageExpand={onImageExpand}
               isStreaming={false}
             />
           )}

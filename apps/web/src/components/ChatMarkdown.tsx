@@ -42,6 +42,7 @@ import {
   classifyMarkdownImageSource,
   markdownImageSourceFragment,
 } from "@t3tools/client-runtime/markdown-images";
+import { isWorkspaceImagePreviewPath } from "@t3tools/shared/filePreview";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/unstable/reactivity";
 import React, {
@@ -152,7 +153,7 @@ import {
   useOpenChangeRequestLink,
 } from "~/lib/openPullRequestLink";
 import { writeTextToClipboard } from "../hooks/useCopyToClipboard";
-import { useAssetUrlState } from "../assets/assetUrls";
+import { resolveAssetUrl, useAssetUrlState } from "../assets/assetUrls";
 import { resolvePathLinkTarget } from "../terminal-links";
 import { isPreviewSupportedInRuntime } from "../previewStateStore";
 import {
@@ -1010,6 +1011,7 @@ interface MarkdownFileLinkProps {
   threadRef?: ScopedThreadRef | undefined;
   onOpen?: ((targetPath: string) => Promise<AtomCommandResult<unknown, unknown>>) | undefined;
   onOpenInPanel: (workspaceRelativePath: string, line: number | undefined) => void;
+  onOpenInImagePreview?: (() => void) | undefined;
   openInEditorMenuLabel: string;
   onOpenInBrowser?: (() => Promise<AtomCommandResult<unknown, unknown>>) | undefined;
   onReveal?: (() => Promise<AtomCommandResult<unknown, unknown>>) | undefined;
@@ -1019,6 +1021,14 @@ interface MarkdownFileLinkProps {
 
 const MARKDOWN_FILE_LINK_CLASS_NAME =
   "chat-markdown-file-link cursor-pointer transition-colors hover:bg-accent/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/70";
+
+export function shouldOpenImagePathInModal(
+  enabled: boolean,
+  filePath: string,
+  workspaceRelativePath: string | null,
+): boolean {
+  return enabled && workspaceRelativePath !== null && isWorkspaceImagePreviewPath(filePath);
+}
 
 function pathParentSegments(path: string): string[] {
   const normalized = path.replaceAll("\\", "/");
@@ -1445,6 +1455,7 @@ const MarkdownFileLink = memo(function MarkdownFileLink({
   threadRef,
   onOpen,
   onOpenInPanel,
+  onOpenInImagePreview,
   openInEditorMenuLabel,
   onOpenInBrowser,
   onReveal,
@@ -1698,6 +1709,10 @@ const MarkdownFileLink = memo(function MarkdownFileLink({
                   handleOpenInEditor();
                   return;
                 }
+                if (onOpenInImagePreview) {
+                  onOpenInImagePreview();
+                  return;
+                }
                 if (useBrowserPrimaryAction) {
                   handleOpenInBrowser();
                   return;
@@ -1759,6 +1774,7 @@ function areMarkdownFileLinkPropsEqual(
     previous.threadRef === next.threadRef &&
     previous.onOpen === next.onOpen &&
     previous.onOpenInPanel === next.onOpenInPanel &&
+    previous.onOpenInImagePreview === next.onOpenInImagePreview &&
     previous.openInEditorMenuLabel === next.openInEditorMenuLabel &&
     previous.onOpenInBrowser === next.onOpenInBrowser &&
     previous.onReveal === next.onReveal &&
@@ -1798,6 +1814,7 @@ function ChatMarkdown({
   });
   const environmentId = threadRef?.environmentId ?? explicitEnvironmentId ?? null;
   const preparedConnection = usePreparedConnection(environmentId);
+  const imagePreviewRequestRef = useRef(0);
   const remoteOpen = useRemoteOpenResolution(environmentId);
   const canUseShellActions = canUseMarkdownFileShellActions(
     environmentId,
@@ -2017,6 +2034,83 @@ function ChatMarkdown({
     },
     [cwd, findWorkspaceBasenameMatch, threadRef],
   );
+  useEffect(
+    () => () => {
+      imagePreviewRequestRef.current += 1;
+    },
+    [],
+  );
+  const openImagePreview = useCallback(
+    (fileLinkMeta: MarkdownFileLinkMeta) => {
+      const fallbackToPanel = () => {
+        if (fileLinkMeta.workspaceRelativePath) {
+          openFileInPanel(fileLinkMeta.workspaceRelativePath, fileLinkMeta.line);
+        }
+      };
+      if (
+        !shouldOpenImagePathInModal(
+          getClientSettings().openImagePathLinksInModal,
+          fileLinkMeta.filePath,
+          fileLinkMeta.workspaceRelativePath,
+        )
+      ) {
+        fallbackToPanel();
+        return;
+      }
+      if (!threadRef || !onImageExpand || preparedConnection._tag === "None") {
+        fallbackToPanel();
+        return;
+      }
+
+      const requestId = imagePreviewRequestRef.current + 1;
+      imagePreviewRequestRef.current = requestId;
+      const httpBaseUrl = preparedConnection.value.httpBaseUrl;
+      void (async () => {
+        try {
+          const result = await createAssetUrl({
+            environmentId: threadRef.environmentId,
+            input: {
+              resource: {
+                _tag: "workspace-file",
+                threadId: threadRef.threadId,
+                path: fileLinkMeta.filePath,
+              },
+            },
+          });
+          if (imagePreviewRequestRef.current !== requestId) return;
+          if (result._tag === "Failure") {
+            reportMarkdownActionFailure(
+              { operation: "open-image-path-preview", target: fileLinkMeta.filePath },
+              result.cause,
+            );
+            fallbackToPanel();
+            return;
+          }
+          const imageUrl = resolveAssetUrl(httpBaseUrl, result.value.relativeUrl);
+          if (imageUrl === null) {
+            reportMarkdownActionFailure(
+              { operation: "open-image-path-preview", target: fileLinkMeta.filePath },
+              new Error("The environment returned an invalid asset URL."),
+            );
+            fallbackToPanel();
+            return;
+          }
+          onImageExpand({
+            images: [{ src: imageUrl, name: fileLinkMeta.displayPath }],
+            index: 0,
+          });
+        } catch (cause) {
+          if (imagePreviewRequestRef.current !== requestId) return;
+          reportMarkdownActionFailure(
+            { operation: "open-image-path-preview", target: fileLinkMeta.filePath },
+            cause,
+          );
+          fallbackToPanel();
+        }
+      })();
+    },
+    [createAssetUrl, onImageExpand, openFileInPanel, preparedConnection, threadRef],
+  );
   const revealMarkdownFileInFileManager = useCallback(
     async (fileLinkMeta: MarkdownFileLinkMeta) => {
       const workspaceRelativePath = fileLinkMeta.workspaceRelativePath;
@@ -2064,6 +2158,13 @@ function ChatMarkdown({
           threadRef={threadRef}
           {...(canUseShellActions ? { onOpen: openInPreferredEditor } : {})}
           onOpenInPanel={openFileInPanel}
+          onOpenInImagePreview={
+            onImageExpand &&
+            isWorkspaceImagePreviewPath(fileLinkMeta.filePath) &&
+            fileLinkMeta.workspaceRelativePath !== null
+              ? () => openImagePreview(fileLinkMeta)
+              : undefined
+          }
           openInEditorMenuLabel={preferredEditorMenuLabel}
           onReveal={
             canUseShellActions && revealInFileManagerLabel !== undefined
@@ -2407,6 +2508,7 @@ function ChatMarkdown({
     onUseArtifactTemplate,
     onImageExpand,
     openFileInPanel,
+    openImagePreview,
     openInPreferredEditor,
     openChangeRequestLink,
     openExternalLinkInPreview,

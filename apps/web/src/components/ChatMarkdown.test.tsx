@@ -32,6 +32,7 @@ import ChatMarkdown, {
   canUseMarkdownFileShellActions,
   hasMarkdownFilePrimaryAction,
   orderedListGutterStyle,
+  shouldOpenImagePathInModal,
   shouldUseMarkdownFileBrowserPrimaryAction,
 } from "./ChatMarkdown";
 
@@ -393,6 +394,22 @@ describe("orderedListGutterStyle", () => {
   it("treats a missing/zero item count as a single item", () => {
     expect(orderedListGutterStyle(0, undefined)).toBeUndefined();
     expect(orderedListGutterStyle(0, 100)).toEqual({ "--list-gutter": "4ch" });
+  });
+});
+
+describe("shouldOpenImagePathInModal", () => {
+  it("opens workspace image links in the modal only when the preference is enabled", () => {
+    expect(
+      shouldOpenImagePathInModal(true, "/repo/screenshots/result.png", "screenshots/result.png"),
+    ).toBe(true);
+    expect(
+      shouldOpenImagePathInModal(false, "/repo/screenshots/result.png", "screenshots/result.png"),
+    ).toBe(false);
+  });
+
+  it("keeps non-image and out-of-workspace links on their existing paths", () => {
+    expect(shouldOpenImagePathInModal(true, "/repo/src/index.ts", "src/index.ts")).toBe(false);
+    expect(shouldOpenImagePathInModal(true, "/tmp/result.png", null)).toBe(false);
   });
 });
 

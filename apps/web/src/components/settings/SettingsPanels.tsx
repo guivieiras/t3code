@@ -504,6 +504,9 @@ export function useSettingsRestore(onRestored?: () => void) {
         ? ["Auto-settle merged threads"]
         : []),
       ...(settings.wordWrap !== DEFAULT_UNIFIED_SETTINGS.wordWrap ? ["Word wrap"] : []),
+      ...(settings.openImagePathLinksInModal !== DEFAULT_UNIFIED_SETTINGS.openImagePathLinksInModal
+        ? ["Image path previews"]
+        : []),
       ...getChangedTypographySettingLabels(settings),
       ...(settings.diffIgnoreWhitespace !== DEFAULT_UNIFIED_SETTINGS.diffIgnoreWhitespace
         ? ["Diff whitespace changes"]
@@ -576,6 +579,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       settings.fontSizePrompt,
       settings.fontSizeTerminal,
       settings.glassOpacity,
+      settings.openImagePathLinksInModal,
       settings.enableLegacyTokenStreaming,
       settings.persistComposerContextStrip,
       settings.enableProviderUpdateChecks,
@@ -658,6 +662,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       appearanceContrast: DEFAULT_UNIFIED_SETTINGS.appearanceContrast,
       timestampFormat: DEFAULT_UNIFIED_SETTINGS.timestampFormat,
       wordWrap: DEFAULT_UNIFIED_SETTINGS.wordWrap,
+      openImagePathLinksInModal: DEFAULT_UNIFIED_SETTINGS.openImagePathLinksInModal,
       persistComposerContextStrip: DEFAULT_UNIFIED_SETTINGS.persistComposerContextStrip,
       diffIgnoreWhitespace: DEFAULT_UNIFIED_SETTINGS.diffIgnoreWhitespace,
       showSkillsInSlashMenu: DEFAULT_UNIFIED_SETTINGS.showSkillsInSlashMenu,
@@ -1221,6 +1226,33 @@ export function AppearanceSettingsPanel() {
                 updateSettings({ persistComposerContextStrip: Boolean(checked) })
               }
               aria-label="Keep composer context visible in active threads"
+            />
+          }
+        />
+
+        <SettingsRow
+          {...searchableSetting("image-path-previews")}
+          description="Open workspace image path links in chat as an expanded image preview instead of in the workspace drawer."
+          resetAction={
+            settings.openImagePathLinksInModal !==
+            DEFAULT_UNIFIED_SETTINGS.openImagePathLinksInModal ? (
+              <SettingResetButton
+                label="image path previews"
+                onClick={() =>
+                  updateSettings({
+                    openImagePathLinksInModal: DEFAULT_UNIFIED_SETTINGS.openImagePathLinksInModal,
+                  })
+                }
+              />
+            ) : null
+          }
+          control={
+            <Switch
+              checked={settings.openImagePathLinksInModal}
+              onCheckedChange={(checked) =>
+                updateSettings({ openImagePathLinksInModal: Boolean(checked) })
+              }
+              aria-label="Open image path links in expanded previews"
             />
           }
         />

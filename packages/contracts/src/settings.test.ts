@@ -58,6 +58,15 @@ describe("ClientSettings composer context strip", () => {
   });
 });
 
+describe("ClientSettings sent message position", () => {
+  it("pins sent messages to the top by default and allows it to be disabled", () => {
+    expect(decodeClientSettings({}).pinSentMessagesToTop).toBe(true);
+    expect(decodeClientSettingsPatch({ pinSentMessagesToTop: false }).pinSentMessagesToTop).toBe(
+      false,
+    );
+  });
+});
+
 describe("ClientSettings word wrap", () => {
   it("defaults word wrap on", () => {
     expect(decodeClientSettings({}).wordWrap).toBe(true);

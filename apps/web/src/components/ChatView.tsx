@@ -123,6 +123,7 @@ import { type LegendListRef } from "@legendapp/list/react";
 import {
   CHAT_TIMELINE_ANCHOR_OFFSET,
   getAnchoredTurnMetrics,
+  resolveNewTurnScrollBehavior,
   type TimelineScrollMode,
 } from "./chat/timelineScrollAnchoring";
 import {
@@ -6164,20 +6165,25 @@ function ChatViewContent(props: ChatViewProps) {
           },
     );
     if (!shouldQueueBehindActiveRun) {
-      // A sent turn returns to the live edge and anchors its new transcript
-      // row. Queued input stays in the composer queue and must not move the
-      // timeline away from the provider work already in flight.
+      const scrollBehavior = resolveNewTurnScrollBehavior(
+        settings.pinSentMessagesToTop,
+        messageIdForSend,
+      );
+      // A sent turn returns to the live edge. Queued input stays in the
+      // composer queue and must not move the timeline away from active work.
       isAtEndRef.current = true;
-      timelineScrollModeRef.current = "anchoring-new-turn";
+      timelineScrollModeRef.current = scrollBehavior.mode;
       liveFollowUserScrollGenerationRef.current = anchorUserScrollGenerationRef.current;
       setTimelineLiveFollowEnabled(true);
-      pendingTimelineAnchorRef.current = messageIdForSend;
+      pendingTimelineAnchorRef.current = scrollBehavior.anchorMessageId;
+      positionedTimelineAnchorRef.current = null;
+      settledTimelineAnchorRef.current = null;
       activeTimelineAnchorIndexRef.current = null;
       showScrollDebouncer.current.cancel();
       setShowScrollToBottom(false);
       setTimelineAnchor({
         threadKey: scopedThreadKey(scopeThreadRef(activeThread.environmentId, threadIdForSend)),
-        messageId: messageIdForSend,
+        messageId: scrollBehavior.anchorMessageId,
       });
     }
     setOptimisticUserMessages((existing) => [
@@ -6618,18 +6624,25 @@ function ChatViewContent(props: ChatViewProps) {
     beginLocalDispatch({ preparingWorktree: false });
     setThreadError(threadIdForSend, null);
 
-    // Position this sent row once LegendList has measured the anchored tail.
+    const scrollBehavior = resolveNewTurnScrollBehavior(
+      settings.pinSentMessagesToTop,
+      messageIdForSend,
+    );
+    // Position this sent row once LegendList has measured the anchored tail,
+    // or leave ordinary end-follow active when sent-message pinning is off.
     isAtEndRef.current = true;
-    timelineScrollModeRef.current = "anchoring-new-turn";
+    timelineScrollModeRef.current = scrollBehavior.mode;
     liveFollowUserScrollGenerationRef.current = anchorUserScrollGenerationRef.current;
     setTimelineLiveFollowEnabled(true);
-    pendingTimelineAnchorRef.current = messageIdForSend;
+    pendingTimelineAnchorRef.current = scrollBehavior.anchorMessageId;
+    positionedTimelineAnchorRef.current = null;
+    settledTimelineAnchorRef.current = null;
     activeTimelineAnchorIndexRef.current = null;
     showScrollDebouncer.current.cancel();
     setShowScrollToBottom(false);
     setTimelineAnchor({
       threadKey: scopedThreadKey(scopeThreadRef(activeThread.environmentId, threadIdForSend)),
-      messageId: messageIdForSend,
+      messageId: scrollBehavior.anchorMessageId,
     });
 
     setOptimisticUserMessages((existing) => [

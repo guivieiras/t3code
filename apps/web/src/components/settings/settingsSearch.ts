@@ -103,6 +103,11 @@ export const SETTINGS_SEARCH_ITEMS = [
     targetId: "appearance",
   },
   {
+    id: "sent-message-position",
+    title: "Pin sent messages to top",
+    to: "/settings/appearance",
+  },
+  {
     id: "interface-font",
     title: "Interface font",
     to: "/settings/appearance",

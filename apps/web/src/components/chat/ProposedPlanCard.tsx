@@ -32,6 +32,7 @@ import { stackedThreadToast, toastManager } from "../ui/toast";
 import { projectEnvironment } from "~/state/projects";
 import { useCopyToClipboard } from "~/hooks/useCopyToClipboard";
 import { useAtomCommand } from "~/state/use-atom-command";
+import type { ExpandedAudioPreview } from "./ExpandedAudioPreview";
 import type { ExpandedImagePreview } from "./ExpandedImagePreview";
 
 export const ProposedPlanCard = memo(function ProposedPlanCard({
@@ -40,6 +41,7 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
   threadRef,
   cwd,
   workspaceRoot,
+  onAudioExpand,
   onImageExpand,
 }: {
   planMarkdown: string;
@@ -47,6 +49,7 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
   threadRef?: ScopedThreadRef | undefined;
   cwd: string | undefined;
   workspaceRoot: string | undefined;
+  onAudioExpand: (preview: ExpandedAudioPreview) => void;
   onImageExpand: (preview: ExpandedImagePreview) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -180,6 +183,7 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
               cwd={cwd}
               environmentId={environmentId}
               threadRef={threadRef}
+              onAudioExpand={onAudioExpand}
               onImageExpand={onImageExpand}
               isStreaming={false}
             />
@@ -189,6 +193,7 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
               cwd={cwd}
               environmentId={environmentId}
               threadRef={threadRef}
+              onAudioExpand={onAudioExpand}
               onImageExpand={onImageExpand}
               isStreaming={false}
             />

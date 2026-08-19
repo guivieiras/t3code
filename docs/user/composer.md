@@ -4,11 +4,14 @@ Messages can contain up to 120,000 characters. If a draft is longer, T3 Code kee
 composer and shows how many characters need to be removed. Shorten the draft or split it into
 multiple messages, then send again in the same thread.
 
-## Image path previews
+## Media path previews
 
-Turn on **Settings → Appearance → Image path previews** to open workspace image path links in
-chat with the same expanded preview used for pasted images. With the setting off, image path links
-open in the workspace drawer.
+Turn on **Settings → Appearance → Image path previews** to open workspace image path links with
+the same expanded preview used for pasted images. Turn on **Audio path previews** to open workspace
+audio path links in a player.
+
+With either setting off, its path links open in the workspace drawer. Hold Ctrl while clicking an
+image or audio path link to use the workspace drawer for that click.
 
 On mobile, an empty composer shows an interrupt button while the agent is working. Adding text
 or an attachment replaces it with the send button. This applies to both compact and expanded

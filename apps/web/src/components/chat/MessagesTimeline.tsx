@@ -90,6 +90,7 @@ import {
   ZapIcon,
 } from "lucide-react";
 import { Button } from "../ui/button";
+import type { ExpandedAudioPreview } from "./ExpandedAudioPreview";
 import { buildExpandedImagePreview, ExpandedImagePreview } from "./ExpandedImagePreview";
 import { ProposedPlanCard } from "./ProposedPlanCard";
 import { ChangedFilesCard } from "./ChangedFilesTree";
@@ -173,6 +174,7 @@ interface TimelineRowSharedState {
   runs: ReadonlyArray<HandoffTimelineRun>;
   activeThreadEnvironmentId: EnvironmentId;
   onRevertUserMessage: (messageId: MessageId) => void;
+  onAudioExpand: (preview: ExpandedAudioPreview) => void;
   onImageExpand: (preview: ExpandedImagePreview) => void;
   onOpenTurnDiff: (runId: RunId, filePath?: string) => void;
   onOpenThread: (threadId: OrchestrationV2TurnItem["threadId"]) => void;
@@ -257,6 +259,7 @@ interface MessagesTimelineProps {
   revertTurnCountByUserMessageId: Map<MessageId, number>;
   onRevertUserMessage: (messageId: MessageId) => void;
   isRevertingCheckpoint: boolean;
+  onAudioExpand: (preview: ExpandedAudioPreview) => void;
   onImageExpand: (preview: ExpandedImagePreview) => void;
   onFileOpen?: (attachment: ChatFileAttachment) => void;
   openingVideoAttachmentId: string | null;
@@ -309,6 +312,7 @@ export const MessagesTimeline = memo(function MessagesTimeline({
   revertTurnCountByUserMessageId,
   onRevertUserMessage,
   isRevertingCheckpoint,
+  onAudioExpand,
   onImageExpand,
   onFileOpen = NOOP_OPEN_ATTACHMENT,
   openingVideoAttachmentId,
@@ -603,6 +607,7 @@ export const MessagesTimeline = memo(function MessagesTimeline({
       runs,
       activeThreadEnvironmentId,
       onRevertUserMessage,
+      onAudioExpand,
       onImageExpand,
       onFileOpen,
       openingVideoAttachmentId,
@@ -626,6 +631,7 @@ export const MessagesTimeline = memo(function MessagesTimeline({
       runs,
       activeThreadEnvironmentId,
       onRevertUserMessage,
+      onAudioExpand,
       onImageExpand,
       onFileOpen,
       openingVideoAttachmentId,
@@ -1481,6 +1487,7 @@ function AssistantTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "mess
           text={messageText}
           cwd={ctx.markdownCwd}
           threadRef={ctx.threadRef ?? undefined}
+          onAudioExpand={ctx.onAudioExpand}
           onImageExpand={ctx.onImageExpand}
           isStreaming={Boolean(row.message.streaming)}
           lineBreaks={shouldPreserveAssistantLineBreaks(messageText)}
@@ -1599,6 +1606,7 @@ function ProposedPlanTimelineRow({
         threadRef={ctx.threadRef ?? undefined}
         cwd={ctx.markdownCwd}
         workspaceRoot={ctx.workspaceRoot}
+        onAudioExpand={ctx.onAudioExpand}
         onImageExpand={ctx.onImageExpand}
       />
     </div>
@@ -2515,6 +2523,7 @@ const UserMessageBody = memo(function UserMessageBody(props: {
             text={content}
             cwd={props.markdownCwd}
             threadRef={ctx.threadRef ?? undefined}
+            onAudioExpand={ctx.onAudioExpand}
             onImageExpand={ctx.onImageExpand}
             skills={props.skills}
             className="text-foreground"
@@ -2539,6 +2548,7 @@ const UserMessageBody = memo(function UserMessageBody(props: {
                   text={segment.text.trim()}
                   cwd={props.markdownCwd}
                   threadRef={ctx.threadRef ?? undefined}
+                  onAudioExpand={ctx.onAudioExpand}
                   onImageExpand={ctx.onImageExpand}
                   skills={props.skills}
                   className="text-foreground"
@@ -2629,6 +2639,7 @@ const UserMessageBody = memo(function UserMessageBody(props: {
           text={props.text}
           cwd={props.markdownCwd}
           threadRef={ctx.threadRef ?? undefined}
+          onAudioExpand={ctx.onAudioExpand}
           onImageExpand={ctx.onImageExpand}
           skills={props.skills}
           className="text-foreground"
@@ -2656,6 +2667,7 @@ const UserMessageBody = memo(function UserMessageBody(props: {
       text={props.text}
       cwd={props.markdownCwd}
       threadRef={ctx.threadRef ?? undefined}
+      onAudioExpand={ctx.onAudioExpand}
       onImageExpand={ctx.onImageExpand}
       skills={props.skills}
       className="text-foreground"
@@ -2693,6 +2705,7 @@ function UserMessageReviewCommentCard({ comment }: { comment: ReviewCommentConte
           text={formatReviewCommentFence(fenceLanguage, comment.diff)}
           cwd={ctx.markdownCwd}
           threadRef={ctx.threadRef ?? undefined}
+          onAudioExpand={ctx.onAudioExpand}
           onImageExpand={ctx.onImageExpand}
           skills={ctx.skills}
           className="text-foreground"

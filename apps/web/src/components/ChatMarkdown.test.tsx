@@ -32,6 +32,7 @@ import ChatMarkdown, {
   canUseMarkdownFileShellActions,
   hasMarkdownFilePrimaryAction,
   orderedListGutterStyle,
+  shouldOpenAudioPathInModal,
   shouldOpenImagePathInModal,
   shouldUseMarkdownFileBrowserPrimaryAction,
 } from "./ChatMarkdown";
@@ -410,6 +411,36 @@ describe("shouldOpenImagePathInModal", () => {
   it("keeps non-image and out-of-workspace links on their existing paths", () => {
     expect(shouldOpenImagePathInModal(true, "/repo/src/index.ts", "src/index.ts")).toBe(false);
     expect(shouldOpenImagePathInModal(true, "/tmp/result.png", null)).toBe(false);
+  });
+
+  it("uses the workspace drawer when Ctrl is held", () => {
+    expect(
+      shouldOpenImagePathInModal(
+        true,
+        "/repo/screenshots/result.png",
+        "screenshots/result.png",
+        true,
+      ),
+    ).toBe(false);
+  });
+});
+
+describe("shouldOpenAudioPathInModal", () => {
+  it("opens workspace audio links in the modal only when the preference is enabled", () => {
+    expect(
+      shouldOpenAudioPathInModal(true, "/repo/recordings/note.ogg", "recordings/note.ogg"),
+    ).toBe(true);
+    expect(
+      shouldOpenAudioPathInModal(false, "/repo/recordings/note.ogg", "recordings/note.ogg"),
+    ).toBe(false);
+  });
+
+  it("keeps non-audio, out-of-workspace, and Ctrl-clicked links on their existing paths", () => {
+    expect(shouldOpenAudioPathInModal(true, "/repo/src/index.ts", "src/index.ts")).toBe(false);
+    expect(shouldOpenAudioPathInModal(true, "/tmp/note.ogg", null)).toBe(false);
+    expect(
+      shouldOpenAudioPathInModal(true, "/repo/recordings/note.ogg", "recordings/note.ogg", true),
+    ).toBe(false);
   });
 });
 

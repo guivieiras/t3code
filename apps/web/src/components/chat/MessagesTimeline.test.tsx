@@ -216,6 +216,7 @@ function buildProps() {
     onRevertUserMessage: () => {},
     isRevertingCheckpoint: false,
     openingVideoAttachmentId: null,
+    onAudioExpand: () => {},
     onImageExpand: () => {},
     activeThreadEnvironmentId: ACTIVE_THREAD_ENVIRONMENT_ID,
     markdownCwd: undefined,

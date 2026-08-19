@@ -42,7 +42,10 @@ import {
   classifyMarkdownImageSource,
   markdownImageSourceFragment,
 } from "@t3tools/client-runtime/markdown-images";
-import { isWorkspaceImagePreviewPath } from "@t3tools/shared/filePreview";
+import {
+  isWorkspaceAudioPreviewPath,
+  isWorkspaceImagePreviewPath,
+} from "@t3tools/shared/filePreview";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/unstable/reactivity";
 import React, {
@@ -162,6 +165,7 @@ import {
   openUrlInPreview,
   BrowserPreviewUnavailableError,
 } from "../browser/openFileInPreview";
+import type { ExpandedAudioPreview } from "./chat/ExpandedAudioPreview";
 
 interface ChatMarkdownProps {
   text: string;
@@ -180,6 +184,7 @@ interface ChatMarkdownProps {
   /** Append a prompt that invokes a newly created artifact-template skill. */
   onUseArtifactTemplate?: ((template: CodexArtifactTemplate) => void) | undefined;
   imageBaseDir?: string | undefined;
+  onAudioExpand?: ((preview: ExpandedAudioPreview) => void) | undefined;
   onImageExpand?: ((preview: ExpandedImagePreview) => void) | undefined;
   extraRemarkPlugins?: NonNullable<ReactMarkdownOptions["remarkPlugins"]>;
 }
@@ -1011,7 +1016,7 @@ interface MarkdownFileLinkProps {
   threadRef?: ScopedThreadRef | undefined;
   onOpen?: ((targetPath: string) => Promise<AtomCommandResult<unknown, unknown>>) | undefined;
   onOpenInPanel: (workspaceRelativePath: string, line: number | undefined) => void;
-  onOpenInImagePreview?: (() => void) | undefined;
+  onOpenInMediaPreview?: ((ctrlKey: boolean) => void) | undefined;
   openInEditorMenuLabel: string;
   onOpenInBrowser?: (() => Promise<AtomCommandResult<unknown, unknown>>) | undefined;
   onReveal?: (() => Promise<AtomCommandResult<unknown, unknown>>) | undefined;
@@ -1026,8 +1031,22 @@ export function shouldOpenImagePathInModal(
   enabled: boolean,
   filePath: string,
   workspaceRelativePath: string | null,
+  ctrlKey = false,
 ): boolean {
-  return enabled && workspaceRelativePath !== null && isWorkspaceImagePreviewPath(filePath);
+  return (
+    enabled && !ctrlKey && workspaceRelativePath !== null && isWorkspaceImagePreviewPath(filePath)
+  );
+}
+
+export function shouldOpenAudioPathInModal(
+  enabled: boolean,
+  filePath: string,
+  workspaceRelativePath: string | null,
+  ctrlKey = false,
+): boolean {
+  return (
+    enabled && !ctrlKey && workspaceRelativePath !== null && isWorkspaceAudioPreviewPath(filePath)
+  );
 }
 
 function pathParentSegments(path: string): string[] {
@@ -1455,7 +1474,7 @@ const MarkdownFileLink = memo(function MarkdownFileLink({
   threadRef,
   onOpen,
   onOpenInPanel,
-  onOpenInImagePreview,
+  onOpenInMediaPreview,
   openInEditorMenuLabel,
   onOpenInBrowser,
   onReveal,
@@ -1709,8 +1728,8 @@ const MarkdownFileLink = memo(function MarkdownFileLink({
                   handleOpenInEditor();
                   return;
                 }
-                if (onOpenInImagePreview) {
-                  onOpenInImagePreview();
+                if (onOpenInMediaPreview) {
+                  onOpenInMediaPreview(event.ctrlKey);
                   return;
                 }
                 if (useBrowserPrimaryAction) {
@@ -1774,7 +1793,7 @@ function areMarkdownFileLinkPropsEqual(
     previous.threadRef === next.threadRef &&
     previous.onOpen === next.onOpen &&
     previous.onOpenInPanel === next.onOpenInPanel &&
-    previous.onOpenInImagePreview === next.onOpenInImagePreview &&
+    previous.onOpenInMediaPreview === next.onOpenInMediaPreview &&
     previous.openInEditorMenuLabel === next.openInEditorMenuLabel &&
     previous.onOpenInBrowser === next.onOpenInBrowser &&
     previous.onReveal === next.onReveal &&
@@ -1796,6 +1815,7 @@ function ChatMarkdown({
   parseRawHtml = true,
   onUseArtifactTemplate,
   imageBaseDir,
+  onAudioExpand,
   onImageExpand,
   extraRemarkPlugins = EMPTY_REMARK_PLUGINS,
 }: ChatMarkdownProps) {
@@ -1814,7 +1834,7 @@ function ChatMarkdown({
   });
   const environmentId = threadRef?.environmentId ?? explicitEnvironmentId ?? null;
   const preparedConnection = usePreparedConnection(environmentId);
-  const imagePreviewRequestRef = useRef(0);
+  const mediaPreviewRequestRef = useRef(0);
   const remoteOpen = useRemoteOpenResolution(environmentId);
   const canUseShellActions = canUseMarkdownFileShellActions(
     environmentId,
@@ -2036,34 +2056,44 @@ function ChatMarkdown({
   );
   useEffect(
     () => () => {
-      imagePreviewRequestRef.current += 1;
+      mediaPreviewRequestRef.current += 1;
     },
     [],
   );
-  const openImagePreview = useCallback(
-    (fileLinkMeta: MarkdownFileLinkMeta) => {
+  const openMediaPreview = useCallback(
+    (fileLinkMeta: MarkdownFileLinkMeta, kind: "audio" | "image", ctrlKey: boolean) => {
       const fallbackToPanel = () => {
         if (fileLinkMeta.workspaceRelativePath) {
           openFileInPanel(fileLinkMeta.workspaceRelativePath, fileLinkMeta.line);
         }
       };
-      if (
-        !shouldOpenImagePathInModal(
-          getClientSettings().openImagePathLinksInModal,
-          fileLinkMeta.filePath,
-          fileLinkMeta.workspaceRelativePath,
-        )
-      ) {
+      const settings = getClientSettings();
+      const shouldOpen =
+        kind === "audio"
+          ? shouldOpenAudioPathInModal(
+              settings.openAudioPathLinksInModal,
+              fileLinkMeta.filePath,
+              fileLinkMeta.workspaceRelativePath,
+              ctrlKey,
+            )
+          : shouldOpenImagePathInModal(
+              settings.openImagePathLinksInModal,
+              fileLinkMeta.filePath,
+              fileLinkMeta.workspaceRelativePath,
+              ctrlKey,
+            );
+      if (!shouldOpen) {
         fallbackToPanel();
         return;
       }
-      if (!threadRef || !onImageExpand || preparedConnection._tag === "None") {
+      const expandPreview = kind === "audio" ? onAudioExpand : onImageExpand;
+      if (!threadRef || !expandPreview || preparedConnection._tag === "None") {
         fallbackToPanel();
         return;
       }
 
-      const requestId = imagePreviewRequestRef.current + 1;
-      imagePreviewRequestRef.current = requestId;
+      const requestId = mediaPreviewRequestRef.current + 1;
+      mediaPreviewRequestRef.current = requestId;
       const httpBaseUrl = preparedConnection.value.httpBaseUrl;
       void (async () => {
         try {
@@ -2077,39 +2107,43 @@ function ChatMarkdown({
               },
             },
           });
-          if (imagePreviewRequestRef.current !== requestId) return;
+          if (mediaPreviewRequestRef.current !== requestId) return;
           if (result._tag === "Failure") {
             reportMarkdownActionFailure(
-              { operation: "open-image-path-preview", target: fileLinkMeta.filePath },
+              { operation: `open-${kind}-path-preview`, target: fileLinkMeta.filePath },
               result.cause,
             );
             fallbackToPanel();
             return;
           }
-          const imageUrl = resolveAssetUrl(httpBaseUrl, result.value.relativeUrl);
-          if (imageUrl === null) {
+          const mediaUrl = resolveAssetUrl(httpBaseUrl, result.value.relativeUrl);
+          if (mediaUrl === null) {
             reportMarkdownActionFailure(
-              { operation: "open-image-path-preview", target: fileLinkMeta.filePath },
+              { operation: `open-${kind}-path-preview`, target: fileLinkMeta.filePath },
               new Error("The environment returned an invalid asset URL."),
             );
             fallbackToPanel();
             return;
           }
-          onImageExpand({
-            images: [{ src: imageUrl, name: fileLinkMeta.displayPath }],
-            index: 0,
-          });
+          if (kind === "audio") {
+            onAudioExpand?.({ src: mediaUrl, name: fileLinkMeta.displayPath });
+          } else {
+            onImageExpand?.({
+              images: [{ src: mediaUrl, name: fileLinkMeta.displayPath }],
+              index: 0,
+            });
+          }
         } catch (cause) {
-          if (imagePreviewRequestRef.current !== requestId) return;
+          if (mediaPreviewRequestRef.current !== requestId) return;
           reportMarkdownActionFailure(
-            { operation: "open-image-path-preview", target: fileLinkMeta.filePath },
+            { operation: `open-${kind}-path-preview`, target: fileLinkMeta.filePath },
             cause,
           );
           fallbackToPanel();
         }
       })();
     },
-    [createAssetUrl, onImageExpand, openFileInPanel, preparedConnection, threadRef],
+    [createAssetUrl, onAudioExpand, onImageExpand, openFileInPanel, preparedConnection, threadRef],
   );
   const revealMarkdownFileInFileManager = useCallback(
     async (fileLinkMeta: MarkdownFileLinkMeta) => {
@@ -2158,12 +2192,12 @@ function ChatMarkdown({
           threadRef={threadRef}
           {...(canUseShellActions ? { onOpen: openInPreferredEditor } : {})}
           onOpenInPanel={openFileInPanel}
-          onOpenInImagePreview={
-            onImageExpand &&
-            isWorkspaceImagePreviewPath(fileLinkMeta.filePath) &&
-            fileLinkMeta.workspaceRelativePath !== null
-              ? () => openImagePreview(fileLinkMeta)
-              : undefined
+          onOpenInMediaPreview={
+            onAudioExpand && isWorkspaceAudioPreviewPath(fileLinkMeta.filePath)
+              ? (ctrlKey) => openMediaPreview(fileLinkMeta, "audio", ctrlKey)
+              : onImageExpand && isWorkspaceImagePreviewPath(fileLinkMeta.filePath)
+                ? (ctrlKey) => openMediaPreview(fileLinkMeta, "image", ctrlKey)
+                : undefined
           }
           openInEditorMenuLabel={preferredEditorMenuLabel}
           onReveal={
@@ -2506,9 +2540,10 @@ function ChatMarkdown({
     markdownFileLinkMetaByHref,
     onTaskListChange,
     onUseArtifactTemplate,
+    onAudioExpand,
     onImageExpand,
     openFileInPanel,
-    openImagePreview,
+    openMediaPreview,
     openInPreferredEditor,
     openChangeRequestLink,
     openExternalLinkInPreview,

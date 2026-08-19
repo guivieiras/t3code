@@ -504,6 +504,9 @@ export function useSettingsRestore(onRestored?: () => void) {
         ? ["Auto-settle merged threads"]
         : []),
       ...(settings.wordWrap !== DEFAULT_UNIFIED_SETTINGS.wordWrap ? ["Word wrap"] : []),
+      ...(settings.openAudioPathLinksInModal !== DEFAULT_UNIFIED_SETTINGS.openAudioPathLinksInModal
+        ? ["Audio path previews"]
+        : []),
       ...(settings.openImagePathLinksInModal !== DEFAULT_UNIFIED_SETTINGS.openImagePathLinksInModal
         ? ["Image path previews"]
         : []),
@@ -579,6 +582,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       settings.fontSizePrompt,
       settings.fontSizeTerminal,
       settings.glassOpacity,
+      settings.openAudioPathLinksInModal,
       settings.openImagePathLinksInModal,
       settings.enableLegacyTokenStreaming,
       settings.persistComposerContextStrip,
@@ -662,6 +666,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       appearanceContrast: DEFAULT_UNIFIED_SETTINGS.appearanceContrast,
       timestampFormat: DEFAULT_UNIFIED_SETTINGS.timestampFormat,
       wordWrap: DEFAULT_UNIFIED_SETTINGS.wordWrap,
+      openAudioPathLinksInModal: DEFAULT_UNIFIED_SETTINGS.openAudioPathLinksInModal,
       openImagePathLinksInModal: DEFAULT_UNIFIED_SETTINGS.openImagePathLinksInModal,
       persistComposerContextStrip: DEFAULT_UNIFIED_SETTINGS.persistComposerContextStrip,
       diffIgnoreWhitespace: DEFAULT_UNIFIED_SETTINGS.diffIgnoreWhitespace,
@@ -1231,8 +1236,35 @@ export function AppearanceSettingsPanel() {
         />
 
         <SettingsRow
+          {...searchableSetting("audio-path-previews")}
+          description="Open workspace audio path links in a player. Hold Ctrl while clicking to use the workspace drawer instead."
+          resetAction={
+            settings.openAudioPathLinksInModal !==
+            DEFAULT_UNIFIED_SETTINGS.openAudioPathLinksInModal ? (
+              <SettingResetButton
+                label="audio path previews"
+                onClick={() =>
+                  updateSettings({
+                    openAudioPathLinksInModal: DEFAULT_UNIFIED_SETTINGS.openAudioPathLinksInModal,
+                  })
+                }
+              />
+            ) : null
+          }
+          control={
+            <Switch
+              checked={settings.openAudioPathLinksInModal}
+              onCheckedChange={(checked) =>
+                updateSettings({ openAudioPathLinksInModal: Boolean(checked) })
+              }
+              aria-label="Open audio path links in a player"
+            />
+          }
+        />
+
+        <SettingsRow
           {...searchableSetting("image-path-previews")}
-          description="Open workspace image path links in chat as an expanded image preview instead of in the workspace drawer."
+          description="Open workspace image path links in an expanded preview. Hold Ctrl while clicking to use the workspace drawer instead."
           resetAction={
             settings.openImagePathLinksInModal !==
             DEFAULT_UNIFIED_SETTINGS.openImagePathLinksInModal ? (

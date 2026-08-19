@@ -285,6 +285,8 @@ import {
 import { environmentShell } from "../state/shell";
 import { ChatComposer, type ChatComposerHandle } from "./chat/ChatComposer";
 import { DraftHeroHeadline } from "./chat/DraftHeroHeadline";
+import { ExpandedAudioDialog } from "./chat/ExpandedAudioDialog";
+import { type ExpandedAudioPreview } from "./chat/ExpandedAudioPreview";
 import { ExpandedImageDialog } from "./chat/ExpandedImageDialog";
 import { PullRequestThreadDialog } from "./PullRequestThreadDialog";
 import { MessagesTimeline, type MessagesTimelineHistoryControls } from "./chat/MessagesTimeline";
@@ -1522,6 +1524,7 @@ function ChatViewContent(props: ChatViewProps) {
   const composerRef = useComposerHandleContext() ?? localComposerRef;
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [isWorkspaceFileDragActive, setIsWorkspaceFileDragActive] = useState(false);
+  const [expandedAudio, setExpandedAudio] = useState<ExpandedAudioPreview | null>(null);
   const [expandedImage, setExpandedImage] = useState<ExpandedImagePreview | null>(null);
   useEffect(() => {
     const item = expandedImage?.images[expandedImage.index];
@@ -4797,9 +4800,13 @@ function ChatViewContent(props: ChatViewProps) {
     resetLocalDispatch();
     cancelVideoPreviewRequest();
     setOpeningVideoAttachmentId(null);
+    setExpandedAudio(null);
     setExpandedImage(null);
   }, [cancelVideoPreviewRequest, draftId, resetLocalDispatch, threadId]);
 
+  const closeExpandedAudio = useCallback(() => {
+    setExpandedAudio(null);
+  }, []);
   const closeExpandedImage = useCallback(() => {
     setExpandedImage(null);
   }, []);
@@ -7023,7 +7030,17 @@ function ChatViewContent(props: ChatViewProps) {
     (preview: ExpandedImagePreview) => {
       cancelVideoPreviewRequest();
       setOpeningVideoAttachmentId(null);
+      setExpandedAudio(null);
       setExpandedImage(preview);
+    },
+    [cancelVideoPreviewRequest],
+  );
+  const onExpandTimelineAudio = useCallback(
+    (preview: ExpandedAudioPreview) => {
+      cancelVideoPreviewRequest();
+      setOpeningVideoAttachmentId(null);
+      setExpandedImage(null);
+      setExpandedAudio(preview);
     },
     [cancelVideoPreviewRequest],
   );
@@ -7406,6 +7423,7 @@ function ChatViewContent(props: ChatViewProps) {
                 onRevertUserMessage={onRevertUserMessage}
                 onUseArtifactTemplate={useArtifactTemplate}
                 isRevertingCheckpoint={isRevertingCheckpoint}
+                onAudioExpand={onExpandTimelineAudio}
                 onImageExpand={onExpandTimelineImage}
                 onFileOpen={openFileAttachment}
                 openingVideoAttachmentId={openingVideoAttachmentId}
@@ -7823,6 +7841,13 @@ function ChatViewContent(props: ChatViewProps) {
           </RightPanelTabs>
         </RightPanelSheet>
       ) : null}
+      {expandedAudio && (
+        <ExpandedAudioDialog
+          key={expandedAudio.src}
+          preview={expandedAudio}
+          onClose={closeExpandedAudio}
+        />
+      )}
       {expandedImage && (
         <ExpandedImageDialog
           key={`${expandedImage.images[expandedImage.index]?.src ?? "image"}:${expandedImage.index}`}

@@ -37,6 +37,8 @@ const clientSettings: ClientSettings = {
   fontSizeTerminal: 12,
   fontSmoothing: true,
   glassOpacity: 80,
+  openAudioPathLinksInModal: false,
+  openImagePathLinksInModal: false,
   planModeEnabled: false,
   showSkillsInSlashMenu: false,
   persistComposerContextStrip: true,

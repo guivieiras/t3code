@@ -12,6 +12,7 @@ import {
   type ChangeRequestSettleSource,
 } from "@t3tools/client-runtime/state/thread-settled";
 import type { ScopedThreadRef, ThreadId } from "@t3tools/contracts";
+import { useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
 
 import { resolveSnoozePresets, snoozeWakeDescription } from "../components/Sidebar.snooze";
@@ -58,13 +59,15 @@ function failureToast(title: string, error: unknown) {
  */
 export function useThreadActionMenu(input: {
   readonly threadRef: ScopedThreadRef | null;
+  readonly projectKey: string | null;
   /** Fallback for "Copy path" when the thread has no worktree. */
   readonly projectCwd: string | null;
   /** PR feeding auto-settle classification, as resolved by the caller. */
   readonly changeRequest: ChangeRequestSettleSource | null;
   readonly onStartRename: () => void;
 }) {
-  const { threadRef, projectCwd, changeRequest, onStartRename } = input;
+  const { threadRef, projectKey, projectCwd, changeRequest, onStartRename } = input;
+  const navigate = useNavigate();
   const {
     settleThread,
     unsettleThread,
@@ -203,6 +206,14 @@ export function useThreadActionMenu(input: {
             }
             return;
           }
+          case "project-settings":
+            if (projectKey !== null) {
+              await navigate({
+                to: "/projects/$projectKey",
+                params: { projectKey },
+              });
+            }
+            return;
           case "settle":
             await reportFailure("Failed to settle thread", () => settleThread(threadRef));
             return;
@@ -326,9 +337,11 @@ export function useThreadActionMenu(input: {
       deleteThread,
       handleNewThread,
       markThreadUnread,
+      navigate,
       onStartRename,
       pinThread,
       projectCwd,
+      projectKey,
       settleThread,
       snoozeThread,
       threadRef,

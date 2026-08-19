@@ -33,7 +33,7 @@ describe("buildThreadActionMenuItems", () => {
         ...baseState,
         supports: { settlement: false, snooze: false, pinning: false, titleRegeneration: false },
       }),
-    ).toEqual(["rename", "mark-unread", "copy", "archive", "delete"]);
+    ).toEqual(["project-settings", "rename", "mark-unread", "copy", "archive", "delete"]);
   });
 
   it("includes branch items only for threads with a branch", () => {
@@ -42,6 +42,14 @@ describe("buildThreadActionMenuItems", () => {
     expect(withBranch).toContain("copy-branch");
     expect(allIds(baseState)).not.toContain("new-thread-on-branch");
     expect(allIds(baseState)).not.toContain("copy-branch");
+  });
+
+  it("places project settings after the branch shortcut", () => {
+    expect(ids(baseState).at(0)).toBe("project-settings");
+    expect(ids({ ...baseState, branch: "feat/menu" }).slice(0, 2)).toEqual([
+      "new-thread-on-branch",
+      "project-settings",
+    ]);
   });
 
   it("flips lifecycle labels with thread state", () => {

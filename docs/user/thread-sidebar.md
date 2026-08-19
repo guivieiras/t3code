@@ -17,6 +17,10 @@ Right-click a pull request link in a thread and choose **Link to thread** to sho
 in the sidebar. The thread settles when the linked pull request merges if **Auto-settle merged
 threads** is enabled. Right-click the same link and choose **Unlink from thread** to remove it.
 
+Thread shortcut hints are enabled by default on web and desktop. To hide the Command/Ctrl jump
+badges and shortcut text in the New thread tooltip without disabling the shortcuts themselves, turn
+off **Settings → General → Thread shortcut hints**.
+
 On web and desktop, drag a pinned thread to change its position. On mobile, open the thread's menu
 and choose **Move up** or **Move down**. The order is stored by the server and appears on your
 other connected devices.

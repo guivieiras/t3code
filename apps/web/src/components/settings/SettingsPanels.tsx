@@ -489,6 +489,9 @@ export function useSettingsRestore(onRestored?: () => void) {
       ...(settings.timestampFormat !== DEFAULT_UNIFIED_SETTINGS.timestampFormat
         ? ["Time format"]
         : []),
+      ...(settings.showThreadShortcutHints !== DEFAULT_UNIFIED_SETTINGS.showThreadShortcutHints
+        ? ["Thread shortcut hints"]
+        : []),
       ...(settings.sidebarThreadPreviewCount !== DEFAULT_UNIFIED_SETTINGS.sidebarThreadPreviewCount
         ? ["Visible threads"]
         : []),
@@ -581,6 +584,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       settings.enableProviderUpdateChecks,
       settings.sidebarAutoSettleAfterDays,
       settings.sidebarAutoSettleOnMerge,
+      settings.showThreadShortcutHints,
       settings.sidebarProjectGroupingMode,
       settings.sidebarThreadPreviewCount,
       settings.showSkillsInSlashMenu,
@@ -664,6 +668,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       environmentIdentificationMode: DEFAULT_UNIFIED_SETTINGS.environmentIdentificationMode,
       glassOpacity: DEFAULT_UNIFIED_SETTINGS.glassOpacity,
       sidebarThreadPreviewCount: DEFAULT_UNIFIED_SETTINGS.sidebarThreadPreviewCount,
+      showThreadShortcutHints: DEFAULT_UNIFIED_SETTINGS.showThreadShortcutHints,
       sidebarProjectGroupingMode: DEFAULT_UNIFIED_SETTINGS.sidebarProjectGroupingMode,
       sidebarAutoSettleAfterDays: DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleAfterDays,
       sidebarAutoSettleOnMerge: DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleOnMerge,
@@ -2005,6 +2010,33 @@ export function GeneralSettingsPanel() {
                 });
               }}
               aria-label="Project grouping"
+            />
+          }
+        />
+
+        <SettingsRow
+          {...searchableSetting("thread-shortcut-hints")}
+          description="Show jump hints while holding Command/Ctrl and shortcuts in the New thread tooltip."
+          resetAction={
+            settings.showThreadShortcutHints !==
+            DEFAULT_UNIFIED_SETTINGS.showThreadShortcutHints ? (
+              <SettingResetButton
+                label="thread shortcut hints"
+                onClick={() =>
+                  updateSettings({
+                    showThreadShortcutHints: DEFAULT_UNIFIED_SETTINGS.showThreadShortcutHints,
+                  })
+                }
+              />
+            ) : null
+          }
+          control={
+            <Switch
+              checked={settings.showThreadShortcutHints}
+              onCheckedChange={(checked) =>
+                updateSettings({ showThreadShortcutHints: Boolean(checked) })
+              }
+              aria-label="Thread shortcut hints"
             />
           }
         />

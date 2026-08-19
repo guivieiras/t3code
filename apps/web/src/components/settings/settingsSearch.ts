@@ -151,6 +151,11 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["combine matching repositories environments sidebar"],
   },
   {
+    id: "thread-shortcut-hints",
+    title: "Thread shortcut hints",
+    to: "/settings/general",
+  },
+  {
     id: "auto-settle-inactive-threads",
     title: "Auto-settle inactive threads",
     to: "/settings/general",

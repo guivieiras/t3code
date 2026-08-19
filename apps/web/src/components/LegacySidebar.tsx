@@ -3077,6 +3077,7 @@ export default function LegacySidebar() {
       : false,
   );
   const keybindings = useAtomValue(primaryServerKeybindingsAtom);
+  const showThreadShortcutHints = useClientSettings((settings) => settings.showThreadShortcutHints);
   const openAddProjectCommandPalette = useCallback(
     () => openCommandPalette({ open: "add-project" }),
     [],
@@ -3228,9 +3229,10 @@ export default function LegacySidebar() {
     }),
     [platform],
   );
-  const newThreadShortcutLabel =
-    shortcutLabelForCommand(keybindings, "chat.newLocal", newThreadShortcutLabelOptions) ??
-    shortcutLabelForCommand(keybindings, "chat.new", newThreadShortcutLabelOptions);
+  const newThreadShortcutLabel = showThreadShortcutHints
+    ? (shortcutLabelForCommand(keybindings, "chat.newLocal", newThreadShortcutLabelOptions) ??
+      shortcutLabelForCommand(keybindings, "chat.new", newThreadShortcutLabelOptions))
+    : null;
 
   const navigateToThread = useCallback(
     (threadRef: ScopedThreadRef) => {
@@ -3431,17 +3433,16 @@ export default function LegacySidebar() {
       }),
     [keybindings, platform, sidebarShortcutContext.terminalOpen, threadJumpCommandByKey],
   );
-  const shouldShowThreadJumpHintsNow = shouldShowThreadJumpHintsForModifiers(
-    shortcutModifiers,
-    keybindings,
-    {
+  const shouldShowThreadJumpHintsNow =
+    showThreadShortcutHints &&
+    shouldShowThreadJumpHintsForModifiers(shortcutModifiers, keybindings, {
       platform,
       context: sidebarShortcutContext,
-    },
-  );
-  const visibleThreadJumpLabelByKey = showThreadJumpHints
-    ? threadJumpLabelByKey
-    : EMPTY_THREAD_JUMP_LABELS;
+    });
+  const visibleThreadJumpLabelByKey =
+    showThreadShortcutHints && showThreadJumpHints
+      ? threadJumpLabelByKey
+      : EMPTY_THREAD_JUMP_LABELS;
   const orderedSidebarThreadKeys = visibleSidebarThreadKeys;
   const prewarmedSidebarThreadKeys = useMemo(
     () => getSidebarThreadIdsToPrewarm(visibleSidebarThreadKeys),

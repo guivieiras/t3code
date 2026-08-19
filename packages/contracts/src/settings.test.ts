@@ -149,6 +149,7 @@ describe("ClientSettings sidebar", () => {
   it("defaults to the current sidebar with automatic merge and inactivity settling", () => {
     const settings = decodeClientSettings({});
     expect(settings.legacySidebarEnabled).toBe(false);
+    expect(settings.showThreadShortcutHints).toBe(true);
     expect(settings.sidebarAutoSettleAfterDays).toBe(3);
     expect(settings.sidebarAutoSettleOnMerge).toBe(true);
   });
@@ -188,6 +189,15 @@ describe("ClientSettings sidebar", () => {
     );
     expect(
       decodeClientSettingsPatch({ sidebarAutoSettleOnMerge: false }).sidebarAutoSettleOnMerge,
+    ).toBe(false);
+  });
+
+  it("allows thread shortcut hints to be disabled", () => {
+    expect(decodeClientSettings({ showThreadShortcutHints: false }).showThreadShortcutHints).toBe(
+      false,
+    );
+    expect(
+      decodeClientSettingsPatch({ showThreadShortcutHints: false }).showThreadShortcutHints,
     ).toBe(false);
   });
 

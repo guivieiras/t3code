@@ -21,6 +21,8 @@ interface ProjectProjectionRow {
   readonly title: string;
   readonly workspace_root: string;
   readonly default_model_selection_json: string | null;
+  readonly default_thread_env_mode: string | null;
+  readonly favicon_path: string | null;
   readonly scripts_json: string;
   readonly created_at: string;
   readonly updated_at: string;
@@ -131,6 +133,8 @@ export default Effect.gen(function* () {
       title,
       workspace_root,
       default_model_selection_json,
+      default_thread_env_mode,
+      favicon_path,
       scripts_json,
       created_at,
       updated_at,
@@ -151,6 +155,8 @@ export default Effect.gen(function* () {
             project.default_model_selection_json === null
               ? null
               : yield* decodeJson(project.default_model_selection_json),
+          defaultThreadEnvMode: project.default_thread_env_mode,
+          faviconPath: project.favicon_path,
           scripts: yield* decodeJson(project.scripts_json),
           createdAt: project.created_at,
           updatedAt: project.updated_at,

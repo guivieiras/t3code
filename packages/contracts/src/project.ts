@@ -1,5 +1,5 @@
 import * as Schema from "effect/Schema";
-import { RepositoryIdentity } from "./environment.ts";
+import { RepositoryIdentity, ThreadEnvMode } from "./environment.ts";
 import { ModelSelection } from "./modelSelection.ts";
 import {
   CommandId,
@@ -37,13 +37,20 @@ export const ProjectScript = Schema.Struct({
 });
 export type ProjectScript = typeof ProjectScript.Type;
 
+export const ProjectFaviconPath = TrimmedNonEmptyString.check(
+  Schema.isMaxLength(1024),
+  Schema.isPattern(/\.(?:avif|gif|ico|jpe?g|png|svg|webp)$/i),
+);
+export type ProjectFaviconPath = typeof ProjectFaviconPath.Type;
+
 export const Project = Schema.Struct({
   id: ProjectId,
   title: TrimmedNonEmptyString,
   workspaceRoot: TrimmedNonEmptyString,
   repositoryIdentity: Schema.optional(Schema.NullOr(RepositoryIdentity)),
-  faviconPath: Schema.optional(Schema.NullOr(TrimmedNonEmptyString)),
+  faviconPath: Schema.optional(Schema.NullOr(ProjectFaviconPath)),
   defaultModelSelection: Schema.NullOr(ModelSelection),
+  defaultThreadEnvMode: Schema.optional(Schema.NullOr(ThreadEnvMode)),
   scripts: Schema.Array(ProjectScript),
   createdAt: IsoDateTime,
   updatedAt: IsoDateTime,
@@ -85,6 +92,8 @@ export const ProjectMutation = Schema.Union([
     title: Schema.optional(TrimmedNonEmptyString),
     workspaceRoot: Schema.optional(TrimmedNonEmptyString),
     defaultModelSelection: Schema.optional(Schema.NullOr(ModelSelection)),
+    defaultThreadEnvMode: Schema.optional(Schema.NullOr(ThreadEnvMode)),
+    faviconPath: Schema.optional(Schema.NullOr(ProjectFaviconPath)),
     scripts: Schema.optional(Schema.Array(ProjectScript)),
   }),
   Schema.Struct({

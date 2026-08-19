@@ -49,6 +49,7 @@ import {
   settleThread,
   startThreadTurn,
   unsettleThread,
+  updateProject,
   updateThreadMetadata,
 } from "./commands.ts";
 
@@ -107,6 +108,7 @@ const makeSupervisor = Effect.fn("TestEnvironmentCommands.makeSupervisor")(funct
           repositoryIdentity: null,
           faviconPath: null,
           defaultModelSelection: null,
+          defaultThreadEnvMode: null,
           scripts: [],
           createdAt: "2026-06-06T00:00:00.000Z",
           updatedAt: "2026-06-06T00:00:00.000Z",
@@ -153,6 +155,29 @@ describe("V2 environment commands", () => {
           title: "Project",
           workspaceRoot: "/workspace/project",
           createWorkspaceRootIfMissing: true,
+        },
+      ]);
+    }).pipe(Effect.provide(TEST_CRYPTO_LAYER)),
+  );
+
+  it.effect("forwards project icon and thread environment updates", () =>
+    Effect.gen(function* () {
+      const projects: ProjectMutation[] = [];
+      const supervisor = yield* makeSupervisor({ commands: [], projects });
+
+      yield* updateProject({
+        projectId: ProjectId.make("project-1"),
+        faviconPath: "brand/icon.svg",
+        defaultThreadEnvMode: "worktree",
+      }).pipe(Effect.provideService(EnvironmentSupervisor.EnvironmentSupervisor, supervisor));
+
+      expect(projects).toEqual([
+        {
+          type: "project.update",
+          commandId: "00000000-0000-4000-8000-000000000000",
+          projectId: "project-1",
+          faviconPath: "brand/icon.svg",
+          defaultThreadEnvMode: "worktree",
         },
       ]);
     }).pipe(Effect.provide(TEST_CRYPTO_LAYER)),

@@ -214,6 +214,7 @@ describe("theme files", () => {
         canvas: canonical("#07152f"),
         accent: canonical("#67c2ff"),
         placeholder: canonical("#968d9f"),
+        placeholder2: canonical("#968d9f"),
       },
     });
   });

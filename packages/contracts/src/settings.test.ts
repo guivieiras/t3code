@@ -76,6 +76,15 @@ describe("ClientSettings audio path links", () => {
   });
 });
 
+describe("ClientSettings video path links", () => {
+  it("keeps workspace video links in the drawer by default and accepts modal previews", () => {
+    expect(decodeClientSettings({}).openVideoPathLinksInModal).toBe(false);
+    expect(
+      decodeClientSettingsPatch({ openVideoPathLinksInModal: true }).openVideoPathLinksInModal,
+    ).toBe(true);
+  });
+});
+
 describe("ClientSettings word wrap", () => {
   it("defaults word wrap on", () => {
     expect(decodeClientSettings({}).wordWrap).toBe(true);

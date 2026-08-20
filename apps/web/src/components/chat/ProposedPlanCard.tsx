@@ -34,6 +34,7 @@ import { useCopyToClipboard } from "~/hooks/useCopyToClipboard";
 import { useAtomCommand } from "~/state/use-atom-command";
 import type { ExpandedAudioPreview } from "./ExpandedAudioPreview";
 import type { ExpandedImagePreview } from "./ExpandedImagePreview";
+import type { ExpandedVideoPreview } from "./ExpandedVideoPreview";
 
 export const ProposedPlanCard = memo(function ProposedPlanCard({
   planMarkdown,
@@ -43,6 +44,7 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
   workspaceRoot,
   onAudioExpand,
   onImageExpand,
+  onVideoExpand,
 }: {
   planMarkdown: string;
   environmentId: EnvironmentId;
@@ -51,6 +53,7 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
   workspaceRoot: string | undefined;
   onAudioExpand: (preview: ExpandedAudioPreview) => void;
   onImageExpand: (preview: ExpandedImagePreview) => void;
+  onVideoExpand: (preview: ExpandedVideoPreview) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
@@ -185,6 +188,7 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
               threadRef={threadRef}
               onAudioExpand={onAudioExpand}
               onImageExpand={onImageExpand}
+              onVideoExpand={onVideoExpand}
               isStreaming={false}
             />
           ) : (
@@ -195,6 +199,7 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
               threadRef={threadRef}
               onAudioExpand={onAudioExpand}
               onImageExpand={onImageExpand}
+              onVideoExpand={onVideoExpand}
               isStreaming={false}
             />
           )}

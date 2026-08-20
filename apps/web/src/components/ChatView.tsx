@@ -288,6 +288,8 @@ import { DraftHeroHeadline } from "./chat/DraftHeroHeadline";
 import { ExpandedAudioDialog } from "./chat/ExpandedAudioDialog";
 import { type ExpandedAudioPreview } from "./chat/ExpandedAudioPreview";
 import { ExpandedImageDialog } from "./chat/ExpandedImageDialog";
+import { ExpandedVideoDialog } from "./chat/ExpandedVideoDialog";
+import { type ExpandedVideoPreview } from "./chat/ExpandedVideoPreview";
 import { PullRequestThreadDialog } from "./PullRequestThreadDialog";
 import { MessagesTimeline, type MessagesTimelineHistoryControls } from "./chat/MessagesTimeline";
 import { resolveTimelineIsAtEnd } from "./chat/MessagesTimeline.logic";
@@ -1531,6 +1533,7 @@ function ChatViewContent(props: ChatViewProps) {
     if (item?.type !== "video" || !item.src.startsWith("blob:")) return;
     return () => revokeBlobPreviewUrl(item.src);
   }, [expandedImage]);
+  const [expandedVideo, setExpandedVideo] = useState<ExpandedVideoPreview | null>(null);
   const [optimisticUserMessages, setOptimisticUserMessages] = useState<ChatMessage[]>([]);
   const [feedbackSubmissionsByThreadKey, setFeedbackSubmissionsByThreadKey] = useState<
     Record<string, ReadonlyArray<CodexFeedbackSubmission>>
@@ -4802,6 +4805,7 @@ function ChatViewContent(props: ChatViewProps) {
     setOpeningVideoAttachmentId(null);
     setExpandedAudio(null);
     setExpandedImage(null);
+    setExpandedVideo(null);
   }, [cancelVideoPreviewRequest, draftId, resetLocalDispatch, threadId]);
 
   const closeExpandedAudio = useCallback(() => {
@@ -4809,6 +4813,9 @@ function ChatViewContent(props: ChatViewProps) {
   }, []);
   const closeExpandedImage = useCallback(() => {
     setExpandedImage(null);
+  }, []);
+  const closeExpandedVideo = useCallback(() => {
+    setExpandedVideo(null);
   }, []);
 
   const activeWorktreePath = activeThread?.worktreePath ?? null;
@@ -7032,6 +7039,7 @@ function ChatViewContent(props: ChatViewProps) {
       setOpeningVideoAttachmentId(null);
       setExpandedAudio(null);
       setExpandedImage(preview);
+      setExpandedVideo(null);
     },
     [cancelVideoPreviewRequest],
   );
@@ -7041,6 +7049,17 @@ function ChatViewContent(props: ChatViewProps) {
       setOpeningVideoAttachmentId(null);
       setExpandedImage(null);
       setExpandedAudio(preview);
+      setExpandedVideo(null);
+    },
+    [cancelVideoPreviewRequest],
+  );
+  const onExpandTimelineVideo = useCallback(
+    (preview: ExpandedVideoPreview) => {
+      cancelVideoPreviewRequest();
+      setOpeningVideoAttachmentId(null);
+      setExpandedAudio(null);
+      setExpandedImage(null);
+      setExpandedVideo(preview);
     },
     [cancelVideoPreviewRequest],
   );
@@ -7427,6 +7446,7 @@ function ChatViewContent(props: ChatViewProps) {
                 onImageExpand={onExpandTimelineImage}
                 onFileOpen={openFileAttachment}
                 openingVideoAttachmentId={openingVideoAttachmentId}
+                onVideoExpand={onExpandTimelineVideo}
                 markdownCwd={gitCwd ?? undefined}
                 resolvedTheme={resolvedTheme}
                 timestampFormat={timestampFormat}
@@ -7853,6 +7873,13 @@ function ChatViewContent(props: ChatViewProps) {
           key={`${expandedImage.images[expandedImage.index]?.src ?? "image"}:${expandedImage.index}`}
           preview={expandedImage}
           onClose={closeExpandedImage}
+        />
+      )}
+      {expandedVideo && (
+        <ExpandedVideoDialog
+          key={expandedVideo.src}
+          preview={expandedVideo}
+          onClose={closeExpandedVideo}
         />
       )}
     </div>

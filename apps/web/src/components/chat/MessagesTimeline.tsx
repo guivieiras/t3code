@@ -92,6 +92,7 @@ import {
 import { Button } from "../ui/button";
 import type { ExpandedAudioPreview } from "./ExpandedAudioPreview";
 import { buildExpandedImagePreview, ExpandedImagePreview } from "./ExpandedImagePreview";
+import type { ExpandedVideoPreview } from "./ExpandedVideoPreview";
 import { ProposedPlanCard } from "./ProposedPlanCard";
 import { ChangedFilesCard } from "./ChangedFilesTree";
 import { shouldAutoExpandChangedFiles } from "./changedFilesPresentation";
@@ -176,6 +177,7 @@ interface TimelineRowSharedState {
   onRevertUserMessage: (messageId: MessageId) => void;
   onAudioExpand: (preview: ExpandedAudioPreview) => void;
   onImageExpand: (preview: ExpandedImagePreview) => void;
+  onVideoExpand: (preview: ExpandedVideoPreview) => void;
   onOpenTurnDiff: (runId: RunId, filePath?: string) => void;
   onOpenThread: (threadId: OrchestrationV2TurnItem["threadId"]) => void;
   onForkFromRun: (input: {
@@ -264,6 +266,7 @@ interface MessagesTimelineProps {
   onFileOpen?: (attachment: ChatFileAttachment) => void;
   openingVideoAttachmentId: string | null;
   onUseArtifactTemplate?: (template: CodexArtifactTemplate) => void;
+  onVideoExpand: (preview: ExpandedVideoPreview) => void;
   activeThreadEnvironmentId: EnvironmentId;
   markdownCwd: string | undefined;
   resolvedTheme: "light" | "dark";
@@ -317,6 +320,7 @@ export const MessagesTimeline = memo(function MessagesTimeline({
   onFileOpen = NOOP_OPEN_ATTACHMENT,
   openingVideoAttachmentId,
   onUseArtifactTemplate = NOOP_USE_ARTIFACT_TEMPLATE,
+  onVideoExpand,
   activeThreadEnvironmentId,
   markdownCwd,
   resolvedTheme,
@@ -612,6 +616,7 @@ export const MessagesTimeline = memo(function MessagesTimeline({
       onFileOpen,
       openingVideoAttachmentId,
       onUseArtifactTemplate,
+      onVideoExpand,
       onOpenTurnDiff,
       onOpenThread,
       onForkFromRun,
@@ -636,6 +641,7 @@ export const MessagesTimeline = memo(function MessagesTimeline({
       onFileOpen,
       openingVideoAttachmentId,
       onUseArtifactTemplate,
+      onVideoExpand,
       onOpenTurnDiff,
       onOpenThread,
       onForkFromRun,
@@ -1489,6 +1495,7 @@ function AssistantTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "mess
           threadRef={ctx.threadRef ?? undefined}
           onAudioExpand={ctx.onAudioExpand}
           onImageExpand={ctx.onImageExpand}
+          onVideoExpand={ctx.onVideoExpand}
           isStreaming={Boolean(row.message.streaming)}
           lineBreaks={shouldPreserveAssistantLineBreaks(messageText)}
           skills={ctx.skills}
@@ -1608,6 +1615,7 @@ function ProposedPlanTimelineRow({
         workspaceRoot={ctx.workspaceRoot}
         onAudioExpand={ctx.onAudioExpand}
         onImageExpand={ctx.onImageExpand}
+        onVideoExpand={ctx.onVideoExpand}
       />
     </div>
   );
@@ -2525,6 +2533,7 @@ const UserMessageBody = memo(function UserMessageBody(props: {
             threadRef={ctx.threadRef ?? undefined}
             onAudioExpand={ctx.onAudioExpand}
             onImageExpand={ctx.onImageExpand}
+            onVideoExpand={ctx.onVideoExpand}
             skills={props.skills}
             className="text-foreground"
             lineBreaks
@@ -2550,6 +2559,7 @@ const UserMessageBody = memo(function UserMessageBody(props: {
                   threadRef={ctx.threadRef ?? undefined}
                   onAudioExpand={ctx.onAudioExpand}
                   onImageExpand={ctx.onImageExpand}
+                  onVideoExpand={ctx.onVideoExpand}
                   skills={props.skills}
                   className="text-foreground"
                   lineBreaks
@@ -2641,6 +2651,7 @@ const UserMessageBody = memo(function UserMessageBody(props: {
           threadRef={ctx.threadRef ?? undefined}
           onAudioExpand={ctx.onAudioExpand}
           onImageExpand={ctx.onImageExpand}
+          onVideoExpand={ctx.onVideoExpand}
           skills={props.skills}
           className="text-foreground"
           lineBreaks
@@ -2669,6 +2680,7 @@ const UserMessageBody = memo(function UserMessageBody(props: {
       threadRef={ctx.threadRef ?? undefined}
       onAudioExpand={ctx.onAudioExpand}
       onImageExpand={ctx.onImageExpand}
+      onVideoExpand={ctx.onVideoExpand}
       skills={props.skills}
       className="text-foreground"
       lineBreaks
@@ -2707,6 +2719,7 @@ function UserMessageReviewCommentCard({ comment }: { comment: ReviewCommentConte
           threadRef={ctx.threadRef ?? undefined}
           onAudioExpand={ctx.onAudioExpand}
           onImageExpand={ctx.onImageExpand}
+          onVideoExpand={ctx.onVideoExpand}
           skills={ctx.skills}
           className="text-foreground"
         />

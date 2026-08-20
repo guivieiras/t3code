@@ -510,6 +510,9 @@ export function useSettingsRestore(onRestored?: () => void) {
       ...(settings.openImagePathLinksInModal !== DEFAULT_UNIFIED_SETTINGS.openImagePathLinksInModal
         ? ["Image path previews"]
         : []),
+      ...(settings.openVideoPathLinksInModal !== DEFAULT_UNIFIED_SETTINGS.openVideoPathLinksInModal
+        ? ["Video path previews"]
+        : []),
       ...getChangedTypographySettingLabels(settings),
       ...(settings.diffIgnoreWhitespace !== DEFAULT_UNIFIED_SETTINGS.diffIgnoreWhitespace
         ? ["Diff whitespace changes"]
@@ -584,6 +587,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       settings.glassOpacity,
       settings.openAudioPathLinksInModal,
       settings.openImagePathLinksInModal,
+      settings.openVideoPathLinksInModal,
       settings.enableLegacyTokenStreaming,
       settings.persistComposerContextStrip,
       settings.enableProviderUpdateChecks,
@@ -668,6 +672,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       wordWrap: DEFAULT_UNIFIED_SETTINGS.wordWrap,
       openAudioPathLinksInModal: DEFAULT_UNIFIED_SETTINGS.openAudioPathLinksInModal,
       openImagePathLinksInModal: DEFAULT_UNIFIED_SETTINGS.openImagePathLinksInModal,
+      openVideoPathLinksInModal: DEFAULT_UNIFIED_SETTINGS.openVideoPathLinksInModal,
       persistComposerContextStrip: DEFAULT_UNIFIED_SETTINGS.persistComposerContextStrip,
       diffIgnoreWhitespace: DEFAULT_UNIFIED_SETTINGS.diffIgnoreWhitespace,
       showSkillsInSlashMenu: DEFAULT_UNIFIED_SETTINGS.showSkillsInSlashMenu,
@@ -1285,6 +1290,33 @@ export function AppearanceSettingsPanel() {
                 updateSettings({ openImagePathLinksInModal: Boolean(checked) })
               }
               aria-label="Open image path links in expanded previews"
+            />
+          }
+        />
+
+        <SettingsRow
+          {...searchableSetting("video-path-previews")}
+          description="Open workspace video path links in a player. Hold Ctrl while clicking to use the workspace drawer instead."
+          resetAction={
+            settings.openVideoPathLinksInModal !==
+            DEFAULT_UNIFIED_SETTINGS.openVideoPathLinksInModal ? (
+              <SettingResetButton
+                label="video path previews"
+                onClick={() =>
+                  updateSettings({
+                    openVideoPathLinksInModal: DEFAULT_UNIFIED_SETTINGS.openVideoPathLinksInModal,
+                  })
+                }
+              />
+            ) : null
+          }
+          control={
+            <Switch
+              checked={settings.openVideoPathLinksInModal}
+              onCheckedChange={(checked) =>
+                updateSettings({ openVideoPathLinksInModal: Boolean(checked) })
+              }
+              aria-label="Open video path links in a player"
             />
           }
         />

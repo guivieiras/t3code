@@ -7,6 +7,7 @@ import type {
 import {
   isWorkspaceAudioPreviewPath,
   isWorkspaceImagePreviewPath,
+  isWorkspaceVideoPreviewPath,
 } from "@t3tools/shared/filePreview";
 import { VirtualizedFile, type SelectedLineRange } from "@pierre/diffs";
 import { Editor } from "@pierre/diffs/editor";
@@ -204,6 +205,45 @@ function WorkspaceAudioPreview(props: {
         className="w-full max-w-xl"
         src={assetUrl.url}
         aria-label={`Audio preview: ${props.label}`}
+        controls
+        preload="metadata"
+        onError={() => setFailedUrl(assetUrl.url)}
+      />
+    </div>
+  ) : (
+    <div className="flex min-h-0 flex-1 items-center justify-center text-muted-foreground">
+      <LoaderCircle className="size-5 animate-spin" />
+    </div>
+  );
+}
+
+function WorkspaceVideoPreview(props: {
+  readonly environmentId: EnvironmentId;
+  readonly threadRef: ScopedThreadRef;
+  readonly absolutePath: string;
+  readonly label: string;
+}) {
+  const assetUrl = useAssetUrlState(props.environmentId, {
+    _tag: "workspace-file",
+    threadId: props.threadRef.threadId,
+    path: props.absolutePath,
+  });
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+
+  if (assetUrl._tag === "Failure" || (assetUrl._tag === "Success" && failedUrl === assetUrl.url)) {
+    return (
+      <div className="flex min-h-0 flex-1 items-center justify-center px-6 text-center text-xs leading-relaxed text-destructive">
+        Unable to load workspace video.
+      </div>
+    );
+  }
+
+  return assetUrl._tag === "Success" ? (
+    <div className="flex min-h-0 flex-1 items-center justify-center p-4">
+      <video
+        className="max-h-full max-w-full rounded-lg bg-black"
+        src={assetUrl.url}
+        aria-label={`Video preview: ${props.label}`}
         controls
         preload="metadata"
         onError={() => setFailedUrl(assetUrl.url)}
@@ -835,7 +875,13 @@ export default function FilePreviewPanel({
   });
   const isAudio = relativePath !== null && isWorkspaceAudioPreviewPath(relativePath);
   const isImage = relativePath !== null && isWorkspaceImagePreviewPath(relativePath);
-  const file = useProjectFileQuery(environmentId, cwd, relativePath, !isAudio && !isImage);
+  const isVideo = relativePath !== null && isWorkspaceVideoPreviewPath(relativePath);
+  const file = useProjectFileQuery(
+    environmentId,
+    cwd,
+    relativePath,
+    !isAudio && !isImage && !isVideo,
+  );
   const [explorerOpen, setExplorerOpen] = useState(initialExplorerOpen);
   // Reading markdown rendered is a preference, not a property of one file. Keeping
   // it on the panel meant a thread switch dropped it and forced source back.
@@ -1055,6 +1101,14 @@ export default function FilePreviewPanel({
         >
           {relativePath && isAudio && absolutePath ? (
             <WorkspaceAudioPreview
+              key={absolutePath}
+              environmentId={environmentId}
+              threadRef={threadRef}
+              absolutePath={absolutePath}
+              label={relativePath}
+            />
+          ) : relativePath && isVideo && absolutePath ? (
+            <WorkspaceVideoPreview
               key={absolutePath}
               environmentId={environmentId}
               threadRef={threadRef}

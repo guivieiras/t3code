@@ -39,6 +39,7 @@ const clientSettings: ClientSettings = {
   glassOpacity: 80,
   openAudioPathLinksInModal: false,
   openImagePathLinksInModal: false,
+  openVideoPathLinksInModal: false,
   planModeEnabled: false,
   showSkillsInSlashMenu: false,
   persistComposerContextStrip: true,

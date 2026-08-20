@@ -8,10 +8,11 @@ multiple messages, then send again in the same thread.
 
 Turn on **Settings → Appearance → Image path previews** to open workspace image path links with
 the same expanded preview used for pasted images. Turn on **Audio path previews** to open workspace
-audio path links in a player.
+audio path links in a player. Turn on **Video path previews** to open workspace video path links in
+a video player.
 
-With either setting off, its path links open in the workspace drawer. Hold Ctrl while clicking an
-image or audio path link to use the workspace drawer for that click.
+With a setting off, its path links open in the workspace drawer. Hold Ctrl while clicking an image,
+audio, or video path link to use the workspace drawer for that click.
 
 On mobile, an empty composer shows an interrupt button while the agent is working. Adding text
 or an attachment replaces it with the send button. This applies to both compact and expanded

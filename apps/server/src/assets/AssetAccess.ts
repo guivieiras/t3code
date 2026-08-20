@@ -17,9 +17,11 @@ import {
   isWorkspaceAudioPreviewPath,
   isWorkspaceImagePreviewPath,
   isWorkspacePreviewEntryPath,
+  isWorkspaceVideoPreviewPath,
   WORKSPACE_AUDIO_PREVIEW_EXTENSIONS,
   WORKSPACE_BROWSER_PREVIEW_EXTENSIONS,
   WORKSPACE_IMAGE_PREVIEW_EXTENSIONS,
+  WORKSPACE_VIDEO_PREVIEW_EXTENSIONS,
 } from "@t3tools/shared/filePreview";
 import { PROJECT_FAVICON_FALLBACK_MARKER } from "@t3tools/shared/projectFavicon";
 import * as Clock from "effect/Clock";
@@ -55,6 +57,7 @@ const PREVIEW_ASSET_EXTENSIONS = new Set([
   ...WORKSPACE_AUDIO_PREVIEW_EXTENSIONS,
   ...WORKSPACE_BROWSER_PREVIEW_EXTENSIONS,
   ...WORKSPACE_IMAGE_PREVIEW_EXTENSIONS,
+  ...WORKSPACE_VIDEO_PREVIEW_EXTENSIONS,
   ".css",
   ".js",
   ".mjs",
@@ -276,7 +279,8 @@ export const issueAssetUrl = Effect.fn("AssetAccess.issueAssetUrl")(function* (i
       );
       claims =
         isWorkspaceAudioPreviewPath(resolved.relativePath) ||
-        isWorkspaceImagePreviewPath(resolved.relativePath)
+        isWorkspaceImagePreviewPath(resolved.relativePath) ||
+        isWorkspaceVideoPreviewPath(resolved.relativePath)
           ? {
               version: 1,
               kind: "workspace-file-exact",

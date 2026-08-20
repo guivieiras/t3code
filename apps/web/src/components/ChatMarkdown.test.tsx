@@ -34,6 +34,7 @@ import ChatMarkdown, {
   orderedListGutterStyle,
   shouldOpenAudioPathInModal,
   shouldOpenImagePathInModal,
+  shouldOpenVideoPathInModal,
   shouldUseMarkdownFileBrowserPrimaryAction,
 } from "./ChatMarkdown";
 
@@ -441,6 +442,23 @@ describe("shouldOpenAudioPathInModal", () => {
     expect(
       shouldOpenAudioPathInModal(true, "/repo/recordings/note.ogg", "recordings/note.ogg", true),
     ).toBe(false);
+  });
+});
+
+describe("shouldOpenVideoPathInModal", () => {
+  it("opens workspace video links in the modal only when the preference is enabled", () => {
+    expect(shouldOpenVideoPathInModal(true, "/repo/clips/demo.mp4", "clips/demo.mp4")).toBe(true);
+    expect(shouldOpenVideoPathInModal(false, "/repo/clips/demo.mp4", "clips/demo.mp4")).toBe(
+      false,
+    );
+  });
+
+  it("keeps non-video, out-of-workspace, and Ctrl-clicked links on their existing paths", () => {
+    expect(shouldOpenVideoPathInModal(true, "/repo/src/index.ts", "src/index.ts")).toBe(false);
+    expect(shouldOpenVideoPathInModal(true, "/tmp/demo.mp4", null)).toBe(false);
+    expect(shouldOpenVideoPathInModal(true, "/repo/clips/demo.mp4", "clips/demo.mp4", true)).toBe(
+      false,
+    );
   });
 });
 

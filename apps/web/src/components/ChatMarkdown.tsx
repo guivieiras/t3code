@@ -45,6 +45,7 @@ import {
 import {
   isWorkspaceAudioPreviewPath,
   isWorkspaceImagePreviewPath,
+  isWorkspaceVideoPreviewPath,
 } from "@t3tools/shared/filePreview";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/unstable/reactivity";
@@ -166,6 +167,7 @@ import {
   BrowserPreviewUnavailableError,
 } from "../browser/openFileInPreview";
 import type { ExpandedAudioPreview } from "./chat/ExpandedAudioPreview";
+import type { ExpandedVideoPreview } from "./chat/ExpandedVideoPreview";
 
 interface ChatMarkdownProps {
   text: string;
@@ -186,6 +188,7 @@ interface ChatMarkdownProps {
   imageBaseDir?: string | undefined;
   onAudioExpand?: ((preview: ExpandedAudioPreview) => void) | undefined;
   onImageExpand?: ((preview: ExpandedImagePreview) => void) | undefined;
+  onVideoExpand?: ((preview: ExpandedVideoPreview) => void) | undefined;
   extraRemarkPlugins?: NonNullable<ReactMarkdownOptions["remarkPlugins"]>;
 }
 
@@ -1049,6 +1052,17 @@ export function shouldOpenAudioPathInModal(
   );
 }
 
+export function shouldOpenVideoPathInModal(
+  enabled: boolean,
+  filePath: string,
+  workspaceRelativePath: string | null,
+  ctrlKey = false,
+): boolean {
+  return (
+    enabled && !ctrlKey && workspaceRelativePath !== null && isWorkspaceVideoPreviewPath(filePath)
+  );
+}
+
 function pathParentSegments(path: string): string[] {
   const normalized = path.replaceAll("\\", "/");
   const segments = normalized.split("/").filter((segment) => segment.length > 0);
@@ -1817,6 +1831,7 @@ function ChatMarkdown({
   imageBaseDir,
   onAudioExpand,
   onImageExpand,
+  onVideoExpand,
   extraRemarkPlugins = EMPTY_REMARK_PLUGINS,
 }: ChatMarkdownProps) {
   const { resolvedTheme } = useTheme();
@@ -2061,7 +2076,7 @@ function ChatMarkdown({
     [],
   );
   const openMediaPreview = useCallback(
-    (fileLinkMeta: MarkdownFileLinkMeta, kind: "audio" | "image", ctrlKey: boolean) => {
+    (fileLinkMeta: MarkdownFileLinkMeta, kind: "audio" | "image" | "video", ctrlKey: boolean) => {
       const fallbackToPanel = () => {
         if (fileLinkMeta.workspaceRelativePath) {
           openFileInPanel(fileLinkMeta.workspaceRelativePath, fileLinkMeta.line);
@@ -2076,17 +2091,25 @@ function ChatMarkdown({
               fileLinkMeta.workspaceRelativePath,
               ctrlKey,
             )
-          : shouldOpenImagePathInModal(
-              settings.openImagePathLinksInModal,
-              fileLinkMeta.filePath,
-              fileLinkMeta.workspaceRelativePath,
-              ctrlKey,
-            );
+          : kind === "video"
+            ? shouldOpenVideoPathInModal(
+                settings.openVideoPathLinksInModal,
+                fileLinkMeta.filePath,
+                fileLinkMeta.workspaceRelativePath,
+                ctrlKey,
+              )
+            : shouldOpenImagePathInModal(
+                settings.openImagePathLinksInModal,
+                fileLinkMeta.filePath,
+                fileLinkMeta.workspaceRelativePath,
+                ctrlKey,
+              );
       if (!shouldOpen) {
         fallbackToPanel();
         return;
       }
-      const expandPreview = kind === "audio" ? onAudioExpand : onImageExpand;
+      const expandPreview =
+        kind === "audio" ? onAudioExpand : kind === "video" ? onVideoExpand : onImageExpand;
       if (!threadRef || !expandPreview || preparedConnection._tag === "None") {
         fallbackToPanel();
         return;
@@ -2127,6 +2150,8 @@ function ChatMarkdown({
           }
           if (kind === "audio") {
             onAudioExpand?.({ src: mediaUrl, name: fileLinkMeta.displayPath });
+          } else if (kind === "video") {
+            onVideoExpand?.({ src: mediaUrl, name: fileLinkMeta.displayPath });
           } else {
             onImageExpand?.({
               images: [{ src: mediaUrl, name: fileLinkMeta.displayPath }],
@@ -2143,7 +2168,15 @@ function ChatMarkdown({
         }
       })();
     },
-    [createAssetUrl, onAudioExpand, onImageExpand, openFileInPanel, preparedConnection, threadRef],
+    [
+      createAssetUrl,
+      onAudioExpand,
+      onImageExpand,
+      onVideoExpand,
+      openFileInPanel,
+      preparedConnection,
+      threadRef,
+    ],
   );
   const revealMarkdownFileInFileManager = useCallback(
     async (fileLinkMeta: MarkdownFileLinkMeta) => {
@@ -2195,9 +2228,11 @@ function ChatMarkdown({
           onOpenInMediaPreview={
             onAudioExpand && isWorkspaceAudioPreviewPath(fileLinkMeta.filePath)
               ? (ctrlKey) => openMediaPreview(fileLinkMeta, "audio", ctrlKey)
-              : onImageExpand && isWorkspaceImagePreviewPath(fileLinkMeta.filePath)
-                ? (ctrlKey) => openMediaPreview(fileLinkMeta, "image", ctrlKey)
-                : undefined
+              : onVideoExpand && isWorkspaceVideoPreviewPath(fileLinkMeta.filePath)
+                ? (ctrlKey) => openMediaPreview(fileLinkMeta, "video", ctrlKey)
+                : onImageExpand && isWorkspaceImagePreviewPath(fileLinkMeta.filePath)
+                  ? (ctrlKey) => openMediaPreview(fileLinkMeta, "image", ctrlKey)
+                  : undefined
           }
           openInEditorMenuLabel={preferredEditorMenuLabel}
           onReveal={
@@ -2542,6 +2577,7 @@ function ChatMarkdown({
     onUseArtifactTemplate,
     onAudioExpand,
     onImageExpand,
+    onVideoExpand,
     openFileInPanel,
     openMediaPreview,
     openInPreferredEditor,

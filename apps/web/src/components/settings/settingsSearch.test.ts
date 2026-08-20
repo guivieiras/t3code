@@ -182,6 +182,10 @@ describe("searchSettings", () => {
       id: "image-path-previews",
       to: "/settings/appearance",
     });
+    expect(searchSettings("video path previews")[0]).toMatchObject({
+      id: "video-path-previews",
+      to: "/settings/appearance",
+    });
     expect(searchSettings("environment identification")[0]).toMatchObject({
       id: "environment-identification",
       to: "/settings/appearance",

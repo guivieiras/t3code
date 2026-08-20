@@ -218,6 +218,7 @@ function buildProps() {
     openingVideoAttachmentId: null,
     onAudioExpand: () => {},
     onImageExpand: () => {},
+    onVideoExpand: () => {},
     activeThreadEnvironmentId: ACTIVE_THREAD_ENVIRONMENT_ID,
     markdownCwd: undefined,
     resolvedTheme: "light" as const,

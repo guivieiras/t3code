@@ -54,13 +54,15 @@ async function readFinalAssistantPreview(
   const messageId = completion.assistantMessageId;
   if (messageId === null) return null;
 
-  const threadAtom = environmentThreadDetails.detailAtom(
+  const threadAtom = environmentThreadDetails.threadAtom(
     scopeThreadRef(environmentId, completion.threadId),
   );
   const readPreview = () => {
     const message = appAtomRegistry
       .get(threadAtom)
-      ?.messages.find((candidate) => candidate.id === messageId && candidate.role === "assistant");
+      ?.projection.messages.find(
+        (candidate) => candidate.id === messageId && candidate.role === "assistant",
+      );
     return message?.streaming === false ? compactFinalResponsePreview(message.text) : null;
   };
   const cachedPreview = readPreview();

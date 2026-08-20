@@ -1,4 +1,5 @@
-import type { OrchestrationThreadShell } from "@t3tools/contracts";
+import type { OrchestrationV2ThreadShell } from "@t3tools/contracts";
+import * as DateTime from "effect/DateTime";
 import { describe, expect, it } from "vite-plus/test";
 
 import {
@@ -10,36 +11,44 @@ import {
 } from "./LinuxDesktopCompletionNotifications.logic";
 
 type CompletionThread = Pick<
-  OrchestrationThreadShell,
-  "id" | "projectId" | "title" | "branch" | "archivedAt" | "latestTurn"
+  OrchestrationV2ThreadShell,
+  | "id"
+  | "projectId"
+  | "title"
+  | "branch"
+  | "archivedAt"
+  | "latestRunId"
+  | "latestRunStartedAt"
+  | "latestRunCompletedAt"
+  | "latestVisibleMessage"
+  | "status"
 >;
 
 function thread(
-  state: NonNullable<OrchestrationThreadShell["latestTurn"]>["state"],
+  state: CompletionThread["status"],
   options: {
     readonly threadId?: string;
-    readonly turnId?: string;
+    readonly runId?: string;
     readonly archived?: boolean;
   } = {},
 ): CompletionThread {
   return {
-    id: (options.threadId ?? "thread-1") as OrchestrationThreadShell["id"],
-    projectId: "project-1" as OrchestrationThreadShell["projectId"],
+    id: (options.threadId ?? "thread-1") as OrchestrationV2ThreadShell["id"],
+    projectId: "project-1" as OrchestrationV2ThreadShell["projectId"],
     title: "Improve Linux notifications",
     branch: "local/linux-notifications",
-    archivedAt: options.archived ? "2026-08-18T12:00:00.000Z" : null,
-    latestTurn: {
-      turnId: (options.turnId ?? "turn-1") as NonNullable<
-        OrchestrationThreadShell["latestTurn"]
-      >["turnId"],
-      state,
-      requestedAt: "2026-08-18T11:00:00.000Z",
-      startedAt: "2026-08-18T11:00:01.000Z",
-      completedAt: state === "completed" ? "2026-08-18T12:00:00.000Z" : null,
-      assistantMessageId: "message-1" as NonNullable<
-        OrchestrationThreadShell["latestTurn"]
-      >["assistantMessageId"],
+    archivedAt: options.archived ? DateTime.makeUnsafe("2026-08-18T12:00:00.000Z") : null,
+    latestRunId: (options.runId ?? "run-1") as OrchestrationV2ThreadShell["latestRunId"],
+    latestRunStartedAt: DateTime.makeUnsafe("2026-08-18T11:00:01.000Z"),
+    latestRunCompletedAt:
+      state === "completed" ? DateTime.makeUnsafe("2026-08-18T12:00:00.000Z") : null,
+    latestVisibleMessage: {
+      id: "message-1" as NonNullable<OrchestrationV2ThreadShell["latestVisibleMessage"]>["id"],
+      role: "assistant",
+      text: "Done",
+      updatedAt: DateTime.makeUnsafe("2026-08-18T12:00:00.000Z"),
     },
+    status: state,
   };
 }
 
@@ -73,8 +82,8 @@ describe("LinuxDesktopCompletionNotifications.logic", () => {
   });
 
   it("does not notify for a different turn first seen completed after reconnect", () => {
-    const running = observe(null, [thread("running", { turnId: "turn-1" })]);
-    const completed = observe(running.nextState, [thread("completed", { turnId: "turn-2" })]);
+    const running = observe(null, [thread("running", { runId: "run-1" })]);
+    const completed = observe(running.nextState, [thread("completed", { runId: "run-2" })]);
 
     expect(completed.completions).toEqual([]);
   });
@@ -86,7 +95,7 @@ describe("LinuxDesktopCompletionNotifications.logic", () => {
       thread("running", { threadId: "archived" }),
     ]);
     const settled = observe(running.nextState, [
-      thread("error", { threadId: "error" }),
+      thread("failed", { threadId: "error" }),
       thread("interrupted", { threadId: "interrupted" }),
       thread("completed", { threadId: "archived", archived: true }),
     ]);

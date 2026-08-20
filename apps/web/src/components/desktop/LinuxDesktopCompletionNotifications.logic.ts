@@ -1,16 +1,31 @@
-import type { MessageId, OrchestrationThreadShell, ProjectId, ThreadId } from "@t3tools/contracts";
+import type {
+  MessageId,
+  OrchestrationV2ThreadShell,
+  ProjectId,
+  ThreadId,
+} from "@t3tools/contracts";
+import * as DateTime from "effect/DateTime";
 
 type CompletionThread = Pick<
-  OrchestrationThreadShell,
-  "id" | "projectId" | "title" | "branch" | "archivedAt" | "latestTurn"
+  OrchestrationV2ThreadShell,
+  | "id"
+  | "projectId"
+  | "title"
+  | "branch"
+  | "archivedAt"
+  | "latestRunId"
+  | "latestRunStartedAt"
+  | "latestRunCompletedAt"
+  | "latestVisibleMessage"
+  | "status"
 >;
 
-interface ObservedTurn {
-  readonly turnId: string;
-  readonly state: "running" | "interrupted" | "completed" | "error";
+interface ObservedRun {
+  readonly runId: string;
+  readonly state: CompletionThread["status"];
 }
 
-export type LinuxCompletionTrackerState = ReadonlyMap<string, ObservedTurn>;
+export type LinuxCompletionTrackerState = ReadonlyMap<string, ObservedRun>;
 
 export interface LinuxCompletion {
   readonly threadId: ThreadId;
@@ -87,34 +102,36 @@ export function trackLinuxCompletionTransitions(
   previousState: LinuxCompletionTrackerState | null,
   threads: ReadonlyArray<CompletionThread>,
 ): LinuxCompletionTransitionResult {
-  const nextState = new Map<string, ObservedTurn>();
+  const nextState = new Map<string, ObservedRun>();
   const completions: Array<LinuxCompletion> = [];
 
   for (const thread of threads) {
-    const latestTurn = thread.latestTurn;
-    if (latestTurn === null) continue;
+    const latestRunId = thread.latestRunId;
+    if (latestRunId === null) continue;
 
     nextState.set(thread.id, {
-      turnId: latestTurn.turnId,
-      state: latestTurn.state,
+      runId: latestRunId,
+      state: thread.status,
     });
 
-    const previousTurn = previousState?.get(thread.id);
+    const previousRun = previousState?.get(thread.id);
     if (
       thread.archivedAt === null &&
-      latestTurn.state === "completed" &&
-      latestTurn.completedAt !== null &&
-      previousTurn?.turnId === latestTurn.turnId &&
-      previousTurn.state === "running"
+      thread.status === "completed" &&
+      thread.latestRunCompletedAt != null &&
+      previousRun?.runId === latestRunId &&
+      previousRun.state === "running"
     ) {
       completions.push({
         threadId: thread.id,
         projectId: thread.projectId,
         threadTitle: thread.title,
         branch: thread.branch,
-        assistantMessageId: latestTurn.assistantMessageId,
-        startedAt: latestTurn.startedAt,
-        completedAt: latestTurn.completedAt,
+        assistantMessageId:
+          thread.latestVisibleMessage?.role === "assistant" ? thread.latestVisibleMessage.id : null,
+        startedAt:
+          thread.latestRunStartedAt == null ? null : DateTime.formatIso(thread.latestRunStartedAt),
+        completedAt: DateTime.formatIso(thread.latestRunCompletedAt),
       });
     }
   }

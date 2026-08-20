@@ -70,11 +70,20 @@ function sanitizePlanFileSegment(input: string): string {
   return sanitized.length > 0 ? sanitized : "plan";
 }
 
-export function buildPlanImplementationPrompt(planMarkdown: string): string {
-  return `PLEASE IMPLEMENT THIS PLAN:\n${planMarkdown.trim()}`;
+const FRESH_CONTEXT_PLAN_IMPLEMENTATION_PREFIX =
+  "A previous agent produced the plan below to accomplish the user's task. " +
+  "Implement the plan in a fresh context. Treat the plan as the source of user intent, " +
+  "re-read files as needed, and carry the work through implementation and verification.";
+
+export function buildPlanImplementationPrompt(): string {
+  return "Implement the plan.";
 }
 
-export function resolvePlanFollowUpSubmission(input: { draftText: string; planMarkdown: string }): {
+export function buildFreshContextPlanImplementationPrompt(planMarkdown: string): string {
+  return `${FRESH_CONTEXT_PLAN_IMPLEMENTATION_PREFIX}\n\n${planMarkdown.trim()}`;
+}
+
+export function resolvePlanFollowUpSubmission(input: { draftText: string }): {
   text: string;
   interactionMode: "default" | "plan";
 } {
@@ -87,7 +96,7 @@ export function resolvePlanFollowUpSubmission(input: { draftText: string; planMa
   }
 
   return {
-    text: buildPlanImplementationPrompt(input.planMarkdown),
+    text: buildPlanImplementationPrompt(),
     interactionMode: "default",
   };
 }

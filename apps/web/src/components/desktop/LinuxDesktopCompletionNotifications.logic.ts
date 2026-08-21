@@ -1,7 +1,8 @@
 import type {
-  MessageId,
+  OrchestrationV2ConversationMessage,
   OrchestrationV2ThreadShell,
   ProjectId,
+  RunId,
   ThreadId,
 } from "@t3tools/contracts";
 import * as DateTime from "effect/DateTime";
@@ -16,7 +17,6 @@ type CompletionThread = Pick<
   | "latestRunId"
   | "latestRunStartedAt"
   | "latestRunCompletedAt"
-  | "latestVisibleMessage"
   | "status"
 >;
 
@@ -30,9 +30,9 @@ export type LinuxCompletionTrackerState = ReadonlyMap<string, ObservedRun>;
 export interface LinuxCompletion {
   readonly threadId: ThreadId;
   readonly projectId: ProjectId;
+  readonly runId: RunId;
   readonly threadTitle: string;
   readonly branch: string | null;
-  readonly assistantMessageId: MessageId | null;
   readonly startedAt: string | null;
   readonly completedAt: string;
 }
@@ -44,6 +44,14 @@ export interface LinuxCompletionTransitionResult {
 
 export const FINAL_RESPONSE_PREVIEW_MAX_LENGTH = 220;
 
+const RUN_STATUSES_THAT_CAN_COMPLETE = new Set<CompletionThread["status"]>([
+  "preparing",
+  "queued",
+  "starting",
+  "running",
+  "waiting",
+]);
+
 export function compactFinalResponsePreview(
   text: string,
   maxLength = FINAL_RESPONSE_PREVIEW_MAX_LENGTH,
@@ -52,6 +60,22 @@ export function compactFinalResponsePreview(
   if (compact.length === 0) return null;
   if (compact.length <= maxLength) return compact;
   return `${compact.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
+}
+
+type CompletionPreviewMessage = Pick<
+  OrchestrationV2ConversationMessage,
+  "role" | "runId" | "streaming" | "text"
+>;
+
+export function findFinalAssistantResponsePreview(
+  messages: ReadonlyArray<CompletionPreviewMessage>,
+  runId: RunId,
+): string | null {
+  const message = messages.findLast(
+    (candidate) =>
+      candidate.runId === runId && candidate.role === "assistant" && !candidate.streaming,
+  );
+  return message === undefined ? null : compactFinalResponsePreview(message.text);
 }
 
 export function formatTurnDuration(startedAt: string | null, completedAt: string): string | null {
@@ -94,9 +118,11 @@ export function buildLinuxCompletionNotification(input: {
 }
 
 /**
- * Finds turns that this client observed move directly from running to
- * completed. A null previous state seeds the tracker without notifying, which
- * keeps cached snapshots and reconnect hydration from producing stale alerts.
+ * Finds runs that this client observed move from active work to completed. V2
+ * parks successful runs at waiting during checkpoint capture, so completion
+ * must accept every non-terminal run state rather than only running. A null
+ * previous state seeds the tracker without notifying, which keeps cached
+ * snapshots and reconnect hydration from producing stale alerts.
  */
 export function trackLinuxCompletionTransitions(
   previousState: LinuxCompletionTrackerState | null,
@@ -120,15 +146,14 @@ export function trackLinuxCompletionTransitions(
       thread.status === "completed" &&
       thread.latestRunCompletedAt != null &&
       previousRun?.runId === latestRunId &&
-      previousRun.state === "running"
+      RUN_STATUSES_THAT_CAN_COMPLETE.has(previousRun.state)
     ) {
       completions.push({
         threadId: thread.id,
         projectId: thread.projectId,
+        runId: latestRunId,
         threadTitle: thread.title,
         branch: thread.branch,
-        assistantMessageId:
-          thread.latestVisibleMessage?.role === "assistant" ? thread.latestVisibleMessage.id : null,
         startedAt:
           thread.latestRunStartedAt == null ? null : DateTime.formatIso(thread.latestRunStartedAt),
         completedAt: DateTime.formatIso(thread.latestRunCompletedAt),

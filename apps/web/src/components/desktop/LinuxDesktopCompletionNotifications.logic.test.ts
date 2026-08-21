@@ -1,10 +1,11 @@
-import type { OrchestrationV2ThreadShell } from "@t3tools/contracts";
+import { RunId, type OrchestrationV2ThreadShell } from "@t3tools/contracts";
 import * as DateTime from "effect/DateTime";
 import { describe, expect, it } from "vite-plus/test";
 
 import {
   buildLinuxCompletionNotification,
   compactFinalResponsePreview,
+  findFinalAssistantResponsePreview,
   formatTurnDuration,
   trackLinuxCompletionTransitions,
   type LinuxCompletionTrackerState,
@@ -20,7 +21,6 @@ type CompletionThread = Pick<
   | "latestRunId"
   | "latestRunStartedAt"
   | "latestRunCompletedAt"
-  | "latestVisibleMessage"
   | "status"
 >;
 
@@ -42,12 +42,6 @@ function thread(
     latestRunStartedAt: DateTime.makeUnsafe("2026-08-18T11:00:01.000Z"),
     latestRunCompletedAt:
       state === "completed" ? DateTime.makeUnsafe("2026-08-18T12:00:00.000Z") : null,
-    latestVisibleMessage: {
-      id: "message-1" as NonNullable<OrchestrationV2ThreadShell["latestVisibleMessage"]>["id"],
-      role: "assistant",
-      text: "Done",
-      updatedAt: DateTime.makeUnsafe("2026-08-18T12:00:00.000Z"),
-    },
     status: state,
   };
 }
@@ -64,24 +58,27 @@ describe("LinuxDesktopCompletionNotifications.logic", () => {
     expect(observe(null, [thread("completed")]).completions).toEqual([]);
   });
 
-  it("notifies once when an observed running turn completes", () => {
-    const running = observe(null, [thread("running")]);
-    const completed = observe(running.nextState, [thread("completed")]);
-    const repeated = observe(completed.nextState, [thread("completed")]);
+  it.each(["preparing", "queued", "starting", "running", "waiting"] as const)(
+    "notifies once when an observed %s run completes",
+    (activeStatus) => {
+      const active = observe(null, [thread(activeStatus)]);
+      const completed = observe(active.nextState, [thread("completed")]);
+      const repeated = observe(completed.nextState, [thread("completed")]);
 
-    expect(completed.completions).toEqual([
-      expect.objectContaining({
-        threadId: "thread-1",
-        projectId: "project-1",
-        threadTitle: "Improve Linux notifications",
-        branch: "local/linux-notifications",
-        assistantMessageId: "message-1",
-      }),
-    ]);
-    expect(repeated.completions).toEqual([]);
-  });
+      expect(completed.completions).toEqual([
+        expect.objectContaining({
+          threadId: "thread-1",
+          projectId: "project-1",
+          runId: "run-1",
+          threadTitle: "Improve Linux notifications",
+          branch: "local/linux-notifications",
+        }),
+      ]);
+      expect(repeated.completions).toEqual([]);
+    },
+  );
 
-  it("does not notify for a different turn first seen completed after reconnect", () => {
+  it("seeds a completed replacement run without notifying", () => {
     const running = observe(null, [thread("running", { runId: "run-1" })]);
     const completed = observe(running.nextState, [thread("completed", { runId: "run-2" })]);
 
@@ -109,6 +106,32 @@ describe("LinuxDesktopCompletionNotifications.logic", () => {
     );
     expect(compactFinalResponsePreview("123456789", 6)).toBe("12345…");
     expect(compactFinalResponsePreview(" \n ")).toBeNull();
+  });
+
+  it("finds the final completed assistant response for the run in thread detail", () => {
+    const runId = RunId.make("run-1");
+
+    expect(
+      findFinalAssistantResponsePreview(
+        [
+          { runId, role: "assistant", streaming: false, text: "First response" },
+          {
+            runId: RunId.make("run-2"),
+            role: "assistant",
+            streaming: false,
+            text: "Other run",
+          },
+          { runId, role: "assistant", streaming: false, text: "  Final\nresponse.  " },
+        ],
+        runId,
+      ),
+    ).toBe("Final response.");
+    expect(
+      findFinalAssistantResponsePreview(
+        [{ runId, role: "assistant", streaming: true, text: "Still streaming" }],
+        runId,
+      ),
+    ).toBeNull();
   });
 
   it("formats useful notification metadata", () => {

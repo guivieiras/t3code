@@ -12,7 +12,7 @@ import { environmentShell } from "../../state/shell";
 import { environmentThreadDetails } from "../../state/threads";
 import {
   buildLinuxCompletionNotification,
-  compactFinalResponsePreview,
+  findFinalAssistantResponsePreview,
   trackLinuxCompletionTransitions,
   type LinuxCompletion,
   type LinuxCompletionTrackerState,
@@ -51,20 +51,14 @@ async function readFinalAssistantPreview(
   environmentId: EnvironmentId,
   completion: LinuxCompletion,
 ): Promise<string | null> {
-  const messageId = completion.assistantMessageId;
-  if (messageId === null) return null;
-
   const threadAtom = environmentThreadDetails.threadAtom(
     scopeThreadRef(environmentId, completion.threadId),
   );
-  const readPreview = () => {
-    const message = appAtomRegistry
-      .get(threadAtom)
-      ?.projection.messages.find(
-        (candidate) => candidate.id === messageId && candidate.role === "assistant",
-      );
-    return message?.streaming === false ? compactFinalResponsePreview(message.text) : null;
-  };
+  const readPreview = () =>
+    findFinalAssistantResponsePreview(
+      appAtomRegistry.get(threadAtom)?.projection.messages ?? [],
+      completion.runId,
+    );
   const cachedPreview = readPreview();
   if (cachedPreview !== null) return cachedPreview;
 

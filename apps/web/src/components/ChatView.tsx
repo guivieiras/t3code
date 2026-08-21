@@ -4366,16 +4366,22 @@ function ChatViewContent(props: ChatViewProps) {
       return;
     }
 
-    const messageId = dispatchedUserItem.item.messageId;
+    const scrollBehavior = resolveNewTurnScrollBehavior(
+      settings.pinSentMessagesToTop,
+      dispatchedUserItem.item.messageId,
+    );
     isAtEndRef.current = true;
-    timelineScrollModeRef.current = "anchoring-new-turn";
+    timelineScrollModeRef.current = scrollBehavior.mode;
     liveFollowUserScrollGenerationRef.current = anchorUserScrollGenerationRef.current;
-    pendingTimelineAnchorRef.current = messageId;
+    pendingTimelineAnchorRef.current = scrollBehavior.anchorMessageId;
     activeTimelineAnchorIndexRef.current = null;
     showScrollDebouncer.current.cancel();
     setShowScrollToBottom(false);
-    setTimelineAnchor({ threadKey: activeThreadKey, messageId });
-  }, [activeActivityRun, activeThreadKey, serverProjection]);
+    setTimelineAnchor({
+      threadKey: activeThreadKey,
+      messageId: scrollBehavior.anchorMessageId,
+    });
+  }, [activeActivityRun, activeThreadKey, serverProjection, settings.pinSentMessagesToTop]);
   const getActiveTimelineTurnMetrics = useCallback(
     (list?: LegendListRef | null) => {
       const resolvedList = list ?? legendListRef.current;

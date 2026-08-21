@@ -17,11 +17,12 @@ Right-click a pull request link in a thread and choose **Link to thread** to sho
 in the sidebar. The thread settles when the linked pull request merges if **Auto-settle merged
 threads** is enabled. Right-click the same link and choose **Unlink from thread** to remove it.
 
-Choose **Comfortable** or **Compact** under **Settings → General → Sidebar density**. Comfortable
-shows the project, title, branch, provider, and status across three lines for active and pinned
-threads. Compact uses one line with the project icon, title, and current status or time. The full
-project, branch, provider, and environment details remain available when you hover the row. The
-density choice is stored on that web or desktop client.
+Choose **Comfortable**, **Mixed**, or **Compact** under **Settings → General → Sidebar density**.
+Comfortable shows thread details across three lines for active and pinned threads. Mixed puts the
+title and status on the first line, then the project, branch, and activity indicators on the second.
+Compact uses one line with the project icon, title, and current status or time. Full project, branch,
+provider, and environment details remain available when you hover the row. The density choice is
+stored on that web or desktop client.
 
 On web and desktop, drag a pinned thread to change its position. On mobile, open the thread's menu
 and choose **Move up** or **Move down**. The order is stored by the server and appears on your

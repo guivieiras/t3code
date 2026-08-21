@@ -38,7 +38,7 @@ export const SidebarThreadSortOrder = Schema.Literals(["updated_at", "created_at
 export type SidebarThreadSortOrder = typeof SidebarThreadSortOrder.Type;
 export const DEFAULT_SIDEBAR_THREAD_SORT_ORDER: SidebarThreadSortOrder = "updated_at";
 
-export const SidebarDensity = Schema.Literals(["comfortable", "compact"]);
+export const SidebarDensity = Schema.Literals(["comfortable", "mixed", "compact"]);
 export type SidebarDensity = typeof SidebarDensity.Type;
 export const DEFAULT_SIDEBAR_DENSITY: SidebarDensity = "comfortable";
 

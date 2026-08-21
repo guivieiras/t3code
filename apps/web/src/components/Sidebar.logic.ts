@@ -36,14 +36,15 @@ export const animatePinnedLayoutChanges: AnimateLayoutChanges = (args) =>
   args.isSorting ? defaultAnimateLayoutChanges(args) : false;
 
 export type SidebarThreadSection = "pinned" | "active" | "snoozed" | "settled";
-export type SidebarThreadRowVariant = "card" | "compact" | "slim";
+export type SidebarThreadRowVariant = "card" | "mixed" | "compact" | "slim";
 
 export function resolveSidebarThreadRowVariant(
   section: SidebarThreadSection,
   density: SidebarDensity,
 ): SidebarThreadRowVariant {
   if (section === "snoozed" || section === "settled") return "slim";
-  return density === "compact" ? "compact" : "card";
+  if (density === "compact") return "compact";
+  return density === "mixed" ? "mixed" : "card";
 }
 
 type SidebarProject = {

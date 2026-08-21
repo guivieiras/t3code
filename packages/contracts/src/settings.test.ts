@@ -154,8 +154,8 @@ describe("ClientSettings sidebar", () => {
     expect(settings.sidebarAutoSettleOnMerge).toBe(true);
   });
 
-  it("accepts comfortable and compact sidebar densities", () => {
-    for (const sidebarDensity of ["comfortable", "compact"] as const) {
+  it("accepts comfortable, mixed, and compact sidebar densities", () => {
+    for (const sidebarDensity of ["comfortable", "mixed", "compact"] as const) {
       expect(decodeClientSettings({ sidebarDensity }).sidebarDensity).toBe(sidebarDensity);
       expect(decodeClientSettingsPatch({ sidebarDensity }).sidebarDensity).toBe(sidebarDensity);
     }

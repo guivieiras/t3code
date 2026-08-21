@@ -41,7 +41,7 @@ const clientSettings: ClientSettings = {
   showSkillsInSlashMenu: false,
   persistComposerContextStrip: true,
   providerModelPreferences: {},
-  sidebarDensity: "compact",
+  sidebarDensity: "mixed",
   sidebarAutoSettleAfterDays: 3,
   sidebarAutoSettleOnMerge: true,
   sidebarProjectGroupingMode: "repository_path",

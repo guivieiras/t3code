@@ -157,6 +157,7 @@ const ENVIRONMENT_IDENTIFICATION_LABELS: Record<EnvironmentIdentificationMode, s
 
 const SIDEBAR_DENSITY_LABELS: Record<SidebarDensity, string> = {
   comfortable: "Comfortable",
+  mixed: "Mixed",
   compact: "Compact",
 };
 
@@ -2001,7 +2002,7 @@ export function GeneralSettingsPanel() {
             <Select
               value={settings.sidebarDensity}
               onValueChange={(value) => {
-                if (value === "comfortable" || value === "compact") {
+                if (value === "comfortable" || value === "mixed" || value === "compact") {
                   updateSettings({ sidebarDensity: value });
                 }
               }}
@@ -2012,6 +2013,9 @@ export function GeneralSettingsPanel() {
               <SelectPopup align="end" alignItemWithTrigger={false}>
                 <SelectItem hideIndicator value="comfortable">
                   {SIDEBAR_DENSITY_LABELS.comfortable}
+                </SelectItem>
+                <SelectItem hideIndicator value="mixed">
+                  {SIDEBAR_DENSITY_LABELS.mixed}
                 </SelectItem>
                 <SelectItem hideIndicator value="compact">
                   {SIDEBAR_DENSITY_LABELS.compact}

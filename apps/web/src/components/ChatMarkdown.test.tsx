@@ -29,6 +29,7 @@ vi.mock("~/lib/openPullRequestLink", () => ({
 }));
 
 import ChatMarkdown, {
+  addMediaPreviewCacheBuster,
   canUseMarkdownFileShellActions,
   hasMarkdownFilePrimaryAction,
   orderedListGutterStyle,
@@ -37,6 +38,19 @@ import ChatMarkdown, {
   shouldOpenVideoPathInModal,
   shouldUseMarkdownFileBrowserPrimaryAction,
 } from "./ChatMarkdown";
+
+describe("addMediaPreviewCacheBuster", () => {
+  it("gives each modal open a distinct URL without dropping existing URL state", () => {
+    const assetUrl = "https://environment.example/api/assets/token/image.png?download=1#preview";
+
+    expect(addMediaPreviewCacheBuster(assetUrl, "open-1")).toBe(
+      "https://environment.example/api/assets/token/image.png?download=1&t3-preview=open-1#preview",
+    );
+    expect(addMediaPreviewCacheBuster(assetUrl, "open-2")).toBe(
+      "https://environment.example/api/assets/token/image.png?download=1&t3-preview=open-2#preview",
+    );
+  });
+});
 
 describe("canUseMarkdownFileShellActions", () => {
   const environmentId = EnvironmentId.make("environment-1");

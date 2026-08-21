@@ -1063,6 +1063,12 @@ export function shouldOpenVideoPathInModal(
   );
 }
 
+export function addMediaPreviewCacheBuster(assetUrl: string, cacheBuster: string): string {
+  const url = new URL(assetUrl);
+  url.searchParams.set("t3-preview", cacheBuster);
+  return url.toString();
+}
+
 function pathParentSegments(path: string): string[] {
   const normalized = path.replaceAll("\\", "/");
   const segments = normalized.split("/").filter((segment) => segment.length > 0);
@@ -2148,13 +2154,14 @@ function ChatMarkdown({
             fallbackToPanel();
             return;
           }
+          const previewUrl = addMediaPreviewCacheBuster(mediaUrl, `${Date.now()}-${requestId}`);
           if (kind === "audio") {
-            onAudioExpand?.({ src: mediaUrl, name: fileLinkMeta.displayPath });
+            onAudioExpand?.({ src: previewUrl, name: fileLinkMeta.displayPath });
           } else if (kind === "video") {
-            onVideoExpand?.({ src: mediaUrl, name: fileLinkMeta.displayPath });
+            onVideoExpand?.({ src: previewUrl, name: fileLinkMeta.displayPath });
           } else {
             onImageExpand?.({
-              images: [{ src: mediaUrl, name: fileLinkMeta.displayPath }],
+              images: [{ src: previewUrl, name: fileLinkMeta.displayPath }],
               index: 0,
             });
           }

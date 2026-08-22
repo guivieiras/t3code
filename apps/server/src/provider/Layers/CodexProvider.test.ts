@@ -1,6 +1,98 @@
 import { assert, it } from "@effect/vitest";
 
-import { applyPreferredCodexDefaultModel, mapCodexModelCapabilities } from "./CodexProvider.ts";
+import {
+  applyPreferredCodexDefaultModel,
+  isLegacyCodexModel,
+  mapCodexAccountRateLimits,
+  mapCodexModelCapabilities,
+} from "./CodexProvider.ts";
+
+it("maps every Codex quota bucket without assuming primary means five hours", () => {
+  const limits = mapCodexAccountRateLimits(
+    {
+      rateLimits: {
+        limitId: "codex",
+        primary: { usedPercent: 43, windowDurationMins: 10_080, resetsAt: 1_787_698_415 },
+        secondary: null,
+        planType: "pro",
+      },
+      rateLimitsByLimitId: {
+        codex_bengalfox: {
+          limitId: "codex_bengalfox",
+          limitName: "GPT-5.3-Codex-Spark",
+          primary: { usedPercent: 0, windowDurationMins: 300, resetsAt: 1_787_432_117 },
+          secondary: { usedPercent: 0, windowDurationMins: 10_080, resetsAt: 1_787_698_405 },
+          planType: "pro",
+        },
+        codex: {
+          limitId: "codex",
+          primary: { usedPercent: 43, windowDurationMins: 10_080, resetsAt: 1_787_698_415 },
+          secondary: null,
+          credits: { hasCredits: false, unlimited: false, balance: "0" },
+          planType: "pro",
+        },
+      },
+      rateLimitResetCredits: { availableCount: 1, credits: null },
+    },
+    "2026-08-22T18:00:00.000Z",
+  );
+
+  assert.deepStrictEqual(limits, {
+    readAt: "2026-08-22T18:00:00.000Z",
+    resetCreditsAvailable: 1,
+    buckets: [
+      {
+        id: "codex",
+        name: null,
+        planType: "pro",
+        primary: {
+          usedPercent: 43,
+          windowDurationMins: 10_080,
+          resetsAt: 1_787_698_415,
+        },
+        secondary: null,
+        credits: { hasCredits: false, unlimited: false, balance: "0" },
+        individualLimit: null,
+        spendControlReached: null,
+        rateLimitReachedType: null,
+      },
+      {
+        id: "codex_bengalfox",
+        name: "GPT-5.3-Codex-Spark",
+        planType: "pro",
+        primary: {
+          usedPercent: 0,
+          windowDurationMins: 300,
+          resetsAt: 1_787_432_117,
+        },
+        secondary: {
+          usedPercent: 0,
+          windowDurationMins: 10_080,
+          resetsAt: 1_787_698_405,
+        },
+        credits: null,
+        individualLimit: null,
+        spendControlReached: null,
+        rateLimitReachedType: null,
+      },
+    ],
+  });
+});
+
+it("keeps only the GPT-5.6 Codex family out of legacy models", () => {
+  assert.deepStrictEqual(
+    ["gpt-5.6-luna", "gpt-5.6-terra", "gpt-5.6-sol", "gpt-5.4"].map((model) => [
+      model,
+      isLegacyCodexModel(model),
+    ]),
+    [
+      ["gpt-5.6-luna", false],
+      ["gpt-5.6-terra", false],
+      ["gpt-5.6-sol", false],
+      ["gpt-5.4", true],
+    ],
+  );
+});
 
 it("maps current Codex model capability fields", () => {
   const capabilities = mapCodexModelCapabilities({

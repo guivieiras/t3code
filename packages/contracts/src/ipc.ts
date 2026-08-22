@@ -1143,6 +1143,11 @@ export interface DesktopBridge {
   ) => Promise<T | null>;
   openExternal: (url: string) => Promise<boolean>;
   /**
+   * Restore, show, and focus the main window. Optional: older desktop builds
+   * lack it; web callers never have it.
+   */
+  focusWindow?: () => Promise<void>;
+  /**
    * Probe this desktop machine for installed remote-capable editor CLIs
    * (used for remote open-in-editor deep links). Optional: older desktop
    * builds lack it; callers fall back to VS Code only.

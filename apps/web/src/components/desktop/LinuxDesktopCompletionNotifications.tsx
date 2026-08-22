@@ -29,7 +29,9 @@ function showCompletionNotification(input: { readonly title: string; readonly bo
   const show = () => {
     try {
       const notification = new Notification(input.title, { body: input.body });
-      void notification;
+      notification.onclick = () => {
+        void window.desktopBridge?.focusWindow?.();
+      };
     } catch {
       // Desktop notifications are best-effort; a missing notification daemon
       // should not surface as an application error.

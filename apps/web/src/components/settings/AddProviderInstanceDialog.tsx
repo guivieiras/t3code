@@ -8,6 +8,7 @@ import {
   ProviderDriverKind,
   type EnvironmentId,
   type ProviderInstanceConfig,
+  type ProviderInstanceEnvironmentVariable,
 } from "@t3tools/contracts";
 
 import { useEnvironmentSettings, useUpdateEnvironmentSettings } from "../../hooks/useSettings";
@@ -27,7 +28,7 @@ import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
 import { RadioGroup } from "../ui/radio-group";
 import { toastManager } from "../ui/toast";
-import { DRIVER_OPTION_BY_VALUE, DRIVER_OPTIONS } from "./providerDriverMeta";
+import { PROVIDER_INSTANCE_OPTION_BY_ID, PROVIDER_INSTANCE_OPTIONS } from "./providerDriverMeta";
 import { ProviderSettingsForm, deriveProviderSettingsFields } from "./ProviderSettingsForm";
 import { AnimatedHeight } from "../AnimatedHeight";
 import {
@@ -49,8 +50,8 @@ const PROVIDER_ACCENT_SWATCHES = [
 
 /**
  * Normalize a user-provided label into a slug suffix for the instance id.
- * The full id is formed by prefixing the driver slug — e.g. label "Work" on
- * driver "codex" becomes `codex_work`. Output is trimmed to 48 chars so the
+ * The full id is formed by prefixing the provider slug. For example, label
+ * "Work" on Codex becomes `codex_work`. Output is trimmed to 48 chars so the
  * final composed id stays under the 64-char slug cap enforced by
  * `ProviderInstanceId` in `@t3tools/contracts`.
  */
@@ -63,14 +64,13 @@ function slugifyLabel(value: string): string {
     .slice(0, 48);
 }
 
-function deriveInstanceId(driver: ProviderDriverKind, label: string): string {
+function deriveInstanceId(prefix: string, label: string, usePrefixWhenBlank = false): string {
   const slug = slugifyLabel(label);
-  return slug ? `${driver}_${slug}` : "";
+  return slug ? `${prefix}_${slug}` : usePrefixWhenBlank ? prefix : "";
 }
 
 const INSTANCE_ID_PATTERN = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
-const DEFAULT_DRIVER_KIND = ProviderDriverKind.make("codex");
-const DEFAULT_DRIVER_OPTION = DRIVER_OPTIONS[0]!;
+const DEFAULT_PROVIDER_OPTION = PROVIDER_INSTANCE_OPTIONS[0]!;
 const EMPTY_CONFIG_DRAFT: Record<string, unknown> = {};
 interface ComingSoonDriverOption {
   readonly value: ProviderDriverKind;
@@ -128,14 +128,19 @@ export function AddProviderInstanceDialog({
   const updateSettings = useUpdateEnvironmentSettings(environmentId);
 
   const [wizardStep, setWizardStep] = useState(0);
-  const [driver, setDriver] = useState<ProviderDriverKind>(DEFAULT_DRIVER_KIND);
+  const [providerOptionId, setProviderOptionId] = useState(DEFAULT_PROVIDER_OPTION.id);
   const [label, setLabel] = useState("");
   const [iconKey, setIconKey] = useState("");
   const [accentColor, setAccentColor] = useState<string>("");
   const [instanceIdOverride, setInstanceIdOverride] = useState<string | null>(null);
-  // Driver-specific config drafts keyed by driver so toggling between drivers
+  // Provider-specific config drafts keyed by option so Codex and OpenRouter
   // during the same dialog session does not lose in-progress input.
-  const [configByDriver, setConfigByDriver] = useState<Record<string, Record<string, unknown>>>({});
+  const [configByProviderOption, setConfigByProviderOption] = useState<
+    Record<string, Record<string, unknown>>
+  >({});
+  const [environmentByProviderOption, setEnvironmentByProviderOption] = useState<
+    Record<string, Record<string, string>>
+  >({});
   // Errors are suppressed until the user has tried to submit once. After that
   // they update live so fixing the problem clears the message in place.
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
@@ -145,28 +150,53 @@ export function AddProviderInstanceDialog({
     [settings.providerInstances],
   );
 
-  const driverOption = DRIVER_OPTION_BY_VALUE[driver] ?? DEFAULT_DRIVER_OPTION;
-  const instanceId = instanceIdOverride ?? deriveInstanceId(driver, label);
+  const driverOption = PROVIDER_INSTANCE_OPTION_BY_ID[providerOptionId] ?? DEFAULT_PROVIDER_OPTION;
+  const driver = driverOption.value;
+  const instanceIdPrefix = driverOption.instanceIdPrefix ?? String(driver);
+  const instanceId =
+    instanceIdOverride ??
+    deriveInstanceId(instanceIdPrefix, label, driverOption.defaultDisplayName !== undefined);
   const driverSettingsFields = useMemo(
     () => deriveProviderSettingsFields(driverOption),
     [driverOption],
   );
   const instanceIdError = validateInstanceId(instanceId, existingIds);
   const showInstanceIdError = hasAttemptedSubmit && instanceIdError !== null;
-  const previewLabel = label.trim() || `${driverOption.label} Workspace`;
+  const previewLabel =
+    label.trim() || driverOption.defaultDisplayName || `${driverOption.label} Workspace`;
   const wizardStepSummaries = [driverOption.label, previewLabel, null] as const;
 
-  const configDraft = configByDriver[driver] ?? EMPTY_CONFIG_DRAFT;
+  const configDraft = {
+    ...driverOption.defaultConfig,
+    ...(configByProviderOption[providerOptionId] ?? EMPTY_CONFIG_DRAFT),
+  };
+  const environmentValues = environmentByProviderOption[providerOptionId] ?? {};
+  const missingRequiredEnvironmentField = driverOption.environmentFields?.find(
+    (field) => field.required && !environmentValues[field.name]?.trim(),
+  );
+  const configurationError = missingRequiredEnvironmentField
+    ? `${missingRequiredEnvironmentField.label} is required.`
+    : null;
   const setConfigDraft = (config: Record<string, unknown> | undefined) => {
-    setConfigByDriver((existing) => {
+    setConfigByProviderOption((existing) => {
       const next = { ...existing };
       if (config === undefined || Object.keys(config).length === 0) {
-        delete next[driver];
+        delete next[providerOptionId];
       } else {
-        next[driver] = config;
+        next[providerOptionId] = config;
       }
       return next;
     });
+  };
+
+  const setEnvironmentFieldValue = (name: string, value: string) => {
+    setEnvironmentByProviderOption((existing) => ({
+      ...existing,
+      [providerOptionId]: {
+        ...existing[providerOptionId],
+        [name]: value,
+      },
+    }));
   };
 
   const applyWizardNavigation = (navigation: WizardNavigation) => {
@@ -186,18 +216,30 @@ export function AddProviderInstanceDialog({
 
   const handleSave = () => {
     setHasAttemptedSubmit(true);
-    if (instanceIdError !== null) return;
+    if (instanceIdError !== null || configurationError !== null) return;
 
-    const config = configByDriver[driver] ?? {};
+    const config = {
+      ...driverOption.defaultConfig,
+      ...configByProviderOption[providerOptionId],
+    };
     const hasConfig = Object.keys(config).length > 0;
     const normalizedAccentColor = normalizeProviderAccentColor(accentColor);
+    const environment: ProviderInstanceEnvironmentVariable[] = (
+      driverOption.environmentFields ?? []
+    ).flatMap((field) => {
+      const value = environmentValues[field.name]?.trim();
+      return value ? [{ name: field.name, value, sensitive: field.sensitive ?? true }] : [];
+    });
+    const displayName = label.trim() || driverOption.defaultDisplayName;
+    const resolvedIconKey = iconKey || driverOption.defaultIconKey;
 
     const nextInstance: ProviderInstanceConfig = {
       driver,
       enabled: true,
-      ...(label.trim().length > 0 ? { displayName: label.trim() } : {}),
-      ...(iconKey ? { iconKey } : {}),
+      ...(displayName ? { displayName } : {}),
+      ...(resolvedIconKey ? { iconKey: resolvedIconKey } : {}),
       ...(normalizedAccentColor ? { accentColor: normalizedAccentColor } : {}),
+      ...(environment.length > 0 ? { environment } : {}),
       ...(hasConfig ? { config } : {}),
     };
     // `ProviderInstanceId.make` revalidates the slug; we've already checked
@@ -233,8 +275,7 @@ export function AddProviderInstanceDialog({
           <DialogHeader>
             <DialogTitle>Add provider instance</DialogTitle>
             <DialogDescription>
-              Configure an additional provider instance on {environmentLabel} — for example, a
-              second Codex install pointed at a different workspace.
+              Configure another Codex account or provider connection on {environmentLabel}.
             </DialogDescription>
             <AddProviderInstanceWizardSteps
               currentStep={wizardStep}
@@ -251,20 +292,26 @@ export function AddProviderInstanceDialog({
             <AnimatedHeight>
               <div className={cn("grid gap-2", wizardStep !== 0 && "hidden")}>
                 <div id="add-instance-driver-label" className="text-sm font-medium text-foreground">
-                  Driver
+                  Provider
                 </div>
                 <RadioGroup
-                  value={driver}
-                  onValueChange={(value) => setDriver(ProviderDriverKind.make(value))}
+                  value={providerOptionId}
+                  onValueChange={(value) => {
+                    const nextOption =
+                      PROVIDER_INSTANCE_OPTION_BY_ID[value] ?? DEFAULT_PROVIDER_OPTION;
+                    setProviderOptionId(nextOption.id);
+                    setInstanceIdOverride(null);
+                    setIconKey(nextOption.defaultIconKey ?? "");
+                  }}
                   aria-labelledby="add-instance-driver-label"
                   className="grid grid-cols-1 gap-2 sm:grid-cols-2"
                 >
-                  {DRIVER_OPTIONS.map((option) => {
+                  {PROVIDER_INSTANCE_OPTIONS.map((option) => {
                     const IconComponent = option.icon;
                     return (
                       <RadioPrimitive.Root
-                        key={option.value}
-                        value={option.value}
+                        key={option.id}
+                        value={option.id}
                         className="relative flex cursor-pointer items-center gap-3 rounded-lg bg-card px-3 py-3 text-left text-muted-foreground outline-none ring-1 ring-black/5 hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-ring data-checked:bg-primary/8 data-checked:text-foreground data-checked:ring-2 data-checked:ring-primary data-checked:hover:bg-primary/8 dark:bg-white/3 dark:ring-white/5 dark:hover:bg-white/5 dark:data-checked:bg-primary/15 dark:data-checked:ring-primary dark:data-checked:hover:bg-primary/15"
                       >
                         <IconComponent className="size-4 shrink-0" aria-hidden />
@@ -329,7 +376,7 @@ export function AddProviderInstanceDialog({
                 <span className="text-xs font-medium text-foreground">Instance ID</span>
                 <Input
                   className="bg-background"
-                  placeholder={`${driver}_work`}
+                  placeholder={`${instanceIdPrefix}_work`}
                   value={instanceId}
                   onChange={(event) => {
                     setInstanceIdOverride(event.target.value);
@@ -402,8 +449,36 @@ export function AddProviderInstanceDialog({
                 </span>
               </div>
 
-              {driverSettingsFields.length > 0 ? (
+              {driverSettingsFields.length > 0 ||
+              (driverOption.environmentFields?.length ?? 0) > 0 ? (
                 <div className={cn("grid gap-4", wizardStep !== 2 && "hidden")}>
+                  {driverOption.environmentFields?.map((field) => (
+                    <label key={field.name} className="grid gap-1.5">
+                      <span className="text-xs font-medium text-foreground">{field.label}</span>
+                      <Input
+                        className="bg-background"
+                        type={field.sensitive === false ? undefined : "password"}
+                        autoComplete="off"
+                        value={environmentValues[field.name] ?? ""}
+                        onChange={(event) =>
+                          setEnvironmentFieldValue(field.name, event.target.value)
+                        }
+                        placeholder={field.placeholder}
+                        spellCheck={false}
+                        aria-invalid={
+                          hasAttemptedSubmit && missingRequiredEnvironmentField?.name === field.name
+                        }
+                      />
+                      {hasAttemptedSubmit &&
+                      missingRequiredEnvironmentField?.name === field.name ? (
+                        <span className="text-[11px] text-destructive">{configurationError}</span>
+                      ) : field.description ? (
+                        <span className="text-[11px] text-muted-foreground">
+                          {field.description}
+                        </span>
+                      ) : null}
+                    </label>
+                  ))}
                   <ProviderSettingsForm
                     definition={driverOption}
                     value={configDraft}

@@ -1,6 +1,6 @@
 # Codex
 
-This guide is for people who want to use more than one Codex account in T3 Code. For Claude, see
+This guide covers Codex accounts and OpenRouter connections that run through Codex. For Claude, see
 [Claude](./providers-claude.md). For first-time setup, see [Install T3 Code](./install.md).
 
 Common reasons:
@@ -9,6 +9,21 @@ Common reasons:
 - use a personal account for personal projects
 - switch to another account when one account hits limits
 - keep one shared Codex history instead of maintaining two separate Codex setups
+
+## Use OpenRouter through Codex
+
+Open Settings, go to Providers, select Add provider instance, then choose OpenRouter via Codex.
+Enter an OpenRouter API key and add the connection. T3 Code configures Codex's OpenRouter model
+provider, creates an isolated shadow home, and loads the tool-capable model catalog from OpenRouter.
+
+No `config.toml` changes or launch arguments are required. The connection still uses the installed
+Codex CLI, so Codex must be available on the server machine.
+
+OpenRouter and native Codex can offer some of the same model slugs. T3 Code keeps them as separate
+choices because they use different provider instances, credentials, and billing routes.
+
+Existing OpenRouter instances configured with `model_provider="openrouter"` launch arguments remain
+supported and are shown as OpenRouter connections.
 
 ## I Only Use One Codex Account
 

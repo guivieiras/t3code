@@ -344,6 +344,9 @@ export function makeProviderSettingsSchema<const Fields extends Schema.Struct.Fi
   );
 }
 
+export const CodexConnection = Schema.Literals(["native", "openrouter"]);
+export type CodexConnection = typeof CodexConnection.Type;
+
 export const CodexSettings = makeProviderSettingsSchema(
   {
     enabled: Schema.Boolean.pipe(
@@ -386,6 +389,10 @@ export const CodexSettings = makeProviderSettingsSchema(
         title: "Launch arguments",
         description: "Additional CLI arguments passed to codex app-server on session start.",
       }),
+    ),
+    connection: CodexConnection.pipe(
+      Schema.withDecodingDefault(Effect.succeed("native" as const)),
+      Schema.annotateKey({ providerSettingsForm: { hidden: true } }),
     ),
     customModels: Schema.Array(Schema.String).pipe(
       Schema.withDecodingDefault(Effect.succeed([])),
@@ -876,6 +883,7 @@ const CodexSettingsPatch = Schema.Struct({
   homePath: Schema.optionalKey(TrimmedString),
   shadowHomePath: Schema.optionalKey(TrimmedString),
   launchArgs: Schema.optionalKey(TrimmedString),
+  connection: Schema.optionalKey(CodexConnection),
   customModels: Schema.optionalKey(Schema.Array(Schema.String)),
 });
 

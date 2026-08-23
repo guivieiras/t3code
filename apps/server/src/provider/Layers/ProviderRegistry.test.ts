@@ -622,6 +622,79 @@ it.layer(Layer.mergeAll(NodeServices.layer, ServerSettingsModule.layerTest(), Te
         );
       });
 
+      it("drops stale Codex models missing from a successful instance refresh", () => {
+        const previousProvider = {
+          instanceId: ProviderInstanceId.make("codex"),
+          driver: ProviderDriverKind.make("codex"),
+          status: "ready",
+          enabled: true,
+          installed: true,
+          auth: { status: "authenticated" },
+          checkedAt: "2026-08-23T00:00:00.000Z",
+          version: "0.149.0",
+          models: [
+            {
+              slug: "gpt-5.6-sol",
+              name: "GPT-5.6-Sol",
+              isCustom: false,
+              capabilities: null,
+            },
+            {
+              slug: "stealth/ox-alpha",
+              name: "Ox Alpha",
+              isCustom: false,
+              capabilities: null,
+            },
+          ],
+          slashCommands: [],
+          skills: [],
+        } as const satisfies ServerProvider;
+        const refreshedProvider = {
+          ...previousProvider,
+          checkedAt: "2026-08-23T00:01:00.000Z",
+          models: [previousProvider.models[0]!],
+        } satisfies ServerProvider;
+
+        assert.deepStrictEqual(mergeProviderSnapshot(previousProvider, refreshedProvider).models, [
+          ...refreshedProvider.models,
+        ]);
+      });
+
+      it("retains the last Codex catalog when an installed instance probe fails", () => {
+        const previousProvider = {
+          instanceId: ProviderInstanceId.make("openrouter"),
+          driver: ProviderDriverKind.make("codex"),
+          status: "ready",
+          enabled: true,
+          installed: true,
+          auth: { status: "authenticated" },
+          checkedAt: "2026-08-23T00:00:00.000Z",
+          version: "0.149.0",
+          models: [
+            {
+              slug: "stealth/ox-alpha",
+              name: "Ox Alpha",
+              isCustom: false,
+              capabilities: null,
+            },
+          ],
+          slashCommands: [],
+          skills: [],
+        } as const satisfies ServerProvider;
+        const failedProvider = {
+          ...previousProvider,
+          status: "error",
+          auth: { status: "unknown" },
+          checkedAt: "2026-08-23T00:01:00.000Z",
+          models: [],
+          message: "Could not load the OpenRouter model catalog.",
+        } satisfies ServerProvider;
+
+        assert.deepStrictEqual(mergeProviderSnapshot(previousProvider, failedProvider).models, [
+          ...previousProvider.models,
+        ]);
+      });
+
       it("drops stale OpenCode models missing from a successful refresh", () => {
         const previousProvider = {
           instanceId: ProviderInstanceId.make("opencode"),

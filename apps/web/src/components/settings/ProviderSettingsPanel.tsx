@@ -756,7 +756,7 @@ export function EnvironmentProviderSettings({
   };
 
   const renderProviderInstance = (row: InstanceRow, mode: "list" | "editor") => {
-    const driverOption = getDriverOption(row.driver);
+    const driverOption = getDriverOption(row.driver, row.instance.config);
     const liveProvider = serverProviders.find(
       (candidate) => candidate.instanceId === row.instanceId,
     );

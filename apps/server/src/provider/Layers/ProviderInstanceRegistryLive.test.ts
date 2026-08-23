@@ -99,6 +99,7 @@ const makeCodexConfig = (overrides: Partial<CodexSettings>): CodexSettings => ({
   homePath: "",
   shadowHomePath: "",
   launchArgs: "",
+  connection: "native",
   customModels: [],
   ...overrides,
 });

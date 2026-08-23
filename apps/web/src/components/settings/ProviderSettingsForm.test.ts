@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vite-plus/test";
 import { ProviderDriverKind } from "@t3tools/contracts";
 
-import { DRIVER_OPTION_BY_VALUE } from "./providerDriverMeta";
+import {
+  DRIVER_OPTION_BY_VALUE,
+  getDriverOption,
+  PROVIDER_INSTANCE_OPTION_BY_ID,
+} from "./providerDriverMeta";
 import {
   deriveProviderSettingsFields,
   nextProviderConfigWithFieldValue,
@@ -51,6 +55,42 @@ describe("ProviderSettingsForm helpers", () => {
         sensitive: true,
       },
     ]);
+  });
+
+  it("exposes OpenRouter as a supported Codex connection", () => {
+    const openrouter = PROVIDER_INSTANCE_OPTION_BY_ID["openrouter-codex"];
+
+    expect(openrouter).toBeDefined();
+    expect(openrouter?.value).toBe(ProviderDriverKind.make("codex"));
+    expect(openrouter?.defaultConfig).toEqual({ connection: "openrouter" });
+    expect(openrouter?.defaultDisplayName).toBe("OpenRouter");
+    expect(openrouter?.defaultIconKey).toBe("openrouter");
+    expect(openrouter?.environmentFields).toEqual([
+      {
+        name: "OPENROUTER_API_KEY",
+        label: "OpenRouter API key",
+        description: "Used by Codex for turns and by T3 Code to load your model catalog.",
+        placeholder: "sk-or-v1-...",
+        sensitive: true,
+        required: true,
+      },
+    ]);
+    expect(deriveProviderSettingsFields(openrouter!).map((field) => field.key)).toEqual([
+      "binaryPath",
+      "homePath",
+    ]);
+  });
+
+  it("recognizes explicit and legacy OpenRouter Codex instances", () => {
+    const codexDriver = ProviderDriverKind.make("codex");
+
+    expect(getDriverOption(codexDriver, { connection: "openrouter" })?.id).toBe("openrouter-codex");
+    expect(
+      getDriverOption(codexDriver, {
+        launchArgs: "-c 'model_provider=\"openrouter\"'",
+      })?.id,
+    ).toBe("openrouter-codex");
+    expect(getDriverOption(codexDriver, {})?.id).toBe("codex");
   });
 
   it("exposes ACP Registry as an instance-only configurable driver", () => {

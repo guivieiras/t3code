@@ -79,13 +79,17 @@ const hasModelCapabilities = (model: ServerProvider["models"][number]): boolean 
   (model.capabilities?.optionDescriptors?.length ?? 0) > 0;
 
 const shouldRetainMissingProviderModels = (provider: ServerProvider): boolean => {
-  if (provider.driver !== ProviderDriverKind.make("opencode")) {
+  const hasAuthoritativeCatalog =
+    provider.driver === ProviderDriverKind.make("codex") ||
+    provider.driver === ProviderDriverKind.make("opencode");
+  if (!hasAuthoritativeCatalog) {
     return true;
   }
 
-  // OpenCode's initial snapshot is deliberately non-authoritative while its
-  // first probe is still running. A probe error from an installed CLI/server
-  // is likewise partial: it could not establish the current inventory.
+  // Codex and OpenCode publish authoritative model inventories after a
+  // successful probe. Their initial snapshots are non-authoritative while the
+  // first probe is still running, and a probe error from an installed CLI is
+  // likewise partial because it could not establish the current inventory.
   // Conversely, disabled and missing-CLI snapshots are authoritative removals,
   // as are successful ready/warning inventories (including an empty one after
   // logout or plugin removal).

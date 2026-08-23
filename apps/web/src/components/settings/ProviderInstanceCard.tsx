@@ -674,6 +674,9 @@ export function ProviderInstanceCard({
       iconKey={instance.iconKey}
       accentColor={accentColor}
       showBadge={Boolean(accentColor)}
+      badgeContent="none"
+      statusDotClassName={statusStyle.dot}
+      indicatorBackground="var(--card)"
       className="size-5"
       iconClassName="size-4 text-foreground/80"
       badgeClassName="right-[-0.125rem] bottom-[-0.125rem] h-3 min-w-3 px-0.5 text-[7px]"

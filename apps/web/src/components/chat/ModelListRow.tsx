@@ -100,6 +100,7 @@ export const ModelListRow = memo(function ModelListRow(props: {
               iconKey={props.providerIconKey}
               accentColor={props.providerAccentColor}
               showBadge={Boolean(props.providerAccentColor)}
+              badgeContent="none"
               className="size-3"
               iconClassName="size-3"
               badgeClassName="right-[-0.125rem] bottom-[-0.125rem] h-2 min-w-2 px-0 text-[5px]"

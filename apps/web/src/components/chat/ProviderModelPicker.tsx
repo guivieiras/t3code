@@ -18,7 +18,11 @@ import {
   getTriggerDisplayModelLabel,
   getTriggerDisplayModelName,
 } from "./providerIconUtils";
-import { shouldShowInstanceBadge, type ProviderInstanceEntry } from "../../providerInstances";
+import {
+  shouldShowInstanceBadge,
+  shouldShowInstanceInitials,
+  type ProviderInstanceEntry,
+} from "../../providerInstances";
 import { ComposerControl, ComposerControlChevron } from "./ComposerControl";
 
 export const ProviderModelPicker = memo(function ProviderModelPicker(props: {
@@ -71,6 +75,8 @@ export const ProviderModelPicker = memo(function ProviderModelPicker(props: {
     : props.model;
   const showInstanceBadge =
     activeEntry !== null && shouldShowInstanceBadge(activeEntry, props.instanceEntries);
+  const showInstanceInitials =
+    activeEntry !== null && shouldShowInstanceInitials(activeEntry, props.instanceEntries);
 
   const setIsMenuOpen = (open: boolean) => {
     props.onOpenChange?.(open);
@@ -170,6 +176,7 @@ export const ProviderModelPicker = memo(function ProviderModelPicker(props: {
               }
               accentColor={activeEntry.accentColor}
               showBadge={showInstanceBadge}
+              badgeContent={showInstanceInitials ? "initials" : "none"}
               className="size-4"
               iconClassName={cn("size-4", props.activeProviderIconClassName)}
               indicatorBackground="var(--contrast-input)"

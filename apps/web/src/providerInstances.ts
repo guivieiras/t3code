@@ -25,6 +25,7 @@ import {
   type ServerSettings,
   type ServerProviderState,
 } from "@t3tools/contracts";
+import { MODEL_BRAND_ICON_KEYS } from "@t3tools/shared/modelBrand";
 
 import { formatProviderDriverKindLabel } from "./providerModels";
 
@@ -129,21 +130,51 @@ function driverKindLabel(driverKind: ProviderDriverKind): string {
   return PROVIDER_DISPLAY_NAMES[driverKind] ?? formatProviderDriverKindLabel(driverKind);
 }
 
-/**
- * Whether an instance's icon carries the account badge: accent color set, or
- * several instances sharing a driver so the brand glyph alone is ambiguous.
- * Shared by the composer trigger, the picker rail, and sidebar rows.
- */
+const MODEL_BRAND_ICON_KEY_SET: ReadonlySet<string> = new Set(MODEL_BRAND_ICON_KEYS);
+
+/** Resolve the glyph an instance icon renders, including driver fallbacks. */
+export function providerInstanceIconIdentity(
+  entry: Pick<ProviderInstanceEntry, "driverKind" | "iconKey">,
+): string {
+  if (entry.iconKey && MODEL_BRAND_ICON_KEY_SET.has(entry.iconKey)) {
+    return entry.iconKey;
+  }
+
+  switch (entry.driverKind) {
+    case "codex":
+      return "openai";
+    case "claudeAgent":
+      return "anthropic";
+    case "grok":
+      return "xai";
+    default:
+      return `driver:${entry.driverKind}`;
+  }
+}
+
+/** Whether another configured instance renders the same icon. */
+export function shouldShowInstanceInitials(
+  entry: ProviderInstanceEntry,
+  entries: Iterable<ProviderInstanceEntry>,
+): boolean {
+  const iconIdentity = providerInstanceIconIdentity(entry);
+  for (const candidate of entries) {
+    if (
+      candidate.instanceId !== entry.instanceId &&
+      providerInstanceIconIdentity(candidate) === iconIdentity
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Whether an instance icon carries either initials or an accent-color dot. */
 export function shouldShowInstanceBadge(
   entry: ProviderInstanceEntry,
   entries: Iterable<ProviderInstanceEntry>,
 ): boolean {
-  if (entry.accentColor) return true;
-  let sharedDriverCount = 0;
-  for (const candidate of entries) {
-    if (candidate.driverKind === entry.driverKind && ++sharedDriverCount > 1) return true;
-  }
-  return false;
+  return Boolean(entry.accentColor) || shouldShowInstanceInitials(entry, entries);
 }
 
 export function normalizeProviderAccentColor(value: string | undefined): string | undefined {

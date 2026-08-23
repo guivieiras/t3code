@@ -36,6 +36,7 @@ import {
   type WizardNavigation,
 } from "./AddProviderInstanceDialog.logic";
 import { AddProviderInstanceWizardSteps } from "./AddProviderInstanceWizardSteps";
+import { ProviderIconPicker } from "./ProviderIconPicker";
 
 const PROVIDER_ACCENT_SWATCHES = [
   "#2563eb",
@@ -129,6 +130,7 @@ export function AddProviderInstanceDialog({
   const [wizardStep, setWizardStep] = useState(0);
   const [driver, setDriver] = useState<ProviderDriverKind>(DEFAULT_DRIVER_KIND);
   const [label, setLabel] = useState("");
+  const [iconKey, setIconKey] = useState("");
   const [accentColor, setAccentColor] = useState<string>("");
   const [instanceIdOverride, setInstanceIdOverride] = useState<string | null>(null);
   // Driver-specific config drafts keyed by driver so toggling between drivers
@@ -194,6 +196,7 @@ export function AddProviderInstanceDialog({
       driver,
       enabled: true,
       ...(label.trim().length > 0 ? { displayName: label.trim() } : {}),
+      ...(iconKey ? { iconKey } : {}),
       ...(normalizedAccentColor ? { accentColor: normalizedAccentColor } : {}),
       ...(hasConfig ? { config } : {}),
     };
@@ -341,6 +344,16 @@ export function AddProviderInstanceDialog({
                   </span>
                 )}
               </label>
+
+              <div className={cn(wizardStep !== 1 && "hidden")}>
+                <ProviderIconPicker
+                  driverKind={driver}
+                  displayName={previewLabel}
+                  value={iconKey || undefined}
+                  onCommit={setIconKey}
+                  description="Optional. Unknown model brands use this icon as their fallback."
+                />
+              </div>
 
               <div className={cn("grid gap-2", wizardStep !== 1 && "hidden")}>
                 <span className="text-xs font-medium text-foreground">Accent color</span>

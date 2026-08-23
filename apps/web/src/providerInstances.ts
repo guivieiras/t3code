@@ -48,6 +48,7 @@ export interface ProviderInstanceEntry {
   readonly instanceId: ProviderInstanceId;
   readonly driverKind: ProviderDriverKind;
   readonly displayName: string;
+  readonly iconKey?: string | undefined;
   readonly accentColor?: string | undefined;
   readonly continuationGroupKey?: string | undefined;
   readonly enabled: boolean;
@@ -205,6 +206,7 @@ export function deriveProviderInstanceEntries(
       instanceId,
       driverKind,
       displayName,
+      iconKey: snapshot.iconKey,
       accentColor: normalizeProviderAccentColor(snapshot.accentColor),
       continuationGroupKey: snapshot.continuation?.groupKey,
       enabled: snapshot.enabled,

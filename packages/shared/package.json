@@ -23,6 +23,10 @@
       "types": "./src/model.ts",
       "import": "./src/model.ts"
     },
+    "./modelBrand": {
+      "types": "./src/modelBrand.ts",
+      "import": "./src/modelBrand.ts"
+    },
     "./advertisedEndpoint": {
       "types": "./src/advertisedEndpoint.ts",
       "import": "./src/advertisedEndpoint.ts"

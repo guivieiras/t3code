@@ -900,6 +900,7 @@ it.layer(Layer.mergeAll(NodeServices.layer, ServerSettingsModule.layerTest(), Te
               continuationKey: "codex:instance:codex",
             },
             displayName: undefined,
+            iconKey: "openrouter",
             enabled: true,
             snapshot: {
               maintenanceCapabilities: makeManualOnlyProviderMaintenanceCapabilities({
@@ -941,7 +942,9 @@ it.layer(Layer.mergeAll(NodeServices.layer, ServerSettingsModule.layerTest(), Te
           ).pipe(Scope.provide(scope));
           yield* Effect.gen(function* () {
             const registry = yield* ProviderRegistry.ProviderRegistry;
-            assert.deepStrictEqual(yield* registry.getProviders, [initialProvider]);
+            assert.deepStrictEqual(yield* registry.getProviders, [
+              { ...initialProvider, iconKey: "openrouter" },
+            ]);
             assert.strictEqual(yield* Ref.get(refreshCalls), 0);
           }).pipe(Effect.provide(runtimeServices));
         }),

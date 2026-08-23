@@ -42,6 +42,7 @@ import { ProviderSettingsForm } from "./ProviderSettingsForm";
 import { ProviderModelsSection } from "./ProviderModelsSection";
 import { ProviderInstanceIcon, providerInstanceInitials } from "../chat/ProviderInstanceIcon";
 import { ProviderAccentColorPicker } from "./ProviderAccentColorPicker";
+import { ProviderIconPicker } from "./ProviderIconPicker";
 import { RedactedSensitiveText } from "./RedactedSensitiveText";
 import {
   getProviderVersionAdvisoryPresentation,
@@ -616,6 +617,14 @@ export function ProviderInstanceCard({
     );
   };
 
+  const updateIconKey = (value: string) => {
+    const iconKey = value.trim();
+    const { iconKey: _omit, ...rest } = instance;
+    onUpdate(
+      iconKey ? ({ ...rest, iconKey } as ProviderInstanceConfig) : (rest as ProviderInstanceConfig),
+    );
+  };
+
   const updateConfig = (nextConfig: Record<string, unknown> | undefined) => {
     const { config: _omit, ...rest } = instance;
     onUpdate(
@@ -662,6 +671,7 @@ export function ProviderInstanceCard({
     <ProviderInstanceIcon
       driverKind={driverKind}
       displayName={displayName}
+      iconKey={instance.iconKey}
       accentColor={accentColor}
       showBadge={Boolean(accentColor)}
       className="size-5"
@@ -990,6 +1000,16 @@ export function ProviderInstanceCard({
                 </span>
               </label>
             </div>
+
+            {driverKind ? (
+              <ProviderIconPicker
+                driverKind={driverKind}
+                displayName={displayName}
+                value={instance.iconKey}
+                onCommit={updateIconKey}
+                description="Used for this instance and as the fallback for unrecognized model brands."
+              />
+            ) : null}
 
             <div>
               <ProviderAccentColorPicker

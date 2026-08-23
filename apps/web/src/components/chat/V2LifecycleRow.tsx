@@ -7,6 +7,7 @@ import type {
   ThreadId,
 } from "@t3tools/contracts";
 import type { TimestampFormat } from "@t3tools/contracts/settings";
+import { resolveModelBrandIconKey } from "@t3tools/shared/modelBrand";
 import {
   ArrowRightLeftIcon,
   ArrowRightIcon,
@@ -22,7 +23,8 @@ import {
 
 import { getProviderInstanceEntry } from "../../providerInstances";
 import { formatShortTimestamp } from "../../timestampFormat";
-import { PROVIDER_ICON_BY_PROVIDER, getTriggerDisplayModelName } from "./providerIconUtils";
+import { getTriggerDisplayModelName } from "./providerIconUtils";
+import { ProviderInstanceIcon } from "./ProviderInstanceIcon";
 import { TimelineSystemDivider } from "./TimelineSystemDivider";
 
 const LIFECYCLE_TYPES = new Set<OrchestrationV2TurnItem["type"]>([
@@ -337,7 +339,6 @@ function HandoffEndpoint(props: {
   readonly model?: string | undefined;
 }) {
   const entry = getProviderInstanceEntry(props.providers, props.instanceId);
-  const Icon = entry === undefined ? null : (PROVIDER_ICON_BY_PROVIDER[entry.driverKind] ?? null);
   const model = props.model?.trim();
   const providerModel =
     model === undefined || model.length === 0
@@ -351,7 +352,15 @@ function HandoffEndpoint(props: {
         : (entry?.displayName ?? props.instanceId);
   return (
     <span className="inline-flex min-w-0 items-center gap-1">
-      {Icon === null ? null : <Icon aria-hidden="true" className="size-3 shrink-0" />}
+      {entry ? (
+        <ProviderInstanceIcon
+          driverKind={entry.driverKind}
+          displayName={entry.displayName}
+          iconKey={(model ? resolveModelBrandIconKey(model) : undefined) ?? entry.iconKey}
+          className="size-3"
+          iconClassName="size-3"
+        />
+      ) : null}
       <span className="max-w-40 truncate">{label}</span>
     </span>
   );

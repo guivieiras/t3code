@@ -108,7 +108,9 @@ Open Settings and look at the provider row.
 T3 Code shows the authenticated email for providers that report one. Emails are blurred by default;
 click the blurred email to reveal it.
 
-Use display names and accent colors to make accounts easy to tell apart in the model picker.
+Use display names, icons, and accent colors to make accounts easy to tell apart in the model picker.
+T3 Code also recognizes common model publishers from model slugs and shows their brand icon. Models
+with an unrecognized publisher use the provider instance icon instead.
 
 ## I Need A Different API Key Or Endpoint
 

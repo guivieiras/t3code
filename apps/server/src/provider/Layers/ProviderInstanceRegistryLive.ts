@@ -137,6 +137,7 @@ const buildEntry = <R>(input: {
           driverKind: entry.driver,
           instanceId,
           displayName: entry.displayName,
+          iconKey: entry.iconKey,
           accentColor: entry.accentColor,
           reason: `Driver '${entry.driver}' is not registered in this build.`,
         }),
@@ -159,6 +160,7 @@ const buildEntry = <R>(input: {
           driverKind: entry.driver,
           instanceId,
           displayName: entry.displayName,
+          iconKey: entry.iconKey,
           accentColor: entry.accentColor,
           reason: `Invalid config for instance '${rawInstanceId}': ${detail}`,
         }),
@@ -197,6 +199,7 @@ const buildEntry = <R>(input: {
           driverKind: entry.driver,
           instanceId,
           displayName: entry.displayName,
+          iconKey: entry.iconKey,
           accentColor: entry.accentColor,
           reason: `Driver '${entry.driver}' failed to create instance: ${createResult.failure.detail}`,
         }),
@@ -206,7 +209,10 @@ const buildEntry = <R>(input: {
     return {
       kind: "live" as const,
       live: {
-        instance: createResult.success,
+        instance: {
+          ...createResult.success,
+          ...(entry.iconKey ? { iconKey: entry.iconKey } : {}),
+        },
         scope: childScope,
         entry,
       },

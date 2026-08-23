@@ -6,6 +6,7 @@ import {
 import { memo, useEffect, useMemo, useState } from "react";
 import type { VariantProps } from "class-variance-authority";
 import { Badge } from "../ui/badge";
+import { resolveModelBrandIconKey } from "@t3tools/shared/modelBrand";
 import { buttonVariants } from "../ui/button";
 import { Popover, PopoverPopup, PopoverTrigger } from "../ui/popover";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
@@ -163,6 +164,10 @@ export const ProviderModelPicker = memo(function ProviderModelPicker(props: {
             <ProviderInstanceIcon
               driverKind={activeEntry.driverKind}
               displayName={activeEntry.displayName}
+              iconKey={
+                (selectedModel ? resolveModelBrandIconKey(selectedModel.slug) : undefined) ??
+                activeEntry.iconKey
+              }
               accentColor={activeEntry.accentColor}
               showBadge={showInstanceBadge}
               className="size-4"

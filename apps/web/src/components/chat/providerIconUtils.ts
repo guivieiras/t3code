@@ -1,6 +1,14 @@
 import { ProviderDriverKind } from "@t3tools/contracts";
-import { ClaudeAI, CursorIcon, GrokIcon, Icon, OpenAI, OpenCodeIcon } from "../Icons";
+import type { ModelBrandIconKey } from "@t3tools/shared/modelBrand";
+import { ClaudeAI, CursorIcon, Gemini, GrokIcon, Icon, OpenAI, OpenCodeIcon } from "../Icons";
 import { PROVIDER_OPTIONS } from "../../session-logic";
+import {
+  DeepSeekIcon,
+  MetaIcon,
+  MistralIcon,
+  OpenRouterIcon,
+  QwenIcon,
+} from "./ProviderBrandIcons";
 
 export const PROVIDER_ICON_BY_PROVIDER: Partial<Record<ProviderDriverKind, Icon>> = {
   [ProviderDriverKind.make("codex")]: OpenAI,
@@ -9,6 +17,44 @@ export const PROVIDER_ICON_BY_PROVIDER: Partial<Record<ProviderDriverKind, Icon>
   [ProviderDriverKind.make("cursor")]: CursorIcon,
   [ProviderDriverKind.make("grok")]: GrokIcon,
 };
+
+export const PROVIDER_ICON_BY_KEY: Readonly<Partial<Record<string, Icon>>> = {
+  anthropic: ClaudeAI,
+  deepseek: DeepSeekIcon,
+  google: Gemini,
+  meta: MetaIcon,
+  mistral: MistralIcon,
+  openai: OpenAI,
+  openrouter: OpenRouterIcon,
+  qwen: QwenIcon,
+  xai: GrokIcon,
+};
+
+export const CURATED_PROVIDER_ICON_OPTIONS: ReadonlyArray<{
+  readonly key: ModelBrandIconKey;
+  readonly label: string;
+}> = [
+  { key: "openrouter", label: "OpenRouter" },
+  { key: "openai", label: "OpenAI" },
+  { key: "anthropic", label: "Anthropic" },
+  { key: "google", label: "Google" },
+  { key: "xai", label: "xAI" },
+  { key: "meta", label: "Meta" },
+  { key: "mistral", label: "Mistral" },
+  { key: "deepseek", label: "DeepSeek" },
+  { key: "qwen", label: "Qwen" },
+];
+
+export function resolveProviderIcon(input: {
+  readonly driverKind: ProviderDriverKind;
+  readonly iconKey?: string | undefined;
+}): Icon | null {
+  return (
+    (input.iconKey ? PROVIDER_ICON_BY_KEY[input.iconKey] : undefined) ??
+    PROVIDER_ICON_BY_PROVIDER[input.driverKind] ??
+    null
+  );
+}
 
 function isAvailableProviderOption(option: (typeof PROVIDER_OPTIONS)[number]): option is {
   value: ProviderDriverKind;

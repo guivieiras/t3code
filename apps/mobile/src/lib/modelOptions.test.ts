@@ -19,6 +19,7 @@ describe("mobile model options", () => {
           instanceId: "codex",
           driver: "codex",
           displayName: "Codex",
+          iconKey: "openrouter",
           enabled: true,
           installed: true,
           auth: { status: "authenticated" },
@@ -46,8 +47,19 @@ describe("mobile model options", () => {
         providerKey: "codex",
         providerLabel: "Codex",
         models: [
-          { key: "codex:gpt-5.6-sol", label: "GPT-5.6 Sol", subtitle: "", isLegacy: false },
-          { key: "codex:gpt-5.4", label: "GPT-5.4", isLegacy: true },
+          {
+            key: "codex:gpt-5.6-sol",
+            label: "GPT-5.6 Sol",
+            subtitle: "",
+            providerIconKey: "openrouter",
+            isLegacy: false,
+          },
+          {
+            key: "codex:gpt-5.4",
+            label: "GPT-5.4",
+            providerIconKey: "openrouter",
+            isLegacy: true,
+          },
         ],
       },
     ]);

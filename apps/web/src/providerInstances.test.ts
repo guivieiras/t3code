@@ -20,6 +20,7 @@ function provider(input: {
   availability?: ServerProvider["availability"];
   displayName?: string;
   accentColor?: string;
+  iconKey?: string;
   status?: ServerProvider["status"];
   models?: ServerProvider["models"];
 }): ServerProvider {
@@ -28,6 +29,7 @@ function provider(input: {
     driver: input.provider,
     ...(input.displayName ? { displayName: input.displayName } : {}),
     ...(input.accentColor ? { accentColor: input.accentColor } : {}),
+    ...(input.iconKey ? { iconKey: input.iconKey } : {}),
     enabled: input.enabled ?? true,
     installed: true,
     version: null,
@@ -173,6 +175,18 @@ describe("deriveProviderInstanceEntries", () => {
     expect(entry?.instanceId).toBe("codex_personal");
     expect(entry?.driverKind).toBe("codex");
     expect(entry?.isDefault).toBe(false);
+  });
+
+  it("preserves the configured instance icon key", () => {
+    const [entry] = deriveProviderInstanceEntries([
+      provider({
+        provider: ProviderDriverKind.make("codex"),
+        instanceId: "openrouter",
+        iconKey: "openrouter",
+      }),
+    ]);
+
+    expect(entry?.iconKey).toBe("openrouter");
   });
 });
 

@@ -1,5 +1,9 @@
 export const T3_CODE_ORCHESTRATION_INSTRUCTIONS = `
 
+## T3 Code artifact sharing
+
+Images, screenshots, recordings, and other files shown inside tool results or agent-only previews are not durable user-visible chat attachments. Never tell the user that an artifact is attached, shown above, or shared merely because a tool rendered it. Only make that claim after creating a durable user-visible attachment or accessible file link. Otherwise, provide the exact saved path and say that it was not attached to the chat.
+
 ## T3 Code orchestration
 
 The \`t3-code\` MCP server provides app-owned orchestration. Treat these concepts distinctly:

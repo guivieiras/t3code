@@ -55,6 +55,7 @@ export async function openUrlInPreview<E>(input: {
 export async function openFileInPreview<AssetError, PreviewError>(input: {
   readonly threadRef: ScopedThreadRef;
   readonly filePath: string;
+  readonly access: "workspace" | "exact";
   readonly httpBaseUrl: string;
   readonly createAssetUrl: (input: {
     readonly environmentId: EnvironmentId;
@@ -75,7 +76,7 @@ export async function openFileInPreview<AssetError, PreviewError>(input: {
     environmentId: input.threadRef.environmentId,
     input: {
       resource: {
-        _tag: "workspace-file",
+        _tag: input.access === "exact" ? "exact-file" : "workspace-file",
         threadId: input.threadRef.threadId,
         path: input.filePath,
       },

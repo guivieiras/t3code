@@ -944,6 +944,7 @@ export default function FilePreviewPanel({
       const result = await openFileInPreview({
         threadRef,
         filePath: absolutePath,
+        access: "workspace",
         httpBaseUrl: environmentHttpBaseUrl,
         createAssetUrl,
         openPreview,

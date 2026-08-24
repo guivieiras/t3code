@@ -1,5 +1,10 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { AssetPreviewTypeValidationError, ThreadId } from "@t3tools/contracts";
+import {
+  AssetExactFileNotFoundError,
+  AssetExactFilePathValidationError,
+  AssetPreviewTypeValidationError,
+  ThreadId,
+} from "@t3tools/contracts";
 import { PROJECT_FAVICON_FALLBACK_MARKER } from "@t3tools/shared/projectFavicon";
 import { describe, expect, it } from "@effect/vitest";
 import * as Crypto from "effect/Crypto";
@@ -253,6 +258,82 @@ describe("AssetAccess", () => {
       });
       expect(yield* resolveAsset(token, "other.mp4")).toBeNull();
       expect(yield* resolveAsset(token, "../demo.mp4")).toBeNull();
+    }).pipe(Effect.provide(testLayer)),
+  );
+
+  it.effect("issues short-lived thread-scoped URLs for one exact file", () =>
+    Effect.gen(function* () {
+      const fileSystem = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const directory = yield* fileSystem.makeTempDirectoryScoped({
+        prefix: "t3-asset-exact-file-",
+      });
+      const imagePath = path.join(directory, "result.png");
+      const siblingPath = path.join(directory, "other.png");
+      yield* fileSystem.writeFile(imagePath, new Uint8Array([137, 80, 78, 71]));
+      yield* fileSystem.writeFile(siblingPath, new Uint8Array([137, 80, 78, 71]));
+      const canonicalImagePath = yield* fileSystem.realPath(imagePath);
+
+      yield* TestClock.setTime(0);
+      const result = yield* issueAssetUrl({
+        resource: {
+          _tag: "exact-file",
+          threadId: ThreadId.make("thread-1"),
+          path: imagePath,
+        },
+      });
+      const otherThreadResult = yield* issueAssetUrl({
+        resource: {
+          _tag: "exact-file",
+          threadId: ThreadId.make("thread-2"),
+          path: imagePath,
+        },
+      });
+      const suffix = result.relativeUrl.slice(`${ASSET_ROUTE_PREFIX}/`.length);
+      const separatorIndex = suffix.indexOf("/");
+      const token = suffix.slice(0, separatorIndex);
+
+      expect(result.expiresAt).toBe(5 * 60 * 1000);
+      expect(otherThreadResult.relativeUrl).not.toBe(result.relativeUrl);
+      expect(yield* resolveAsset(token, "result.png")).toEqual({
+        kind: "file",
+        path: canonicalImagePath,
+      });
+      expect(yield* resolveAsset(token, "other.png")).toBeNull();
+      expect(yield* resolveAsset(token, "../result.png")).toBeNull();
+
+      yield* TestClock.adjust("5 minutes");
+      expect(yield* resolveAsset(token, "result.png")).toBeNull();
+    }).pipe(Effect.provide(testLayer)),
+  );
+
+  it.effect("requires exact file paths to be absolute regular files", () =>
+    Effect.gen(function* () {
+      const fileSystem = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const directory = yield* fileSystem.makeTempDirectoryScoped({
+        prefix: "t3-asset-exact-directory-",
+      });
+      const imageDirectory = path.join(directory, "folder.png");
+      yield* fileSystem.makeDirectory(imageDirectory);
+
+      const relativeError = yield* issueAssetUrl({
+        resource: {
+          _tag: "exact-file",
+          threadId: ThreadId.make("thread-1"),
+          path: "result.png",
+        },
+      }).pipe(Effect.flip);
+      expect(relativeError).toBeInstanceOf(AssetExactFilePathValidationError);
+
+      const directoryError = yield* issueAssetUrl({
+        resource: {
+          _tag: "exact-file",
+          threadId: ThreadId.make("thread-1"),
+          path: imageDirectory,
+        },
+      }).pipe(Effect.flip);
+      expect(directoryError).toBeInstanceOf(AssetExactFileNotFoundError);
     }).pipe(Effect.provide(testLayer)),
   );
 

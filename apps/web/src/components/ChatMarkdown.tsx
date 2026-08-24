@@ -1037,34 +1037,25 @@ const MARKDOWN_FILE_LINK_CLASS_NAME =
 export function shouldOpenImagePathInModal(
   enabled: boolean,
   filePath: string,
-  workspaceRelativePath: string | null,
   ctrlKey = false,
 ): boolean {
-  return (
-    enabled && !ctrlKey && workspaceRelativePath !== null && isWorkspaceImagePreviewPath(filePath)
-  );
+  return enabled && !ctrlKey && isWorkspaceImagePreviewPath(filePath);
 }
 
 export function shouldOpenAudioPathInModal(
   enabled: boolean,
   filePath: string,
-  workspaceRelativePath: string | null,
   ctrlKey = false,
 ): boolean {
-  return (
-    enabled && !ctrlKey && workspaceRelativePath !== null && isWorkspaceAudioPreviewPath(filePath)
-  );
+  return enabled && !ctrlKey && isWorkspaceAudioPreviewPath(filePath);
 }
 
 export function shouldOpenVideoPathInModal(
   enabled: boolean,
   filePath: string,
-  workspaceRelativePath: string | null,
   ctrlKey = false,
 ): boolean {
-  return (
-    enabled && !ctrlKey && workspaceRelativePath !== null && isWorkspaceVideoPreviewPath(filePath)
-  );
+  return enabled && !ctrlKey && isWorkspaceVideoPreviewPath(filePath);
 }
 
 function pathParentSegments(path: string): string[] {
@@ -2009,7 +2000,7 @@ function ChatMarkdown({
     [openPreview, threadRef],
   );
   const openMarkdownFileInPreview = useCallback(
-    (path: string) => {
+    (path: string, access: "workspace" | "exact") => {
       if (!threadRef || preparedConnection._tag === "None") {
         return Promise.resolve(
           AsyncResult.failure<void, BrowserPreviewUnavailableError>(
@@ -2024,6 +2015,7 @@ function ChatMarkdown({
       return openFileInPreview({
         threadRef,
         filePath: path,
+        access,
         httpBaseUrl: preparedConnection.value.httpBaseUrl,
         createAssetUrl,
         openPreview,
@@ -2079,12 +2071,49 @@ function ChatMarkdown({
     },
     [],
   );
+  const openExternalFileInEditor = useCallback(
+    (targetPath: string) => {
+      void (async () => {
+        try {
+          const result = await openInPreferredEditor(targetPath);
+          if (result._tag === "Success" || isAtomCommandInterrupted(result)) return;
+          reportMarkdownActionFailure(
+            { operation: "open-file-in-editor", target: targetPath },
+            result.cause,
+          );
+          const error = squashAtomCommandFailure(result);
+          toastManager.add(
+            stackedThreadToast({
+              type: "error",
+              title: "Unable to open file",
+              description: error instanceof Error ? error.message : "An error occurred.",
+            }),
+          );
+        } catch (cause) {
+          reportMarkdownActionFailure(
+            { operation: "open-file-in-editor", target: targetPath },
+            cause,
+          );
+          toastManager.add(
+            stackedThreadToast({
+              type: "error",
+              title: "Unable to open file",
+              description: cause instanceof Error ? cause.message : "An error occurred.",
+            }),
+          );
+        }
+      })();
+    },
+    [openInPreferredEditor],
+  );
   const openMediaPreview = useCallback(
     (fileLinkMeta: MarkdownFileLinkMeta, kind: "audio" | "image" | "video", ctrlKey: boolean) => {
       const fallbackToPanel = () => {
         if (fileLinkMeta.workspaceRelativePath) {
           openFileInPanel(fileLinkMeta.workspaceRelativePath, fileLinkMeta.line);
+          return;
         }
+        openExternalFileInEditor(fileLinkMeta.targetPath);
       };
       const settings = getClientSettings();
       const shouldOpen =
@@ -2092,20 +2121,17 @@ function ChatMarkdown({
           ? shouldOpenAudioPathInModal(
               settings.openAudioPathLinksInModal,
               fileLinkMeta.filePath,
-              fileLinkMeta.workspaceRelativePath,
               ctrlKey,
             )
           : kind === "video"
             ? shouldOpenVideoPathInModal(
                 settings.openVideoPathLinksInModal,
                 fileLinkMeta.filePath,
-                fileLinkMeta.workspaceRelativePath,
                 ctrlKey,
               )
             : shouldOpenImagePathInModal(
                 settings.openImagePathLinksInModal,
                 fileLinkMeta.filePath,
-                fileLinkMeta.workspaceRelativePath,
                 ctrlKey,
               );
       if (!shouldOpen) {
@@ -2128,7 +2154,7 @@ function ChatMarkdown({
             environmentId: threadRef.environmentId,
             input: {
               resource: {
-                _tag: "workspace-file",
+                _tag: fileLinkMeta.workspaceRelativePath ? "workspace-file" : "exact-file",
                 threadId: threadRef.threadId,
                 path: fileLinkMeta.filePath,
               },
@@ -2184,6 +2210,7 @@ function ChatMarkdown({
       onAudioExpand,
       onImageExpand,
       onVideoExpand,
+      openExternalFileInEditor,
       openFileInPanel,
       preparedConnection,
       threadRef,
@@ -2256,7 +2283,11 @@ function ChatMarkdown({
             threadRef &&
             isPreviewSupportedInRuntime() &&
             isBrowserPreviewFile(fileLinkMeta.filePath)
-              ? () => openMarkdownFileInPreview(fileLinkMeta.filePath)
+              ? () =>
+                  openMarkdownFileInPreview(
+                    fileLinkMeta.filePath,
+                    fileLinkMeta.workspaceRelativePath ? "workspace" : "exact",
+                  )
               : undefined
           }
           className={className}

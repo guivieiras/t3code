@@ -1242,7 +1242,7 @@ export function AppearanceSettingsPanel() {
 
         <SettingsRow
           {...searchableSetting("audio-path-previews")}
-          description="Open workspace audio path links in a player. Hold Ctrl while clicking to use the workspace drawer instead."
+          description="Open local audio path links in a player. Workspace paths use the drawer when you hold Ctrl."
           resetAction={
             settings.openAudioPathLinksInModal !==
             DEFAULT_UNIFIED_SETTINGS.openAudioPathLinksInModal ? (
@@ -1269,7 +1269,7 @@ export function AppearanceSettingsPanel() {
 
         <SettingsRow
           {...searchableSetting("image-path-previews")}
-          description="Open workspace image path links in an expanded preview. Hold Ctrl while clicking to use the workspace drawer instead."
+          description="Open local image path links in an expanded preview. Workspace paths use the drawer when you hold Ctrl."
           resetAction={
             settings.openImagePathLinksInModal !==
             DEFAULT_UNIFIED_SETTINGS.openImagePathLinksInModal ? (
@@ -1296,7 +1296,7 @@ export function AppearanceSettingsPanel() {
 
         <SettingsRow
           {...searchableSetting("video-path-previews")}
-          description="Open workspace video path links in a player. Hold Ctrl while clicking to use the workspace drawer instead."
+          description="Open local video path links in a player. Workspace paths use the drawer when you hold Ctrl."
           resetAction={
             settings.openVideoPathLinksInModal !==
             DEFAULT_UNIFIED_SETTINGS.openVideoPathLinksInModal ? (

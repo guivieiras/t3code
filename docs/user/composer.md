@@ -6,13 +6,15 @@ multiple messages, then send again in the same thread.
 
 ## Media path previews
 
-Turn on **Settings → Appearance → Image path previews** to open workspace image path links with
-the same expanded preview used for pasted images. Turn on **Audio path previews** to open workspace
-audio path links in a player. Turn on **Video path previews** to open workspace video path links in
-a video player.
+Turn on **Settings → Appearance → Image path previews** to open local image path links with the
+same expanded preview used for pasted images. Turn on **Audio path previews** to open local audio
+path links in a player. Turn on **Video path previews** to open local video path links in a video
+player. Absolute paths outside the workspace use a short-lived link that grants access only to the
+named file for the current thread; it does not grant access to its directory or sibling files.
 
-With a setting off, its path links open in the workspace drawer. Hold Ctrl while clicking an image,
-audio, or video path link to use the workspace drawer for that click.
+With a setting off, workspace path links open in the workspace drawer and paths outside the
+workspace open in the configured editor. Hold Ctrl while clicking a workspace image, audio, or
+video path link to use the workspace drawer for that click.
 
 On mobile, an empty composer shows an interrupt button while the agent is working. Adding text
 or an attachment replaces it with the send button. This applies to both compact and expanded

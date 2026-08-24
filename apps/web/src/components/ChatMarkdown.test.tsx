@@ -414,65 +414,44 @@ describe("orderedListGutterStyle", () => {
 });
 
 describe("shouldOpenImagePathInModal", () => {
-  it("opens workspace image links in the modal only when the preference is enabled", () => {
-    expect(
-      shouldOpenImagePathInModal(true, "/repo/screenshots/result.png", "screenshots/result.png"),
-    ).toBe(true);
-    expect(
-      shouldOpenImagePathInModal(false, "/repo/screenshots/result.png", "screenshots/result.png"),
-    ).toBe(false);
+  it("opens image links in the modal only when the preference is enabled", () => {
+    expect(shouldOpenImagePathInModal(true, "/repo/screenshots/result.png")).toBe(true);
+    expect(shouldOpenImagePathInModal(false, "/repo/screenshots/result.png")).toBe(false);
   });
 
-  it("keeps non-image and out-of-workspace links on their existing paths", () => {
-    expect(shouldOpenImagePathInModal(true, "/repo/src/index.ts", "src/index.ts")).toBe(false);
-    expect(shouldOpenImagePathInModal(true, "/tmp/result.png", null)).toBe(false);
+  it("opens exact image paths outside the workspace", () => {
+    expect(shouldOpenImagePathInModal(true, "/repo/src/index.ts")).toBe(false);
+    expect(shouldOpenImagePathInModal(true, "/tmp/result.png")).toBe(true);
   });
 
   it("uses the workspace drawer when Ctrl is held", () => {
-    expect(
-      shouldOpenImagePathInModal(
-        true,
-        "/repo/screenshots/result.png",
-        "screenshots/result.png",
-        true,
-      ),
-    ).toBe(false);
+    expect(shouldOpenImagePathInModal(true, "/repo/screenshots/result.png", true)).toBe(false);
   });
 });
 
 describe("shouldOpenAudioPathInModal", () => {
-  it("opens workspace audio links in the modal only when the preference is enabled", () => {
-    expect(
-      shouldOpenAudioPathInModal(true, "/repo/recordings/note.ogg", "recordings/note.ogg"),
-    ).toBe(true);
-    expect(
-      shouldOpenAudioPathInModal(false, "/repo/recordings/note.ogg", "recordings/note.ogg"),
-    ).toBe(false);
+  it("opens audio links in the modal only when the preference is enabled", () => {
+    expect(shouldOpenAudioPathInModal(true, "/repo/recordings/note.ogg")).toBe(true);
+    expect(shouldOpenAudioPathInModal(false, "/repo/recordings/note.ogg")).toBe(false);
   });
 
-  it("keeps non-audio, out-of-workspace, and Ctrl-clicked links on their existing paths", () => {
-    expect(shouldOpenAudioPathInModal(true, "/repo/src/index.ts", "src/index.ts")).toBe(false);
-    expect(shouldOpenAudioPathInModal(true, "/tmp/note.ogg", null)).toBe(false);
-    expect(
-      shouldOpenAudioPathInModal(true, "/repo/recordings/note.ogg", "recordings/note.ogg", true),
-    ).toBe(false);
+  it("opens exact audio paths but keeps non-audio and Ctrl-clicked links on existing paths", () => {
+    expect(shouldOpenAudioPathInModal(true, "/repo/src/index.ts")).toBe(false);
+    expect(shouldOpenAudioPathInModal(true, "/tmp/note.ogg")).toBe(true);
+    expect(shouldOpenAudioPathInModal(true, "/repo/recordings/note.ogg", true)).toBe(false);
   });
 });
 
 describe("shouldOpenVideoPathInModal", () => {
-  it("opens workspace video links in the modal only when the preference is enabled", () => {
-    expect(shouldOpenVideoPathInModal(true, "/repo/clips/demo.mp4", "clips/demo.mp4")).toBe(true);
-    expect(shouldOpenVideoPathInModal(false, "/repo/clips/demo.mp4", "clips/demo.mp4")).toBe(
-      false,
-    );
+  it("opens video links in the modal only when the preference is enabled", () => {
+    expect(shouldOpenVideoPathInModal(true, "/repo/clips/demo.mp4")).toBe(true);
+    expect(shouldOpenVideoPathInModal(false, "/repo/clips/demo.mp4")).toBe(false);
   });
 
-  it("keeps non-video, out-of-workspace, and Ctrl-clicked links on their existing paths", () => {
-    expect(shouldOpenVideoPathInModal(true, "/repo/src/index.ts", "src/index.ts")).toBe(false);
-    expect(shouldOpenVideoPathInModal(true, "/tmp/demo.mp4", null)).toBe(false);
-    expect(shouldOpenVideoPathInModal(true, "/repo/clips/demo.mp4", "clips/demo.mp4", true)).toBe(
-      false,
-    );
+  it("opens exact video paths but keeps non-video and Ctrl-clicked links on existing paths", () => {
+    expect(shouldOpenVideoPathInModal(true, "/repo/src/index.ts")).toBe(false);
+    expect(shouldOpenVideoPathInModal(true, "/tmp/demo.mp4")).toBe(true);
+    expect(shouldOpenVideoPathInModal(true, "/repo/clips/demo.mp4", true)).toBe(false);
   });
 });
 

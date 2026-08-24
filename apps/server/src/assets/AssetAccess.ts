@@ -1,6 +1,9 @@
 import type { AssetResource } from "@t3tools/contracts";
 import {
   AssetAttachmentNotFoundError,
+  AssetExactFileInspectionError,
+  AssetExactFileNotFoundError,
+  AssetExactFilePathValidationError,
   AssetPreviewTypeValidationError,
   AssetProjectFaviconInspectionError,
   AssetProjectFaviconNotFoundError,
@@ -50,6 +53,7 @@ export const ASSET_ROUTE_PREFIX = "/api/assets";
 
 const SIGNING_SECRET_NAME = "asset-access-signing-key";
 const ASSET_TOKEN_TTL_MS = 60 * 60 * 1000;
+const EXACT_FILE_TOKEN_TTL_MS = 5 * 60 * 1000;
 const PROJECT_FAVICON_TOKEN_BUCKET_MS = 30 * 60 * 1000;
 const PROJECT_FAVICON_VERSION_PREFIX = "v";
 const INLINE_VIDEO_MIME_TYPE_PATTERN = /^video\/[\w!#$&^.+-]+$/i;
@@ -80,6 +84,13 @@ const AssetClaimsSchema = Schema.Union([
     kind: Schema.Literal("workspace-file-exact"),
     workspaceRoot: Schema.String,
     relativePath: Schema.String,
+    expiresAt: Schema.Number,
+  }),
+  Schema.Struct({
+    version: Schema.Literal(1),
+    kind: Schema.Literal("exact-file"),
+    threadId: Schema.String,
+    absolutePath: Schema.String,
     expiresAt: Schema.Number,
   }),
   Schema.Struct({
@@ -203,6 +214,28 @@ const resolveCanonicalWorkspaceFileForRequest = (input: {
     Effect.orElseSucceed(() => null),
   );
 
+const resolveCanonicalExactFile = Effect.fn("AssetAccess.resolveCanonicalExactFile")(function* (
+  absolutePath: string,
+) {
+  const fileSystem = yield* FileSystem.FileSystem;
+  const canonicalFile = yield* optionOnNotFound(fileSystem.realPath(absolutePath));
+  if (Option.isNone(canonicalFile)) return null;
+
+  const info = yield* optionOnNotFound(fileSystem.stat(canonicalFile.value));
+  return Option.isSome(info) && info.value.type === "File" ? canonicalFile.value : null;
+});
+
+const resolveCanonicalExactFileForRequest = (absolutePath: string) =>
+  resolveCanonicalExactFile(absolutePath).pipe(
+    Effect.tapError((cause) =>
+      Effect.logError("Failed to resolve canonical exact asset path.", {
+        absolutePath,
+        cause,
+      }),
+    ),
+    Effect.orElseSucceed(() => null),
+  );
+
 export const issueAssetUrl = Effect.fn("AssetAccess.issueAssetUrl")(function* (input: {
   readonly resource: AssetResource;
   readonly workspaceRoot?: string;
@@ -296,6 +329,42 @@ export const issueAssetUrl = Effect.fn("AssetAccess.issueAssetUrl")(function* (i
               expiresAt,
             };
       fileName = path.basename(resolved.relativePath);
+      break;
+    }
+    case "exact-file": {
+      if (!path.isAbsolute(input.resource.path)) {
+        return yield* new AssetExactFilePathValidationError({
+          resource: input.resource,
+        });
+      }
+      if (!isWorkspacePreviewEntryPath(input.resource.path)) {
+        return yield* new AssetPreviewTypeValidationError({
+          resource: input.resource,
+        });
+      }
+      const canonicalFile = yield* resolveCanonicalExactFile(input.resource.path).pipe(
+        Effect.mapError(
+          (cause) =>
+            new AssetExactFileInspectionError({
+              resource: input.resource,
+              cause,
+            }),
+        ),
+      );
+      if (!canonicalFile) {
+        return yield* new AssetExactFileNotFoundError({
+          resource: input.resource,
+        });
+      }
+      expiresAt = (yield* Clock.currentTimeMillis) + EXACT_FILE_TOKEN_TTL_MS;
+      claims = {
+        version: 1,
+        kind: "exact-file",
+        threadId: input.resource.threadId,
+        absolutePath: canonicalFile,
+        expiresAt,
+      };
+      fileName = path.basename(canonicalFile);
       break;
     }
     case "attachment": {
@@ -535,6 +604,11 @@ export const resolveAsset = Effect.fn("AssetAccess.resolveAsset")(function* (
   const decodedPath = decodeRelativePath(relativePath);
   if (decodedPath === null) return null;
   const path = yield* Path.Path;
+  if (claims.kind === "exact-file") {
+    if (decodedPath !== path.basename(claims.absolutePath)) return null;
+    const exactFile = yield* resolveCanonicalExactFileForRequest(claims.absolutePath);
+    return exactFile ? ({ kind: "file", path: exactFile } satisfies ResolvedAsset) : null;
+  }
   if (claims.kind === "workspace-file-exact") {
     if (decodedPath !== path.basename(claims.relativePath)) return null;
     const exactWorkspaceFile = yield* resolveCanonicalWorkspaceFileForRequest({

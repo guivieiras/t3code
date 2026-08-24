@@ -29,7 +29,6 @@ vi.mock("~/lib/openPullRequestLink", () => ({
 }));
 
 import ChatMarkdown, {
-  addMediaPreviewCacheBuster,
   canUseMarkdownFileShellActions,
   hasMarkdownFilePrimaryAction,
   orderedListGutterStyle,
@@ -38,6 +37,7 @@ import ChatMarkdown, {
   shouldOpenVideoPathInModal,
   shouldUseMarkdownFileBrowserPrimaryAction,
 } from "./ChatMarkdown";
+import { addMediaPreviewCacheBuster } from "./chat/ExpandedImagePreview";
 
 describe("addMediaPreviewCacheBuster", () => {
   it("gives each modal open a distinct URL without dropping existing URL state", () => {

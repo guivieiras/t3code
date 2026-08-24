@@ -293,6 +293,8 @@ import { type ExpandedVideoPreview } from "./chat/ExpandedVideoPreview";
 import { PullRequestThreadDialog } from "./PullRequestThreadDialog";
 import { MessagesTimeline, type MessagesTimelineHistoryControls } from "./chat/MessagesTimeline";
 import { resolveTimelineIsAtEnd } from "./chat/MessagesTimeline.logic";
+import { ThreadImageGalleryDialog } from "./chat/ThreadImageGalleryDialog";
+import { collectThreadImageSources } from "./chat/ThreadImageGallery.logic";
 import { ChatHeader } from "./chat/ChatHeader";
 import { useRemoteOpenState } from "~/remoteOpen";
 import { shouldShowOpenInPicker } from "./chat/OpenInPicker.logic";
@@ -2794,7 +2796,14 @@ function ChatViewContent(props: ChatViewProps) {
             return;
           }
           setExpandedImage({
-            images: [{ src: previewUrl, name: attachment.name, type: "video" }],
+            images: [
+              {
+                id: `attachment:${attachment.id}`,
+                src: previewUrl,
+                name: attachment.name,
+                type: "video",
+              },
+            ],
             index: 0,
           });
         } catch (error) {
@@ -3043,6 +3052,14 @@ function ChatViewContent(props: ChatViewProps) {
         worktreePath: activeThread?.worktreePath ?? null,
       })
     : null;
+  const threadImageSources = useMemo(
+    () =>
+      collectThreadImageSources(
+        timelineEntries.flatMap((entry) => (entry.kind === "message" ? [entry.message] : [])),
+        gitCwd ?? undefined,
+      ),
+    [gitCwd, timelineEntries],
+  );
   const gitStatusCwd = activeThread?.worktreePath ?? gitCwd;
   const gitStatusQuery = useEnvironmentQuery(
     gitStatusCwd === null
@@ -7868,13 +7885,17 @@ function ChatViewContent(props: ChatViewProps) {
           onClose={closeExpandedAudio}
         />
       )}
-      {expandedImage && (
-        <ExpandedImageDialog
+      {expandedImage && activeThreadRef ? (
+        <ThreadImageGalleryDialog
           key={`${expandedImage.images[expandedImage.index]?.src ?? "image"}:${expandedImage.index}`}
           preview={expandedImage}
+          sources={threadImageSources}
+          threadRef={activeThreadRef}
           onClose={closeExpandedImage}
         />
-      )}
+      ) : expandedImage ? (
+        <ExpandedImageDialog preview={expandedImage} onClose={closeExpandedImage} />
+      ) : null}
       {expandedVideo && (
         <ExpandedVideoDialog
           key={expandedVideo.src}

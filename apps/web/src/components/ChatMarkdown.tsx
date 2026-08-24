@@ -81,7 +81,11 @@ import {
   renderCodexFileCitationsAsMarkdown,
 } from "@t3tools/client-runtime/codex-markdown-directives";
 import { renderSkillInlineMarkdownChildren } from "./chat/SkillInlineText";
-import { type ExpandedImagePreview } from "./chat/ExpandedImagePreview";
+import {
+  addMediaPreviewCacheBuster,
+  type ExpandedImagePreview,
+  workspaceImagePreviewId,
+} from "./chat/ExpandedImagePreview";
 import { CHAT_FILE_TAG_CHIP_CLASS_NAME, FileTagChipContent } from "./chat/FileTagChip";
 import { PierreEntryIcon } from "./chat/PierreEntryIcon";
 import {
@@ -1063,12 +1067,6 @@ export function shouldOpenVideoPathInModal(
   );
 }
 
-export function addMediaPreviewCacheBuster(assetUrl: string, cacheBuster: string): string {
-  const url = new URL(assetUrl);
-  url.searchParams.set("t3-preview", cacheBuster);
-  return url.toString();
-}
-
 function pathParentSegments(path: string): string[] {
   const normalized = path.replaceAll("\\", "/");
   const segments = normalized.split("/").filter((segment) => segment.length > 0);
@@ -1234,7 +1232,7 @@ function expandableMarkdownImageProps(
     if (event.currentTarget.closest("a")) return;
     event.preventDefault();
     event.stopPropagation();
-    onImageExpand({ images: [{ src, name: previewName }], index: 0 });
+    onImageExpand({ images: [{ id: src, src, name: previewName }], index: 0 });
   };
   return {
     role: "button" as const,
@@ -2161,7 +2159,13 @@ function ChatMarkdown({
             onVideoExpand?.({ src: previewUrl, name: fileLinkMeta.displayPath });
           } else {
             onImageExpand?.({
-              images: [{ src: previewUrl, name: fileLinkMeta.displayPath }],
+              images: [
+                {
+                  id: workspaceImagePreviewId(fileLinkMeta.filePath),
+                  src: previewUrl,
+                  name: fileLinkMeta.displayPath,
+                },
+              ],
               index: 0,
             });
           }

@@ -1,6 +1,7 @@
 import { useAtomValue } from "@effect/atom-react";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import type { EnvironmentId } from "@t3tools/contracts";
+import { useNavigate } from "@tanstack/react-router";
 import * as Option from "effect/Option";
 import { useEffect, useRef } from "react";
 
@@ -10,6 +11,7 @@ import { appAtomRegistry } from "../../rpc/atomRegistry";
 import { useEnvironments } from "../../state/environments";
 import { environmentShell } from "../../state/shell";
 import { environmentThreadDetails } from "../../state/threads";
+import { buildThreadRouteParams } from "../../threadRoutes";
 import {
   buildLinuxCompletionNotification,
   findFinalAssistantResponsePreview,
@@ -21,7 +23,11 @@ import {
 let notificationPermissionRequest: Promise<NotificationPermission> | null = null;
 const FINAL_RESPONSE_WAIT_MS = 2_000;
 
-function showCompletionNotification(input: { readonly title: string; readonly body: string }) {
+function showCompletionNotification(input: {
+  readonly title: string;
+  readonly body: string;
+  readonly onClick: () => void;
+}) {
   if (!("Notification" in window) || Notification.permission === "denied") {
     return;
   }
@@ -29,9 +35,10 @@ function showCompletionNotification(input: { readonly title: string; readonly bo
   const show = () => {
     try {
       const notification = new Notification(input.title, { body: input.body });
-      notification.onclick = () => {
+      notification.addEventListener("click", () => {
         void window.desktopBridge?.focusWindow?.();
-      };
+        input.onClick();
+      });
     } catch {
       // Desktop notifications are best-effort; a missing notification daemon
       // should not surface as an application error.
@@ -88,16 +95,18 @@ async function notifyCompletion(input: {
   readonly environmentLabel: string | null;
   readonly projectTitle: string | null;
   readonly completion: LinuxCompletion;
+  readonly onClick: () => void;
 }) {
   const assistantPreview = await readFinalAssistantPreview(input.environmentId, input.completion);
-  showCompletionNotification(
-    buildLinuxCompletionNotification({
+  showCompletionNotification({
+    ...buildLinuxCompletionNotification({
       completion: input.completion,
       assistantPreview,
       projectTitle: input.projectTitle,
       environmentLabel: input.environmentLabel,
     }),
-  );
+    onClick: input.onClick,
+  });
 }
 
 function EnvironmentCompletionNotifications({
@@ -107,6 +116,7 @@ function EnvironmentCompletionNotifications({
   environmentId: EnvironmentId;
   environmentLabel: string | null;
 }) {
+  const navigate = useNavigate();
   const shell = useAtomValue(environmentShell.stateValueAtom(environmentId));
   const trackerRef = useRef<LinuxCompletionTrackerState | null>(null);
 
@@ -130,9 +140,16 @@ function EnvironmentCompletionNotifications({
         environmentLabel,
         projectTitle: projectTitleById.get(completion.projectId) ?? null,
         completion,
+        onClick: () => {
+          const threadRef = scopeThreadRef(environmentId, completion.threadId);
+          void navigate({
+            to: "/$environmentId/$threadId",
+            params: buildThreadRouteParams(threadRef),
+          });
+        },
       });
     }
-  }, [environmentId, environmentLabel, shell]);
+  }, [environmentId, environmentLabel, navigate, shell]);
 
   return null;
 }

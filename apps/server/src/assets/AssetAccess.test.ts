@@ -20,7 +20,7 @@ import * as ServerConfig from "../config.ts";
 import * as ProjectFaviconResolver from "../project/ProjectFaviconResolver.ts";
 import * as T3ProjectFileLoader from "../project/T3ProjectFileLoader.ts";
 import * as WorkspacePaths from "../workspace/WorkspacePaths.ts";
-import { ASSET_ROUTE_PREFIX, issueAssetUrl, resolveAsset } from "./AssetAccess.ts";
+import { ASSET_ROUTE_PREFIX, createAssetUrls, issueAssetUrl, resolveAsset } from "./AssetAccess.ts";
 
 const configLayer = ServerConfig.ServerConfig.layerTest(process.cwd(), {
   prefix: "t3-asset-access-test-",
@@ -36,6 +36,30 @@ const testLayer = Layer.mergeAll(
 ).pipe(Layer.provideMerge(NodeServices.layer));
 
 describe("AssetAccess", () => {
+  it.effect("keeps batch results aligned when one asset URL fails", () =>
+    Effect.gen(function* () {
+      const resources = ["attachment-1", "missing", "attachment-2"].map((attachmentId) => ({
+        _tag: "attachment" as const,
+        attachmentId,
+      }));
+
+      const results = yield* createAssetUrls(resources, (resource) =>
+        resource._tag === "attachment" && resource.attachmentId === "missing"
+          ? Effect.fail("not found")
+          : Effect.succeed({
+              relativeUrl: `/api/assets/${resource._tag}`,
+              expiresAt: 1,
+            }),
+      );
+
+      expect(results).toEqual([
+        { relativeUrl: "/api/assets/attachment", expiresAt: 1 },
+        null,
+        { relativeUrl: "/api/assets/attachment", expiresAt: 1 },
+      ]);
+    }),
+  );
+
   it.effect("issues workspace URLs that resolve the entry file and sibling assets", () =>
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;

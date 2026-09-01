@@ -22,6 +22,8 @@ import {
   AssetAccessError,
   AssetCreateUrlInput,
   AssetCreateUrlResult,
+  AssetCreateUrlsInput,
+  AssetCreateUrlsResult,
   AttachmentCreateUploadUrlInput,
   AttachmentCreateUploadUrlResult,
   AttachmentDeleteInput,
@@ -246,6 +248,7 @@ export const WS_METHODS = {
   // Filesystem methods
   filesystemBrowse: "filesystem.browse",
   assetsCreateUrl: "assets.createUrl",
+  assetsCreateUrls: "assets.createUrls",
   assetsPersistChatAttachments: "assets.persistChatAttachments",
   attachmentsCreateUploadUrl: "attachments.createUploadUrl",
   attachmentsDelete: "attachments.delete",
@@ -719,6 +722,12 @@ export const WsAssetsCreateUrlRpc = Rpc.make(WS_METHODS.assetsCreateUrl, {
   payload: AssetCreateUrlInput,
   success: AssetCreateUrlResult,
   error: Schema.Union([AssetAccessError, EnvironmentAuthorizationError]),
+});
+
+export const WsAssetsCreateUrlsRpc = Rpc.make(WS_METHODS.assetsCreateUrls, {
+  payload: AssetCreateUrlsInput,
+  success: AssetCreateUrlsResult,
+  error: EnvironmentAuthorizationError,
 });
 
 export const WsAssetsPersistChatAttachmentsRpc = Rpc.make(WS_METHODS.assetsPersistChatAttachments, {
@@ -1198,6 +1207,7 @@ export const WsRpcGroup = RpcGroup.make(
   WsShellOpenInEditorRpc,
   WsFilesystemBrowseRpc,
   WsAssetsCreateUrlRpc,
+  WsAssetsCreateUrlsRpc,
   WsAssetsPersistChatAttachmentsRpc,
   WsAttachmentsCreateUploadUrlRpc,
   WsAttachmentsDeleteRpc,

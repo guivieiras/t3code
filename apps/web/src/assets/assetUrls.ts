@@ -54,7 +54,7 @@ export function useAssetUrls(
   resources: ReadonlyArray<AssetResource>,
 ): ReadonlyArray<string | null> {
   const preparedConnection = usePreparedConnection(environmentId);
-  const results = useAtomValue(
+  const result = useAtomValue(
     assetEnvironment.createUrls({
       environmentId,
       resources,
@@ -62,13 +62,13 @@ export function useAssetUrls(
   );
   return useMemo(
     () =>
-      preparedConnection._tag === "None"
+      preparedConnection._tag === "None" || !AsyncResult.isSuccess(result)
         ? resources.map(() => null)
-        : results.map((result) =>
-            AsyncResult.isSuccess(result)
-              ? resolveAssetUrl(preparedConnection.value.httpBaseUrl, result.value.relativeUrl)
-              : null,
+        : result.value.results.map((asset) =>
+            asset === null
+              ? null
+              : resolveAssetUrl(preparedConnection.value.httpBaseUrl, asset.relativeUrl),
           ),
-    [preparedConnection, resources, results],
+    [preparedConnection, resources, result],
   );
 }

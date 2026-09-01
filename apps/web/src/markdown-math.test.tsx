@@ -1,43 +1,28 @@
-import { renderToStaticMarkup } from "react-dom/server";
-import ReactMarkdown from "react-markdown";
-import rehypeKatex from "rehype-katex";
-import rehypeRaw from "rehype-raw";
-import rehypeSanitize from "rehype-sanitize";
-import remarkMath from "remark-math";
 import { describe, expect, it } from "vite-plus/test";
 
 import { normalizeLatexMathDelimiters, rehypeMathCopySource } from "./markdown-math";
 
-function renderMath(markdown: string): string {
-  return renderToStaticMarkup(
-    <ReactMarkdown
-      remarkPlugins={[remarkMath]}
-      rehypePlugins={[rehypeRaw, rehypeSanitize, rehypeKatex, rehypeMathCopySource]}
-    >
-      {normalizeLatexMathDelimiters(markdown)}
-    </ReactMarkdown>,
-  );
-}
-
 describe("normalizeLatexMathDelimiters", () => {
-  it("renders inline parenthesis delimiters", () => {
-    const html = renderMath(String.raw`The determinant is \(\det(A)=0\).`);
-
-    expect(html).toContain('class="katex"');
-    expect(html).toContain('data-markdown-copy="$\\det(A)=0$"');
-    expect(html).toContain("det");
-    expect(html).not.toContain(String.raw`\(`);
+  it("normalizes inline parenthesis delimiters", () => {
+    expect(normalizeLatexMathDelimiters(String.raw`The determinant is \(\det(A)=0\).`)).toBe(
+      String.raw`The determinant is $$\det(A)=0$$.`,
+    );
   });
 
-  it("renders multiline bracket delimiters as display math", () => {
-    const html = renderMath(String.raw`\[
+  it("normalizes multiline bracket delimiters", () => {
+    expect(
+      normalizeLatexMathDelimiters(String.raw`\[
 \det(A)=9(3\cdot4-8\cdot2)
-\]`);
+\]`),
+    ).toBe(String.raw`$$
+\det(A)=9(3\cdot4-8\cdot2)
+$$`);
+  });
 
-    expect(html).toContain('class="katex-display"');
-    expect(html).toContain('data-markdown-copy="$$\n\\det(A)=9(3\\cdot4-8\\cdot2)\n$$"');
-    expect(html).toContain("det");
-    expect(html).not.toContain(String.raw`\[`);
+  it("returns ordinary markdown unchanged", () => {
+    const markdown = "A regular message with `code` and a [link](https://t3.codes).";
+
+    expect(normalizeLatexMathDelimiters(markdown)).toBe(markdown);
   });
 
   it("leaves unmatched delimiters visible while a message streams", () => {
@@ -84,5 +69,45 @@ describe("normalizeLatexMathDelimiters", () => {
     const markdown = String.raw`\(x + y\) before - [ ] a task`;
 
     expect(normalizeLatexMathDelimiters(markdown)).toHaveLength(markdown.length);
+  });
+});
+
+describe("rehypeMathCopySource", () => {
+  it("adds markdown copy source to inline and display math", () => {
+    const inlineMath = {
+      type: "element",
+      tagName: "span",
+      properties: { className: ["katex"] },
+      children: [
+        {
+          type: "element",
+          tagName: "annotation",
+          properties: { encoding: "application/x-tex" },
+          children: [{ type: "text", value: "x + y" }],
+        },
+      ],
+    };
+    const displayMath = {
+      type: "element",
+      tagName: "span",
+      properties: { className: ["katex-display"] },
+      children: [
+        {
+          type: "element",
+          tagName: "annotation",
+          properties: { encoding: "application/x-tex" },
+          children: [{ type: "text", value: String.raw`\det(A)=0` }],
+        },
+      ],
+    };
+
+    rehypeMathCopySource()({ type: "root", children: [inlineMath, displayMath] });
+
+    expect(inlineMath).toMatchObject({
+      properties: { dataMarkdownCopy: "$x + y$" },
+    });
+    expect(displayMath).toMatchObject({
+      properties: { dataMarkdownCopy: "$$\n\\det(A)=0\n$$" },
+    });
   });
 });

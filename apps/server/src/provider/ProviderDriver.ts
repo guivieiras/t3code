@@ -66,6 +66,7 @@ export interface ProviderInstance {
   readonly driverKind: ProviderDriverKind;
   readonly continuationIdentity: ProviderContinuationIdentity;
   readonly displayName: string | undefined;
+  readonly iconKey?: string | undefined;
   readonly accentColor?: string | undefined;
   readonly enabled: boolean;
   readonly snapshot: ServerProviderShape;

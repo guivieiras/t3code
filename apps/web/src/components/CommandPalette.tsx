@@ -1122,6 +1122,7 @@ function OpenCommandPaletteDialog(props: {
               worktreePath={thread.worktreePath}
               isCurrent={thread.id === activeThreadId}
               driverKind={providerEntry?.driverKind ?? null}
+              providerIconKey={providerEntry?.iconKey ?? null}
               providerDisplayName={
                 thread.runtime?.providerName ?? providerEntry?.displayName ?? modelInstanceId
               }

@@ -99,11 +99,13 @@ describe("ProviderInstanceConfig", () => {
     const decoded = decodeProviderInstanceConfig({
       driver: "codex",
       displayName: "Codex (personal)",
+      iconKey: "openrouter",
       accentColor: "#dc2626",
       enabled: true,
       config: opaqueConfig,
     });
     expect(decoded.displayName).toBe("Codex (personal)");
+    expect(decoded.iconKey).toBe("openrouter");
     expect(decoded.accentColor).toBe("#dc2626");
     expect(decoded.enabled).toBe(true);
     expect(decoded.config).toEqual(opaqueConfig);
@@ -113,6 +115,7 @@ describe("ProviderInstanceConfig", () => {
     const decoded = decodeProviderInstanceConfig({
       driver: "  codex  ",
       displayName: "  Codex Personal  ",
+      iconKey: "  openrouter  ",
       accentColor: "  #dc2626  ",
       environment: [{ name: "  OPENROUTER_API_KEY  ", value: "  sk-or-test  " }],
     });
@@ -120,6 +123,7 @@ describe("ProviderInstanceConfig", () => {
     expect(decoded).toMatchObject({
       driver: "codex",
       displayName: "Codex Personal",
+      iconKey: "openrouter",
       accentColor: "#dc2626",
       environment: [{ name: "OPENROUTER_API_KEY", value: "  sk-or-test  " }],
     });
@@ -165,6 +169,10 @@ describe("ProviderInstanceConfig", () => {
 
   it("rejects a blank displayName (must be trimmed non-empty)", () => {
     expect(() => decodeProviderInstanceConfig({ driver: "codex", displayName: "   " })).toThrow();
+  });
+
+  it("rejects a blank icon key", () => {
+    expect(() => decodeProviderInstanceConfig({ driver: "codex", iconKey: "   " })).toThrow();
   });
 
   it("rejects driver values that do not satisfy the slug pattern", () => {

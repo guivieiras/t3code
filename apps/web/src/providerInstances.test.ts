@@ -7,10 +7,13 @@ import {
   getDefaultProviderInstanceModel,
   isProviderInstancePickerReady,
   isProviderInstancePickerVisible,
+  providerInstanceIconIdentity,
   resolveDefaultProviderModelSelection,
   resolveProviderCatalogAvailability,
   resolveSelectableProviderInstance,
   resolveProviderDriverKindForInstanceSelection,
+  shouldShowInstanceBadge,
+  shouldShowInstanceInitials,
 } from "./providerInstances";
 
 function provider(input: {
@@ -20,6 +23,7 @@ function provider(input: {
   availability?: ServerProvider["availability"];
   displayName?: string;
   accentColor?: string;
+  iconKey?: string;
   status?: ServerProvider["status"];
   models?: ServerProvider["models"];
 }): ServerProvider {
@@ -28,6 +32,7 @@ function provider(input: {
     driver: input.provider,
     ...(input.displayName ? { displayName: input.displayName } : {}),
     ...(input.accentColor ? { accentColor: input.accentColor } : {}),
+    ...(input.iconKey ? { iconKey: input.iconKey } : {}),
     enabled: input.enabled ?? true,
     installed: true,
     version: null,
@@ -174,6 +179,18 @@ describe("deriveProviderInstanceEntries", () => {
     expect(entry?.driverKind).toBe("codex");
     expect(entry?.isDefault).toBe(false);
   });
+
+  it("preserves the configured instance icon key", () => {
+    const [entry] = deriveProviderInstanceEntries([
+      provider({
+        provider: ProviderDriverKind.make("codex"),
+        instanceId: "openrouter",
+        iconKey: "openrouter",
+      }),
+    ]);
+
+    expect(entry?.iconKey).toBe("openrouter");
+  });
 });
 
 describe("deriveProviderEntriesByEnvironment", () => {
@@ -219,6 +236,100 @@ describe("deriveProviderEntriesByEnvironment", () => {
     // Every environment gets its own bucket, so an absent lookup is a real
     // "this environment has no such instance", not a missing key.
     expect(byEnvironment.get("empty")?.size).toBe(0);
+  });
+});
+
+describe("provider instance icon badges", () => {
+  it("treats an explicit icon and the matching driver fallback as the same icon", () => {
+    const entries = deriveProviderInstanceEntries([
+      provider({ provider: ProviderDriverKind.make("codex"), instanceId: "codex" }),
+      provider({
+        provider: ProviderDriverKind.make("codex"),
+        instanceId: "codex_work",
+        iconKey: "openai",
+      }),
+      provider({
+        provider: ProviderDriverKind.make("codex"),
+        instanceId: "codex_router",
+        iconKey: "openrouter",
+      }),
+    ]);
+    const [defaultCodex, explicitOpenAi, openRouter] = entries;
+    if (!defaultCodex || !explicitOpenAi || !openRouter) throw new Error("missing fixture entry");
+
+    expect(providerInstanceIconIdentity(defaultCodex)).toBe("openai");
+    expect(providerInstanceIconIdentity(explicitOpenAi)).toBe("openai");
+    expect(shouldShowInstanceInitials(defaultCodex, entries)).toBe(true);
+    expect(shouldShowInstanceInitials(explicitOpenAi, entries)).toBe(true);
+    expect(shouldShowInstanceInitials(openRouter, entries)).toBe(false);
+  });
+
+  it("shows initials when different drivers use the same configured icon", () => {
+    const entries = deriveProviderInstanceEntries([
+      provider({
+        provider: ProviderDriverKind.make("codex"),
+        instanceId: "openrouter_one",
+        iconKey: "openrouter",
+      }),
+      provider({
+        provider: ProviderDriverKind.make("claudeAgent"),
+        instanceId: "openrouter_two",
+        iconKey: "openrouter",
+      }),
+    ]);
+    const [first, second] = entries;
+    if (!first || !second) throw new Error("missing fixture entry");
+
+    expect(shouldShowInstanceInitials(first, entries)).toBe(true);
+    expect(shouldShowInstanceInitials(second, entries)).toBe(true);
+  });
+
+  it("does not show initials for matching drivers whose icons differ", () => {
+    const entries = deriveProviderInstanceEntries([
+      provider({ provider: ProviderDriverKind.make("codex"), instanceId: "codex" }),
+      provider({
+        provider: ProviderDriverKind.make("codex"),
+        instanceId: "codex_router",
+        iconKey: "openrouter",
+      }),
+    ]);
+    const [codex, openRouter] = entries;
+    if (!codex || !openRouter) throw new Error("missing fixture entry");
+
+    expect(shouldShowInstanceInitials(codex, entries)).toBe(false);
+    expect(shouldShowInstanceInitials(openRouter, entries)).toBe(false);
+  });
+
+  it("uses the rendered driver fallback for an unknown configured icon", () => {
+    const entries = deriveProviderInstanceEntries([
+      provider({ provider: ProviderDriverKind.make("codex"), instanceId: "codex" }),
+      provider({
+        provider: ProviderDriverKind.make("codex"),
+        instanceId: "codex_unknown",
+        iconKey: "not-a-curated-icon",
+      }),
+    ]);
+    const [codex, unknownIcon] = entries;
+    if (!codex || !unknownIcon) throw new Error("missing fixture entry");
+
+    expect(providerInstanceIconIdentity(unknownIcon)).toBe("openai");
+    expect(shouldShowInstanceInitials(codex, entries)).toBe(true);
+    expect(shouldShowInstanceInitials(unknownIcon, entries)).toBe(true);
+  });
+
+  it("keeps a single accent color as a dot without adding initials", () => {
+    const entries = deriveProviderInstanceEntries([
+      provider({
+        provider: ProviderDriverKind.make("codex"),
+        instanceId: "codex",
+        accentColor: "#ff5500",
+      }),
+    ]);
+    const [entry] = entries;
+    if (!entry) throw new Error("missing fixture entry");
+
+    expect(shouldShowInstanceBadge(entry, entries)).toBe(true);
+    expect(shouldShowInstanceInitials(entry, entries)).toBe(false);
   });
 });
 

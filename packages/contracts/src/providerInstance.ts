@@ -124,6 +124,7 @@ export type ProviderInstanceEnvironment = typeof ProviderInstanceEnvironment.Typ
 export const ProviderInstanceConfig = Schema.Struct({
   driver: ProviderDriverKind,
   displayName: Schema.optional(TrimmedNonEmptyString),
+  iconKey: Schema.optional(TrimmedNonEmptyString),
   accentColor: Schema.optional(TrimmedNonEmptyString),
   environment: Schema.optionalKey(ProviderInstanceEnvironment),
   enabled: Schema.optionalKey(Schema.Boolean),

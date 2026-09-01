@@ -16,6 +16,7 @@ export type ModelOption = {
   readonly providerKey: string;
   readonly providerLabel: string;
   readonly providerDriver: string;
+  readonly providerIconKey?: string | undefined;
   readonly isDefault: boolean;
   readonly isLegacy: boolean;
   readonly capabilities: ModelCapabilities | null;
@@ -142,6 +143,7 @@ export function buildModelOptions(
         providerKey: provider.instanceId,
         providerLabel,
         providerDriver: provider.driver,
+        providerIconKey: provider.iconKey,
         isDefault: model.isDefault === true,
         isLegacy: model.isLegacy === true,
         capabilities: model.capabilities,
@@ -173,6 +175,7 @@ export function buildModelOptions(
         providerKey: fallbackModelSelection.instanceId,
         providerLabel,
         providerDriver: fallbackModelSelection.instanceId,
+        providerIconKey: undefined,
         isDefault: false,
         isLegacy: false,
         capabilities: null,

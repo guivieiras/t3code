@@ -23,7 +23,10 @@ import type {
   ProjectSearchContentsResult,
   ProjectSearchEntriesResult,
 } from "@t3tools/contracts";
-import { isWorkspaceImagePreviewPath } from "@t3tools/shared/filePreview";
+import {
+  isWorkspaceImagePreviewPath,
+  WORKSPACE_IMAGE_PREVIEW_EXTENSIONS,
+} from "@t3tools/shared/filePreview";
 
 const WORKSPACE_INDEX_MAX_ENTRIES = 25_000;
 const WORKSPACE_INDEX_PAGE_SIZE = WORKSPACE_INDEX_MAX_ENTRIES + 2;
@@ -32,6 +35,9 @@ const WORKSPACE_INDEX_SCAN_TIMEOUT_MS = 15_000;
 const WORKSPACE_INDEX_IDLE_TTL = "15 minutes";
 const CONTENT_SEARCH_TIME_BUDGET_MS = 250;
 const CONTENT_SEARCH_MAX_MATCHES_PER_FILE = 100;
+const WORKSPACE_IMAGE_SEARCH_CONSTRAINT = WORKSPACE_IMAGE_PREVIEW_EXTENSIONS.map(
+  (extension) => `*${extension}`,
+).join(" ");
 
 export class WorkspaceSearchIndexCreateFailed extends Schema.TaggedErrorClass<WorkspaceSearchIndexCreateFailed>()(
   "WorkspaceSearchIndexCreateFailed",
@@ -135,6 +141,12 @@ function trimDirectorySeparator(input: string): string {
 function parentPathOf(input: string): string | undefined {
   const separatorIndex = input.lastIndexOf("/");
   return separatorIndex === -1 ? undefined : input.slice(0, separatorIndex);
+}
+
+function constrainImageSearchQuery(query: string): string {
+  return query
+    ? `${WORKSPACE_IMAGE_SEARCH_CONSTRAINT} ${query}`
+    : WORKSPACE_IMAGE_SEARCH_CONSTRAINT;
 }
 
 function toProjectEntry(item: MixedItem): ProjectEntry | null {
@@ -451,10 +463,11 @@ export const make = Effect.fn("WorkspaceSearchIndex.make")(function* (
   const search: WorkspaceSearchIndex["Service"]["search"] = Effect.fn(
     "WorkspaceSearchIndex.search",
   )(function* (query, limit, kind, imageOnly) {
-    const pageSize = imageOnly ? WORKSPACE_INDEX_PAGE_SIZE : Math.max(1, limit + 1);
+    const pageSize = Math.max(1, limit + 1);
     if (kind === "file" || imageOnly) {
+      const searchQuery = imageOnly ? constrainImageSearchQuery(query) : query;
       const result = yield* runSearch(query, pageSize, "fileSearch", () =>
-        finder.fileSearch(query, { pageSize }),
+        finder.fileSearch(searchQuery, { pageSize }),
       );
       return mapFileSearchResult(result, limit, imageOnly);
     }

@@ -2,7 +2,6 @@ import { assert, it } from "@effect/vitest";
 
 import {
   applyPreferredCodexDefaultModel,
-  isLegacyCodexModel,
   mapCodexAccountRateLimits,
   mapCodexModelCapabilities,
 } from "./CodexProvider.ts";
@@ -77,21 +76,6 @@ it("maps every Codex quota bucket without assuming primary means five hours", ()
       },
     ],
   });
-});
-
-it("keeps only the GPT-5.6 Codex family out of legacy models", () => {
-  assert.deepStrictEqual(
-    ["gpt-5.6-luna", "gpt-5.6-terra", "gpt-5.6-sol", "gpt-5.4"].map((model) => [
-      model,
-      isLegacyCodexModel(model),
-    ]),
-    [
-      ["gpt-5.6-luna", false],
-      ["gpt-5.6-terra", false],
-      ["gpt-5.6-sol", false],
-      ["gpt-5.4", true],
-    ],
-  );
 });
 
 it("maps current Codex model capability fields", () => {

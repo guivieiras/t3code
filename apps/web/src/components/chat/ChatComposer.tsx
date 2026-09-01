@@ -158,11 +158,12 @@ import {
 } from "./composerProviderState";
 import { ContextWindowMeter } from "./ContextWindowMeter";
 import { resolveContextWindowModelDisplayName } from "./ContextWindowMeter.logic";
+import { buildExpandedImagePreview, type ExpandedImagePreview } from "./ExpandedImagePreview";
 import {
   attachVideoThumbnail,
-  buildExpandedImagePreview,
-  type ExpandedImagePreview,
-} from "./ExpandedImagePreview";
+  buildExpandedVideoPreview,
+  type ExpandedVideoPreview,
+} from "./ExpandedVideoPreview";
 import { basenameOfPath } from "../../pierre-icons";
 import { cn, randomUUID } from "~/lib/utils";
 import { Separator } from "../ui/separator";
@@ -324,7 +325,12 @@ import {
 } from "../../providerInstances";
 import { type AppModelOption, getAppModelOptionsForInstance } from "../../modelSelection";
 import type { UnifiedSettings } from "@t3tools/contracts/settings";
-import { type SessionPhase, type Thread, videoMimeType } from "../../types";
+import {
+  type ChatFileAttachment,
+  type SessionPhase,
+  type Thread,
+  videoMimeType,
+} from "../../types";
 import type { PendingUserInputDraftAnswer } from "../../pendingUserInput";
 import type {
   LatestProposedPlanState,
@@ -747,6 +753,9 @@ export interface ChatComposerProps {
   scheduleComposerFocus: () => void;
   setThreadError: (threadId: ThreadId | null, error: string | null) => void;
   onExpandImage: (preview: ExpandedImagePreview) => void;
+  onExpandVideo: (preview: ExpandedVideoPreview) => void;
+  onFileOpen: (attachment: ChatFileAttachment) => void;
+  openingVideoAttachmentId: string | null;
 
   // Queued-message edit mode: attachments already stored on the message being
   // edited. Rendered in the attachment strip with a remove control; removal is
@@ -837,6 +846,9 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     scheduleComposerFocus,
     setThreadError,
     onExpandImage,
+    onExpandVideo,
+    onFileOpen,
+    openingVideoAttachmentId,
     editingQueuedAttachments,
     onRemoveEditingQueuedAttachment,
   } = props;
@@ -3909,10 +3921,11 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
               {!isComposerCollapsedMobile &&
                 !isComposerApprovalState &&
                 pendingUserInputs.length === 0 &&
-                composerImages.some(
-                  (image) =>
-                    !composerPreviewAnnotations.some((annotation) => annotation.id === image.id),
-                ) && (
+                (composerVideos.length > 0 ||
+                  composerImages.some(
+                    (image) =>
+                      !composerPreviewAnnotations.some((annotation) => annotation.id === image.id),
+                  )) && (
                   <div className="mb-3 flex flex-wrap gap-2">
                     {composerImages
                       .filter(
@@ -4023,15 +4036,101 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                           </div>
                         );
                       })}
+                    {composerVideos.map((file) => {
+                      const fileCanUpload =
+                        supportsAttachmentUploads &&
+                        maxFileAttachmentBytes !== null &&
+                        file.sizeBytes <= maxFileAttachmentBytes;
+                      const upload = fileCanUpload ? uploadsByImageId[file.id] : undefined;
+                      const isOpening = file.uploadedAttachmentId === openingVideoAttachmentId;
+                      return (
+                        <div
+                          key={file.id}
+                          className="relative h-16 w-16 overflow-hidden rounded-lg border border-border/80 bg-black"
+                        >
+                          <button
+                            type="button"
+                            className="flex h-full w-full cursor-zoom-in flex-col items-center justify-center gap-1 px-1 text-white aria-disabled:cursor-default aria-disabled:opacity-50"
+                            aria-busy={isOpening || undefined}
+                            aria-disabled={isOpening || undefined}
+                            aria-label={`${isOpening ? "Loading" : "Play"} ${file.name}`}
+                            onClick={() => {
+                              if (isOpening) return;
+                              if (file.file !== null) {
+                                onExpandVideo(buildExpandedVideoPreview(file.file));
+                                return;
+                              }
+                              if (!file.uploadedAttachmentId) return;
+                              onFileOpen({ ...file, id: file.uploadedAttachmentId });
+                            }}
+                          >
+                            {file.file && (
+                              <>
+                                <ComposerVideoThumbnail file={file.file} />
+                                <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-black/10" />
+                              </>
+                            )}
+                            {isOpening ? (
+                              <span className="relative z-10 text-[10px]">Loading…</span>
+                            ) : (
+                              <PlayIcon className="relative z-10 size-4 fill-current drop-shadow-md" />
+                            )}
+                          </button>
+                          {upload?.status === "uploading" && (
+                            <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-background/85 px-1 text-center text-[10px] text-foreground">
+                              {formatAttachmentUploadProgress(upload.progress)}
+                            </span>
+                          )}
+                          {upload?.status === "failed" && (
+                            <Tooltip>
+                              <TooltipTrigger
+                                render={
+                                  <Button
+                                    variant="ghost"
+                                    size="icon-xs"
+                                    className="absolute bottom-1 left-1 bg-background/85 hover:bg-background/95"
+                                    onClick={() =>
+                                      retryAttachmentUpload({
+                                        environmentId,
+                                        image: file,
+                                        draftTarget: composerDraftTarget,
+                                      })
+                                    }
+                                    aria-label={`Retry upload for ${file.name}`}
+                                  />
+                                }
+                              >
+                                <RotateCcwIcon />
+                              </TooltipTrigger>
+                              <TooltipPopup
+                                side="top"
+                                className="max-w-64 whitespace-normal leading-tight"
+                              >
+                                {upload.reason}
+                              </TooltipPopup>
+                            </Tooltip>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            className="absolute right-1 top-1 bg-background/80 hover:bg-background/90"
+                            onClick={() => removeComposerFileFromDraft(file.id)}
+                            aria-label={`Remove ${file.name}`}
+                          >
+                            <XIcon />
+                          </Button>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 
               {!isComposerCollapsedMobile &&
                 !isComposerApprovalState &&
                 pendingUserInputs.length === 0 &&
-                composerFiles.length > 0 && (
+                composerOtherFiles.length > 0 && (
                   <div className="mb-3 flex flex-col gap-1">
-                    {composerFiles.map((file) => {
+                    {composerOtherFiles.map((file) => {
                       const fileCanUpload =
                         supportsAttachmentUploads &&
                         maxFileAttachmentBytes !== null &&

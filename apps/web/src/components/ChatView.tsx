@@ -1531,12 +1531,11 @@ function ChatViewContent(props: ChatViewProps) {
   const [isWorkspaceFileDragActive, setIsWorkspaceFileDragActive] = useState(false);
   const [expandedAudio, setExpandedAudio] = useState<ExpandedAudioPreview | null>(null);
   const [expandedImage, setExpandedImage] = useState<ExpandedImagePreview | null>(null);
-  useEffect(() => {
-    const item = expandedImage?.images[expandedImage.index];
-    if (item?.type !== "video" || !item.src.startsWith("blob:")) return;
-    return () => revokeBlobPreviewUrl(item.src);
-  }, [expandedImage]);
   const [expandedVideo, setExpandedVideo] = useState<ExpandedVideoPreview | null>(null);
+  useEffect(() => {
+    if (!expandedVideo?.src.startsWith("blob:")) return;
+    return () => revokeBlobPreviewUrl(expandedVideo.src);
+  }, [expandedVideo]);
   const [optimisticUserMessages, setOptimisticUserMessages] = useState<ChatMessage[]>([]);
   const [feedbackSubmissionsByThreadKey, setFeedbackSubmissionsByThreadKey] = useState<
     Record<string, ReadonlyArray<CodexFeedbackSubmission>>
@@ -2796,17 +2795,9 @@ function ChatViewContent(props: ChatViewProps) {
             revokeBlobPreviewUrl(previewUrl);
             return;
           }
-          setExpandedImage({
-            images: [
-              {
-                id: `attachment:${attachment.id}`,
-                src: previewUrl,
-                name: attachment.name,
-                type: "video",
-              },
-            ],
-            index: 0,
-          });
+          setExpandedAudio(null);
+          setExpandedImage(null);
+          setExpandedVideo({ src: previewUrl, name: attachment.name });
         } catch (error) {
           if (!isCurrentRequest()) return;
           toastManager.add({
@@ -7666,6 +7657,9 @@ function ChatViewContent(props: ChatViewProps) {
                             scheduleComposerFocus={scheduleComposerFocus}
                             setThreadError={setThreadError}
                             onExpandImage={onExpandTimelineImage}
+                            onExpandVideo={onExpandTimelineVideo}
+                            onFileOpen={openFileAttachment}
+                            openingVideoAttachmentId={openingVideoAttachmentId}
                             editingQueuedAttachments={composerEditingQueuedAttachments}
                             onRemoveEditingQueuedAttachment={removeEditingQueuedAttachment}
                           />

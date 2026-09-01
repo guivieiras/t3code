@@ -838,13 +838,9 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
       autoSettleOnMerge: props.autoSettleOnMerge,
       thread,
     });
-  // In-flight rows (working, or waiting on approval/input) fade as a whole:
-  // there is nothing for the user to do yet, so prominence is reserved for
-  // rows that need a human — done (unread), read-but-unsettled, failed, and
-  // freshly woken. The status label keeps its hue, so waiting rows stay
-  // findable. In-flight rows recede the same as read-ready ones (inbox-zero:
-  // working threads aren't your problem yet) — only the colored status label
-  // stands out.
+  // In-flight rows (working, or waiting on approval/input) use the same text
+  // hierarchy as read-ready rows. Keep the row itself fully opaque so starting
+  // work does not make its title, project icon, and metadata lose contrast.
   const isInFlight = status === "working" || status === "approval" || status === "input";
   const shouldRecede =
     (status === "ready" || isInFlight) && !isUnread && !isWoke && !props.isActive && !isSelected;
@@ -1124,10 +1120,6 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
         : shouldRecede
           ? "text-sidebar-muted-foreground/75 hover:bg-sidebar-row-hover hover:text-sidebar-foreground"
           : "bg-transparent text-sidebar-foreground hover:bg-sidebar-row-hover",
-    isInFlight &&
-      !props.isActive &&
-      !isSelected &&
-      "opacity-70 transition-opacity hover:opacity-100",
   );
 
   const title = isRenaming ? (

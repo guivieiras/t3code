@@ -63,6 +63,7 @@ import {
   materializeCodexShadowHome,
   resolveCodexHomeLayout,
 } from "../../provider/Drivers/CodexHomeLayout.ts";
+import { codexAppServerArgs } from "../../provider/Layers/codexLaunchArgs.ts";
 import type { EventNdjsonLogger } from "../../provider/Layers/EventNdjsonLogger.ts";
 import { ProviderEventLoggers } from "../../provider/Layers/ProviderEventLoggers.ts";
 import { mergeProviderInstanceEnvironment } from "../../provider/ProviderInstanceEnvironment.ts";
@@ -1287,6 +1288,20 @@ function isSensitiveCodexProtocolKey(key: string): boolean {
   );
 }
 
+export function codexAppServerSpawnInputFromSettings(input: {
+  readonly settings: Pick<CodexSettings, "binaryPath" | "homePath" | "launchArgs">;
+  readonly environment: NodeJS.ProcessEnv;
+}) {
+  return {
+    command: input.settings.binaryPath || "codex",
+    args: codexAppServerArgs(input.settings.launchArgs),
+    env: {
+      ...input.environment,
+      ...(input.settings.homePath ? { CODEX_HOME: input.settings.homePath } : {}),
+    },
+  };
+}
+
 export const codexAppServerClientFactoryFromSettingsLayer: Layer.Layer<
   CodexAppServerClientFactory,
   never,
@@ -1301,15 +1316,12 @@ export const codexAppServerClientFactoryFromSettingsLayer: Layer.Layer<
       open: (input) =>
         Effect.gen(function* () {
           const scope = yield* Scope.Scope;
-          const environment = {
-            ...input.environment,
-            ...(input.settings.homePath ? { CODEX_HOME: input.settings.homePath } : {}),
-          };
-          const command = yield* makeCodexAppServerSpawnCommand({
-            command: input.settings.binaryPath || "codex",
-            args: ["app-server"],
-            env: environment,
-          });
+          const command = yield* makeCodexAppServerSpawnCommand(
+            codexAppServerSpawnInputFromSettings({
+              settings: input.settings,
+              environment: input.environment,
+            }),
+          );
           const handle = yield* spawner.spawn(command).pipe(
             Effect.provideService(Scope.Scope, scope),
             Effect.mapError(

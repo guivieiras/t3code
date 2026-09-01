@@ -1,8 +1,8 @@
 import { memo, useCallback, useEffect, useState } from "react";
-import { ChevronLeftIcon, ChevronRightIcon, DownloadIcon, XIcon } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, XIcon } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
-import { downloadVideoPreview, type ExpandedImagePreview } from "./ExpandedImagePreview";
+import type { ExpandedImagePreview } from "./ExpandedImagePreview";
 
 interface ExpandedImageDialogProps {
   preview: ExpandedImagePreview;
@@ -19,9 +19,6 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
   const selectedIndex = preview.images.findIndex((image) => image.id === selectedImageId);
   const index =
     selectedIndex >= 0 ? selectedIndex : Math.min(preview.index, preview.images.length - 1);
-  const [failedVideoSrc, setFailedVideoSrc] = useState<string | null>(null);
-  const [downloadingVideoSrc, setDownloadingVideoSrc] = useState<string | null>(null);
-  const [downloadFailedVideoSrc, setDownloadFailedVideoSrc] = useState<string | null>(null);
 
   const navigateImage = useCallback(
     (direction: -1 | 1) => {
@@ -61,33 +58,18 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
 
   const item = preview.images[index];
   if (!item) return null;
-  const mediaLabel = item.type === "video" ? "video" : "image";
-  const isDownloadingVideo = downloadingVideoSrc === item.src;
-  const videoDownloadFailed = downloadFailedVideoSrc === item.src;
-
-  const downloadVideo = async () => {
-    setDownloadFailedVideoSrc(null);
-    setDownloadingVideoSrc(item.src);
-    try {
-      await downloadVideoPreview(item.src, item.name);
-    } catch {
-      setDownloadFailedVideoSrc(item.src);
-    } finally {
-      setDownloadingVideoSrc((current) => (current === item.src ? null : current));
-    }
-  };
 
   return (
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 px-4 py-6 [-webkit-app-region:no-drag]"
       role="dialog"
       aria-modal="true"
-      aria-label={`Expanded ${mediaLabel} preview`}
+      aria-label="Expanded image preview"
     >
       <button
         type="button"
         className="absolute inset-0 z-0 cursor-zoom-out"
-        aria-label={`Close ${mediaLabel} preview`}
+        aria-label="Close image preview"
         onClick={onClose}
       />
       <div className="relative isolate z-10 flex max-h-[94vh] max-w-[94vw] flex-col items-center gap-2">
@@ -98,50 +80,17 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
             variant="ghost"
             className="absolute right-2 top-2 z-20 bg-black/45 text-white hover:bg-black/65 hover:text-white"
             onClick={onClose}
-            aria-label={`Close ${mediaLabel} preview`}
+            aria-label="Close image preview"
           >
             <XIcon />
           </Button>
-          {item.type === "video" && failedVideoSrc === item.src ? (
-            <div className="flex h-48 w-[min(92vw,32rem)] flex-col items-center justify-center gap-3 rounded-lg border border-border/70 bg-black px-6 text-center text-white shadow-2xl">
-              <p className="text-sm">
-                {videoDownloadFailed
-                  ? "Could not download this video."
-                  : "This video format cannot be played here."}
-              </p>
-              <Button
-                size="sm"
-                variant="secondary"
-                aria-busy={isDownloadingVideo || undefined}
-                aria-disabled={isDownloadingVideo || undefined}
-                onClick={() => {
-                  if (!isDownloadingVideo) void downloadVideo();
-                }}
-              >
-                <DownloadIcon />
-                {isDownloadingVideo ? "Downloading…" : "Download video"}
-              </Button>
-            </div>
-          ) : item.type === "video" ? (
-            <video
-              key={item.id}
-              src={item.src}
-              aria-label={item.name}
-              autoPlay
-              controls
-              playsInline
-              onError={() => setFailedVideoSrc(item.src)}
-              className="h-full w-full rounded-lg border border-border/70 bg-black object-contain shadow-2xl"
-            />
-          ) : (
-            <img
-              key={item.id}
-              src={item.src}
-              alt={item.name}
-              className="h-full w-full select-none rounded-lg border border-border/70 bg-background object-contain shadow-2xl"
-              draggable={false}
-            />
-          )}
+          <img
+            key={item.id}
+            src={item.src}
+            alt={item.name}
+            className="h-full w-full select-none rounded-lg border border-border/70 bg-background object-contain shadow-2xl"
+            draggable={false}
+          />
           {preview.images.length > 1 && (
             <>
               <Button

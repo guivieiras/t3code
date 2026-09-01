@@ -45,6 +45,37 @@ describe("ServerProvider", () => {
     expect(parsed.skills).toEqual([]);
     expect(parsed.versionAdvisory).toBeUndefined();
     expect(parsed.updateState).toBeUndefined();
+    expect(parsed.accountRateLimits).toBeUndefined();
+  });
+
+  it("decodes optional provider account rate limits", () => {
+    const parsed = decodeServerProvider({
+      ...baseProviderSnapshot,
+      accountRateLimits: {
+        readAt: "2026-08-22T18:00:00.000Z",
+        resetCreditsAvailable: 1,
+        buckets: [
+          {
+            id: "codex",
+            name: null,
+            planType: "pro",
+            primary: {
+              usedPercent: 43,
+              windowDurationMins: 10_080,
+              resetsAt: 1_787_698_415,
+            },
+            secondary: null,
+            credits: { hasCredits: false, unlimited: false, balance: "0" },
+            individualLimit: null,
+            spendControlReached: false,
+            rateLimitReachedType: null,
+          },
+        ],
+      },
+    });
+
+    expect(parsed.accountRateLimits?.buckets[0]?.primary?.usedPercent).toBe(43);
+    expect(parsed.accountRateLimits?.resetCreditsAvailable).toBe(1);
   });
 
   it("defaults one-click update support when decoding older advisory snapshots", () => {

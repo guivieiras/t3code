@@ -10,6 +10,7 @@ import { useAtomValue } from "@effect/atom-react";
 import {
   USAGE_CONTRACT_VERSION,
   type EnvironmentId,
+  type ServerProvider,
   type UsageSummary,
   type UsageSummaryInput,
 } from "@t3tools/contracts";
@@ -21,6 +22,7 @@ import { mergeUsage, type EnvironmentUsage, type MergedUsage } from "@t3tools/sh
 import { appAtomRegistry } from "../rpc/atomRegistry";
 import { environmentPresentations } from "./presentation";
 import { serverEnvironment } from "./server";
+import { useAtomCommand } from "./use-atom-command";
 
 export interface EnvironmentUsageStatus {
   readonly environmentId: EnvironmentId;
@@ -28,6 +30,7 @@ export interface EnvironmentUsageStatus {
   readonly isPending: boolean;
   readonly error: string | null;
   readonly summary: UsageSummary | null;
+  readonly providers: ReadonlyArray<ServerProvider>;
 }
 
 /**
@@ -51,6 +54,7 @@ const usageByWindowAtom = Atom.family((windowKey: string) =>
         isPending: result.waiting,
         error: result._tag === "Failure" ? "This environment could not report usage." : null,
         summary: Option.getOrNull(AsyncResult.value(result)),
+        providers: get(serverEnvironment.providersValueAtom(environmentId)) ?? [],
       });
     }
     return statuses;
@@ -69,6 +73,7 @@ export interface UsageView {
    */
   readonly isPartial: boolean;
   readonly refresh: () => void;
+  readonly refreshProviderLimits: () => void;
 }
 
 export function useUsage(input: UsageSummaryInput): UsageView {
@@ -93,6 +98,9 @@ export function useUsage(input: UsageSummaryInput): UsageView {
   );
   const atom = usageByWindowAtom(windowKey);
   const environments = useAtomValue(atom);
+  const refreshProvidersCommand = useAtomCommand(serverEnvironment.refreshProviders, {
+    reportFailure: false,
+  });
 
   // Refreshing only the derived atom would re-read the per-environment SWR
   // queries within their stale window and change nothing. Refresh each
@@ -105,6 +113,15 @@ export function useUsage(input: UsageSummaryInput): UsageView {
       );
     }
   }, [environments, windowKey]);
+
+  const refreshProviderLimits = useCallback(() => {
+    for (const environment of environments) {
+      void refreshProvidersCommand({
+        environmentId: environment.environmentId,
+        input: {},
+      });
+    }
+  }, [environments, refreshProvidersCommand]);
 
   const merged = useMemo(() => {
     const answered: EnvironmentUsage[] = environments.flatMap((environment) =>
@@ -132,5 +149,6 @@ export function useUsage(input: UsageSummaryInput): UsageView {
     isPending: answeredCount === 0 && stillReporting > 0,
     isPartial: answeredCount > 0 && stillReporting > 0,
     refresh,
+    refreshProviderLimits,
   };
 }

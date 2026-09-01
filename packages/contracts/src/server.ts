@@ -158,6 +158,49 @@ export const ServerProviderUpdateState = Schema.Struct({
 });
 export type ServerProviderUpdateState = typeof ServerProviderUpdateState.Type;
 
+export const ServerProviderRateLimitWindow = Schema.Struct({
+  usedPercent: NonNegativeInt,
+  windowDurationMins: Schema.NullOr(NonNegativeInt),
+  /** Unix timestamp in seconds. */
+  resetsAt: Schema.NullOr(NonNegativeInt),
+});
+export type ServerProviderRateLimitWindow = typeof ServerProviderRateLimitWindow.Type;
+
+export const ServerProviderRateLimitBucket = Schema.Struct({
+  id: TrimmedNonEmptyString,
+  name: Schema.NullOr(TrimmedNonEmptyString),
+  planType: Schema.NullOr(TrimmedNonEmptyString),
+  primary: Schema.NullOr(ServerProviderRateLimitWindow),
+  secondary: Schema.NullOr(ServerProviderRateLimitWindow),
+  credits: Schema.NullOr(
+    Schema.Struct({
+      hasCredits: Schema.Boolean,
+      unlimited: Schema.Boolean,
+      balance: Schema.NullOr(Schema.String),
+    }),
+  ),
+  individualLimit: Schema.NullOr(
+    Schema.Struct({
+      limit: Schema.String,
+      used: Schema.String,
+      remainingPercent: NonNegativeInt,
+      /** Unix timestamp in seconds. */
+      resetsAt: NonNegativeInt,
+    }),
+  ),
+  spendControlReached: Schema.NullOr(Schema.Boolean),
+  rateLimitReachedType: Schema.NullOr(TrimmedNonEmptyString),
+});
+export type ServerProviderRateLimitBucket = typeof ServerProviderRateLimitBucket.Type;
+
+/** Account quota reported by a provider CLI, kept separate from transcript usage totals. */
+export const ServerProviderAccountRateLimits = Schema.Struct({
+  readAt: IsoDateTime,
+  buckets: Schema.Array(ServerProviderRateLimitBucket),
+  resetCreditsAvailable: NonNegativeInt,
+});
+export type ServerProviderAccountRateLimits = typeof ServerProviderAccountRateLimits.Type;
+
 export const ServerProvider = Schema.Struct({
   // Routing key for the configured instance this snapshot represents. This
   // is the only stable identity consumers may use for provider routing.
@@ -192,6 +235,7 @@ export const ServerProvider = Schema.Struct({
     Schema.withDecodingDefault(Effect.succeed([])),
   ),
   skills: Schema.Array(ServerProviderSkill).pipe(Schema.withDecodingDefault(Effect.succeed([]))),
+  accountRateLimits: Schema.optionalKey(ServerProviderAccountRateLimits),
   versionAdvisory: Schema.optionalKey(ServerProviderVersionAdvisory),
   updateState: Schema.optionalKey(ServerProviderUpdateState),
 });

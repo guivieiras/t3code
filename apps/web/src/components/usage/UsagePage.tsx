@@ -33,6 +33,7 @@ import { WorkspacePageContainer } from "../WorkspacePageContainer";
 import { WorkspacePageHeader } from "../WorkspacePageHeader";
 import { UsageProviderChart, type UsageChartMetric } from "./UsageProviderChart";
 import { PROVIDER_ORDER, PROVIDER_PRESENTATION, providersWithUsage } from "./usageProviders";
+import { CodexPlanLimits } from "./CodexPlanLimits";
 
 const WINDOW_OPTIONS = [
   { days: 1, label: "Past 24h" },
@@ -50,7 +51,8 @@ export function UsagePage() {
   const [breakdown, setBreakdown] = useState<"model" | "time">("model");
   const { days: windowDays, window } = windowSelection;
   const isPast24Hours = windowDays === 1;
-  const { merged, environments, isPending, isPartial, refresh } = useUsage(window);
+  const { merged, environments, isPending, isPartial, refresh, refreshProviderLimits } =
+    useUsage(window);
 
   // Hold the content until every environment is terminal. Rendering merged
   // totals while devices are still answering makes every number on the page
@@ -93,6 +95,7 @@ export function UsagePage() {
     });
   };
   const refreshWindow = () => {
+    refreshProviderLimits();
     const nextWindow = makeWindow(windowDays, undefined, isPast24Hours ? "hour" : "day");
     if (
       nextWindow.sinceDay === window.sinceDay &&
@@ -220,6 +223,8 @@ export function UsagePage() {
                   duplicateSources={merged.duplicateSources}
                   staleEnvironments={merged.staleEnvironments}
                 />
+
+                <CodexPlanLimits environments={environments} timeZone={window.timeZone} />
 
                 <section className="grid gap-6 lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]">
                   <div className="flex min-w-0 flex-col gap-5">

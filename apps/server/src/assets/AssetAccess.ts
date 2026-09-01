@@ -89,7 +89,6 @@ const AssetClaimsSchema = Schema.Union([
   Schema.Struct({
     version: Schema.Literal(1),
     kind: Schema.Literal("exact-file"),
-    threadId: Schema.String,
     absolutePath: Schema.String,
     expiresAt: Schema.Number,
   }),
@@ -214,28 +213,6 @@ const resolveCanonicalWorkspaceFileForRequest = (input: {
     Effect.orElseSucceed(() => null),
   );
 
-const resolveCanonicalExactFile = Effect.fn("AssetAccess.resolveCanonicalExactFile")(function* (
-  absolutePath: string,
-) {
-  const fileSystem = yield* FileSystem.FileSystem;
-  const canonicalFile = yield* optionOnNotFound(fileSystem.realPath(absolutePath));
-  if (Option.isNone(canonicalFile)) return null;
-
-  const info = yield* optionOnNotFound(fileSystem.stat(canonicalFile.value));
-  return Option.isSome(info) && info.value.type === "File" ? canonicalFile.value : null;
-});
-
-const resolveCanonicalExactFileForRequest = (absolutePath: string) =>
-  resolveCanonicalExactFile(absolutePath).pipe(
-    Effect.tapError((cause) =>
-      Effect.logError("Failed to resolve canonical exact asset path.", {
-        absolutePath,
-        cause,
-      }),
-    ),
-    Effect.orElseSucceed(() => null),
-  );
-
 export const createAssetUrls = Effect.fn("AssetAccess.createAssetUrls")(
   <E, R>(
     resources: ReadonlyArray<AssetResource>,
@@ -354,7 +331,7 @@ export const issueAssetUrl = Effect.fn("AssetAccess.issueAssetUrl")(function* (i
           resource: input.resource,
         });
       }
-      const canonicalFile = yield* resolveCanonicalExactFile(input.resource.path).pipe(
+      const canonicalFile = yield* resolveCanonicalFile(input.resource.path).pipe(
         Effect.mapError(
           (cause) =>
             new AssetExactFileInspectionError({
@@ -372,7 +349,6 @@ export const issueAssetUrl = Effect.fn("AssetAccess.issueAssetUrl")(function* (i
       claims = {
         version: 1,
         kind: "exact-file",
-        threadId: input.resource.threadId,
         absolutePath: canonicalFile,
         expiresAt,
       };
@@ -618,7 +594,15 @@ export const resolveAsset = Effect.fn("AssetAccess.resolveAsset")(function* (
   const path = yield* Path.Path;
   if (claims.kind === "exact-file") {
     if (decodedPath !== path.basename(claims.absolutePath)) return null;
-    const exactFile = yield* resolveCanonicalExactFileForRequest(claims.absolutePath);
+    const exactFile = yield* resolveCanonicalFile(claims.absolutePath).pipe(
+      Effect.tapError((cause) =>
+        Effect.logError("Failed to resolve canonical exact asset path.", {
+          absolutePath: claims.absolutePath,
+          cause,
+        }),
+      ),
+      Effect.orElseSucceed(() => null),
+    );
     return exactFile ? ({ kind: "file", path: exactFile } satisfies ResolvedAsset) : null;
   }
   if (claims.kind === "workspace-file-exact") {

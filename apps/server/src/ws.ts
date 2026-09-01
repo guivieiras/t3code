@@ -1268,6 +1268,9 @@ const makeWsRpcLayer = (
               }),
           ),
         );
+        if (resource._tag === "exact-file") {
+          return yield* issueAssetUrl({ resource });
+        }
         const project = yield* projectService.getById(thread.thread.projectId).pipe(
           Effect.mapError(
             (cause) =>

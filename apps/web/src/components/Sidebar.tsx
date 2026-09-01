@@ -173,6 +173,7 @@ import { getTriggerDisplayModelLabel } from "./chat/providerIconUtils";
 import {
   deriveProviderInstanceEntries,
   shouldShowInstanceBadge,
+  shouldShowInstanceInitials,
   type ProviderInstanceEntry,
 } from "../providerInstances";
 import { primaryServerProvidersAtom } from "../state/server";
@@ -348,6 +349,7 @@ function SidebarThreadTooltip({
                 displayName={
                   providerEntry?.displayName ?? thread.runtime?.providerName ?? modelInstanceId
                 }
+                iconKey={providerEntry?.iconKey}
                 accentColor={providerEntry?.accentColor}
                 // Initials would swallow a size-3 glyph: accent dot, name in label.
                 showBadge={showInstanceBadge && providerEntry?.accentColor !== undefined}
@@ -941,6 +943,9 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
   const showInstanceBadge =
     providerEntry !== null &&
     shouldShowInstanceBadge(providerEntry, props.providerEntryByInstanceId.values());
+  const showInstanceInitials =
+    providerEntry !== null &&
+    shouldShowInstanceInitials(providerEntry, props.providerEntryByInstanceId.values());
   const selectedModel = providerEntry?.models.find(
     (model) => model.slug === thread.modelSelection.model,
   );
@@ -1841,8 +1846,10 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
                         thread.runtime?.providerName ??
                         modelInstanceId
                       }
+                      iconKey={providerEntry?.iconKey}
                       accentColor={providerEntry?.accentColor}
                       showBadge={showInstanceBadge}
+                      badgeContent={showInstanceInitials ? "initials" : "none"}
                       // Glyph dims, badge stays saturated; offset matches the composer trigger.
                       iconClassName="size-3.5 opacity-60"
                       badgeClassName="right-[-0.1875rem] bottom-[-0.1875rem] h-3 min-w-3 px-0.5 text-[7px]"

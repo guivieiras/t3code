@@ -6,6 +6,7 @@ import {
 import { memo, useEffect, useMemo, useState } from "react";
 import type { VariantProps } from "class-variance-authority";
 import { Badge } from "../ui/badge";
+import { resolveModelBrandIconKey } from "@t3tools/shared/modelBrand";
 import { buttonVariants } from "../ui/button";
 import { Popover, PopoverPopup, PopoverTrigger } from "../ui/popover";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
@@ -17,7 +18,11 @@ import {
   getTriggerDisplayModelLabel,
   getTriggerDisplayModelName,
 } from "./providerIconUtils";
-import { shouldShowInstanceBadge, type ProviderInstanceEntry } from "../../providerInstances";
+import {
+  shouldShowInstanceBadge,
+  shouldShowInstanceInitials,
+  type ProviderInstanceEntry,
+} from "../../providerInstances";
 import { ComposerControl, ComposerControlChevron } from "./ComposerControl";
 
 export const ProviderModelPicker = memo(function ProviderModelPicker(props: {
@@ -70,6 +75,8 @@ export const ProviderModelPicker = memo(function ProviderModelPicker(props: {
     : props.model;
   const showInstanceBadge =
     activeEntry !== null && shouldShowInstanceBadge(activeEntry, props.instanceEntries);
+  const showInstanceInitials =
+    activeEntry !== null && shouldShowInstanceInitials(activeEntry, props.instanceEntries);
 
   const setIsMenuOpen = (open: boolean) => {
     props.onOpenChange?.(open);
@@ -163,8 +170,13 @@ export const ProviderModelPicker = memo(function ProviderModelPicker(props: {
             <ProviderInstanceIcon
               driverKind={activeEntry.driverKind}
               displayName={activeEntry.displayName}
+              iconKey={
+                (selectedModel ? resolveModelBrandIconKey(selectedModel.slug) : undefined) ??
+                activeEntry.iconKey
+              }
               accentColor={activeEntry.accentColor}
               showBadge={showInstanceBadge}
+              badgeContent={showInstanceInitials ? "initials" : "none"}
               className="size-4"
               iconClassName={cn("size-4", props.activeProviderIconClassName)}
               indicatorBackground="var(--contrast-input)"

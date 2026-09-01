@@ -24,6 +24,7 @@ export interface UnavailableProviderSnapshotInput {
   readonly driverKind: ProviderDriverKind | string;
   readonly instanceId: ProviderInstanceId;
   readonly displayName?: string | undefined;
+  readonly iconKey?: string | undefined;
   readonly accentColor?: string | undefined;
   readonly reason: string;
   /**
@@ -67,6 +68,7 @@ export function buildUnavailableProviderSnapshot(
     return {
       ...base,
       instanceId: input.instanceId,
+      ...(input.iconKey ? { iconKey: input.iconKey } : {}),
       ...(input.accentColor ? { accentColor: input.accentColor } : {}),
       driver:
         typeof input.driverKind === "string"

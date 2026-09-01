@@ -26,6 +26,21 @@ const baseProviderSnapshot = {
 };
 
 describe("ServerProvider", () => {
+  it("decodes optional provider instance presentation metadata", () => {
+    const parsed = decodeServerProvider({
+      ...baseProviderSnapshot,
+      displayName: "OpenRouter",
+      iconKey: "openrouter",
+      accentColor: "#7c3aed",
+    });
+
+    expect(parsed).toMatchObject({
+      displayName: "OpenRouter",
+      iconKey: "openrouter",
+      accentColor: "#7c3aed",
+    });
+  });
+
   it("defaults capability arrays when decoding provider snapshots", () => {
     const parsed = decodeServerProvider({
       instanceId: "codex",

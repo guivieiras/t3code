@@ -1,12 +1,13 @@
 import { type ProviderDriverKind, type ProviderInstanceId } from "@t3tools/contracts";
+import { resolveModelBrandIconKey } from "@t3tools/shared/modelBrand";
 import { memo } from "react";
 import { StarIcon } from "lucide-react";
 import {
   getDisplayModelName,
   getTriggerDisplayModelLabel,
   type ModelEsque,
-  PROVIDER_ICON_BY_PROVIDER,
 } from "./providerIconUtils";
+import { ProviderInstanceIcon } from "./ProviderInstanceIcon";
 import { ComboboxItem } from "../ui/combobox";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -28,6 +29,7 @@ export const ModelListRow = memo(function ModelListRow(props: {
    * "Codex Personal" render with their user-authored label.
    */
   providerDisplayName: string;
+  providerIconKey?: string | undefined;
   providerAccentColor?: string | undefined;
   isFavorite: boolean;
   isSelected: boolean;
@@ -40,7 +42,7 @@ export const ModelListRow = memo(function ModelListRow(props: {
   disabledReason?: string | null;
   onToggleFavorite: () => void;
 }) {
-  const ProviderIcon = PROVIDER_ICON_BY_PROVIDER[props.driverKind] ?? null;
+  const modelIconKey = resolveModelBrandIconKey(props.model.slug) ?? props.providerIconKey;
   const providerLabel = props.model.subProvider
     ? `${props.providerDisplayName} · ${props.model.subProvider}`
     : props.providerDisplayName;
@@ -59,6 +61,13 @@ export const ModelListRow = memo(function ModelListRow(props: {
           "data-disabled:pointer-events-auto data-disabled:cursor-not-allowed data-disabled:hover:bg-transparent",
       )}
     >
+      <ProviderInstanceIcon
+        driverKind={props.driverKind}
+        displayName={props.providerDisplayName}
+        iconKey={modelIconKey}
+        className="size-5"
+        iconClassName="size-4.5"
+      />
       <div className="min-w-0 flex-1 text-left">
         <div className="flex min-w-0 items-center gap-2">
           <div className="min-w-0 truncate text-xs font-medium leading-snug">
@@ -85,7 +94,17 @@ export const ModelListRow = memo(function ModelListRow(props: {
         </div>
         {props.showProvider && (
           <div className="mt-1 flex items-center gap-1.5">
-            {ProviderIcon ? <ProviderIcon className="size-3 shrink-0" /> : null}
+            <ProviderInstanceIcon
+              driverKind={props.driverKind}
+              displayName={props.providerDisplayName}
+              iconKey={props.providerIconKey}
+              accentColor={props.providerAccentColor}
+              showBadge={Boolean(props.providerAccentColor)}
+              badgeContent="none"
+              className="size-3"
+              iconClassName="size-3"
+              badgeClassName="right-[-0.125rem] bottom-[-0.125rem] h-2 min-w-2 px-0 text-[5px]"
+            />
             <span className="truncate text-xs font-normal leading-snug text-muted-foreground/70">
               {providerLabel}
             </span>

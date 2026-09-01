@@ -166,6 +166,7 @@ describe("ProviderInstanceRegistryLive — multi-instance codex slice", () => {
         [personalId]: {
           driver: codexDriverKind,
           displayName: "Codex (personal)",
+          iconKey: "openrouter",
           enabled: false,
           config: makeCodexConfig({
             binaryPath: "/opt/codex-personal/bin/codex",
@@ -204,6 +205,8 @@ describe("ProviderInstanceRegistryLive — multi-instance codex slice", () => {
       const work = yield* registry.getInstance(workId);
       expect(personal).toBeDefined();
       expect(work).toBeDefined();
+      expect(personal!.iconKey).toBe("openrouter");
+      expect(work!.iconKey).toBeUndefined();
       expect(personal!.orchestrationAdapter).not.toBe(work!.orchestrationAdapter);
       expect(personal!.textGeneration).not.toBe(work!.textGeneration);
       expect(personal!.snapshot).not.toBe(work!.snapshot);

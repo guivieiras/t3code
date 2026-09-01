@@ -11,6 +11,8 @@
 import * as Migrator from "effect/unstable/sql/Migrator";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
+import * as Schema from "effect/Schema";
+import * as SqlClient from "effect/unstable/sql/SqlClient";
 
 // Import all migrations statically
 import Migration0001 from "./Migrations/001_OrchestrationEvents.ts";
@@ -133,6 +135,136 @@ export const migrationEntries = [
 
 export const migrationManifest = migrationEntries.map(([id, name]) => [id, name] as const);
 
+interface AppliedMigration {
+  readonly migration_id: number;
+  readonly name: string;
+}
+
+const legacyPrivateMigrationManifest = [
+  [41, "OrchestrationV2"],
+  [42, "OrchestrationV2Subagents"],
+  [43, "OrchestrationV2Foundation"],
+  [44, "OrchestrationV2ProviderSessionBindings"],
+  [45, "OrchestrationV2ThreadLaunchWorkflows"],
+  [46, "ApplicationEventSource"],
+  [47, "OrchestrationV2EffectCancellation"],
+  [48, "ScheduledTasks"],
+  [49, "LegacyV1ImportState"],
+  [50, "OrchestrationV2ThreadTokenUsage"],
+] as const;
+
+export class MigrationSlotCollisionError extends Schema.TaggedErrorClass<MigrationSlotCollisionError>()(
+  "MigrationSlotCollisionError",
+  {
+    slot: Schema.Int,
+    codeName: Schema.String,
+    appliedName: Schema.String,
+  },
+) {
+  override get message(): string {
+    return `Migration slot collision at ${this.slot}: this checkout registers '${this.codeName}' but the database already applied '${this.appliedName}' in that slot.`;
+  }
+}
+
+const loadAppliedMigrations = Effect.fn("loadAppliedMigrations")(function* () {
+  const sql = yield* SqlClient.SqlClient;
+  const tables = yield* sql<{ readonly name: string }>`
+    SELECT name
+    FROM sqlite_master
+    WHERE type = 'table' AND name = 'effect_sql_migrations'
+  `;
+  if (tables.length === 0) {
+    return [];
+  }
+  return yield* sql<AppliedMigration>`
+    SELECT migration_id, name
+    FROM effect_sql_migrations
+    ORDER BY migration_id
+  `;
+});
+
+const verifyAppliedMigrationSlots = Effect.fn("verifyAppliedMigrationSlots")(function* (
+  applied: ReadonlyArray<AppliedMigration>,
+  expected: ReadonlyArray<readonly [number, string]> = migrationManifest,
+) {
+  const appliedById = new Map(applied.map((row) => [Number(row.migration_id), row.name] as const));
+  for (const [slot, codeName] of expected) {
+    const appliedName = appliedById.get(slot);
+    if (appliedName !== undefined && appliedName !== codeName) {
+      return yield* new MigrationSlotCollisionError({ slot, codeName, appliedName });
+    }
+  }
+});
+
+/** Fail before migrations can silently skip a differently named occupied slot. */
+export const verifyMigrationSlots = Effect.fn("verifyMigrationSlots")(function* () {
+  yield* verifyAppliedMigrationSlots(yield* loadAppliedMigrations());
+});
+
+/**
+ * One private build used slots 41-50 before released migrations claimed 41-43.
+ * Recognize only that exact journal tail, move its surviving entries to 44-52,
+ * and apply the released migrations that belong in the vacated slots.
+ */
+const repairLegacyPrivateMigrationSlots = Effect.fn("repairLegacyPrivateMigrationSlots")(
+  function* () {
+    const applied = yield* loadAppliedMigrations();
+
+    // Even an otherwise matching private tail is unsafe to repair if an older
+    // released slot was also claimed by different code.
+    yield* verifyAppliedMigrationSlots(applied, migrationManifest.slice(0, 40));
+
+    const privateTail = applied.filter((row) => Number(row.migration_id) > 40);
+    const isLegacyPrivateLayout =
+      privateTail.length === legacyPrivateMigrationManifest.length &&
+      legacyPrivateMigrationManifest.every(
+        ([migrationId, name], index) =>
+          Number(privateTail[index]?.migration_id) === migrationId &&
+          privateTail[index]?.name === name,
+      );
+    if (!isLegacyPrivateLayout) {
+      return false;
+    }
+
+    const sql = yield* SqlClient.SqlClient;
+    yield* sql.withTransaction(
+      Effect.gen(function* () {
+        // Migration 50 was removed, but its table and data remain useful to the
+        // old build and harmless to current code. Remove only its journal row.
+        yield* sql`DELETE FROM effect_sql_migrations WHERE migration_id = 50`;
+
+        // Move 41-49 aside first to avoid primary-key collisions, then place
+        // them at their current slots 44-52 without changing their timestamps.
+        yield* sql`
+        UPDATE effect_sql_migrations
+        SET migration_id = migration_id + 1000
+        WHERE migration_id BETWEEN 41 AND 49
+      `;
+        yield* sql`
+        UPDATE effect_sql_migrations
+        SET migration_id = migration_id - 997
+        WHERE migration_id BETWEEN 1041 AND 1049
+      `;
+
+        yield* Migration0041;
+        yield* Migration0042;
+        yield* Migration0043;
+        yield* sql`
+        INSERT INTO effect_sql_migrations (migration_id, name)
+        VALUES
+          (41, 'AuthSessionClientConnection'),
+          (42, 'ProjectionThreadLinkedPullRequest'),
+          (43, 'ProjectionThreadsUnsettledAt')
+      `;
+
+        yield* verifyMigrationSlots();
+      }),
+    );
+    yield* Effect.log("Repaired legacy private migration slots");
+    return true;
+  },
+);
+
 export const makeMigrationLoader = (throughId?: number) =>
   Migrator.fromRecord(
     Object.fromEntries(
@@ -162,15 +294,36 @@ export interface RunMigrationsOptions {
  *
  * @returns Effect containing array of executed migrations
  */
-export const runMigrations = Effect.fn("runMigrations")(function* ({
+const runMigrationsInternal = Effect.fn("runMigrationsInternal")(function* ({
   toMigrationInclusive,
 }: RunMigrationsOptions = {}) {
+  const repairedLegacySlots = yield* repairLegacyPrivateMigrationSlots();
+  if (!repairedLegacySlots) {
+    yield* verifyMigrationSlots();
+  }
   const executedMigrations = yield* run({ loader: makeMigrationLoader(toMigrationInclusive) });
+  yield* verifyMigrationSlots();
   const migrations = executedMigrations.map(([id, name]) => `${id}_${name}`);
   yield* migrations.length === 0
     ? Effect.logDebug("Database schema is current")
     : Effect.log("Migrations ran successfully").pipe(Effect.annotateLogs({ migrations }));
   return executedMigrations;
+});
+
+export const runMigrations = Effect.fn("runMigrations")(function* (
+  options: RunMigrationsOptions = {},
+) {
+  return yield* runMigrationsInternal(options).pipe(
+    Effect.catchTag(
+      "MigrationSlotCollisionError",
+      (cause) =>
+        new Migrator.MigrationError({
+          kind: "BadState",
+          message: cause.message,
+          cause,
+        }),
+    ),
+  );
 });
 
 /**

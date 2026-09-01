@@ -37,6 +37,7 @@ const clientSettings: ClientSettings = {
   fontSizeTerminal: 12,
   fontSmoothing: true,
   glassOpacity: 80,
+  pinSentMessagesToTop: true,
   planModeEnabled: false,
   showSkillsInSlashMenu: false,
   showThreadShortcutHints: true,

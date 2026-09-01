@@ -179,6 +179,10 @@ describe("searchSettings", () => {
       to: "/settings/appearance",
       targetId: "appearance",
     });
+    expect(searchSettings("pin sent messages")[0]).toMatchObject({
+      id: "sent-message-position",
+      to: "/settings/appearance",
+    });
   });
 
   it("routes browser recording quality to integrations", () => {

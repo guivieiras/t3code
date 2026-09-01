@@ -3,6 +3,18 @@ export const CHAT_TIMELINE_ANCHOR_OFFSET = 24;
 
 export type TimelineScrollMode = "following-end" | "anchoring-new-turn" | "free-scrolling";
 
+export function resolveNewTurnScrollBehavior<MessageId>(
+  pinSentMessagesToTop: boolean,
+  messageId: MessageId,
+): {
+  readonly mode: TimelineScrollMode;
+  readonly anchorMessageId: MessageId | null;
+} {
+  return pinSentMessagesToTop
+    ? { mode: "anchoring-new-turn", anchorMessageId: messageId }
+    : { mode: "following-end", anchorMessageId: null };
+}
+
 export interface TimelineListMeasurementState {
   readonly data: readonly unknown[];
   readonly scroll: number;

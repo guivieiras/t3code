@@ -3,6 +3,7 @@ import {
   getAnchoredTurnMetrics,
   getRowBottom,
   keepTimelineEndVisibleAfterOverlayGrowth,
+  resolveNewTurnScrollBehavior,
 } from "./timelineScrollAnchoring";
 
 function buildState({
@@ -51,6 +52,17 @@ describe("timeline scroll anchoring", () => {
     });
 
     expect(scrollToEnd).not.toHaveBeenCalled();
+  });
+
+  it("uses ordinary end-follow when sent-message pinning is disabled", () => {
+    expect(resolveNewTurnScrollBehavior(false, "message-1")).toEqual({
+      mode: "following-end",
+      anchorMessageId: null,
+    });
+    expect(resolveNewTurnScrollBehavior(true, "message-1")).toEqual({
+      mode: "anchoring-new-turn",
+      anchorMessageId: "message-1",
+    });
   });
 
   it("measures row bottoms from LegendList row position and size", () => {

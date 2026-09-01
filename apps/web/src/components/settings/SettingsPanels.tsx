@@ -1252,6 +1252,32 @@ export function AppearanceSettingsPanel() {
             />
           }
         />
+
+        <SettingsRow
+          {...searchableSetting("sent-message-position")}
+          description="Move each newly sent message to the top of the conversation while its response streams. Turn this off to keep following the bottom of the conversation instead."
+          resetAction={
+            settings.pinSentMessagesToTop !== DEFAULT_UNIFIED_SETTINGS.pinSentMessagesToTop ? (
+              <SettingResetButton
+                label="sent message position"
+                onClick={() =>
+                  updateSettings({
+                    pinSentMessagesToTop: DEFAULT_UNIFIED_SETTINGS.pinSentMessagesToTop,
+                  })
+                }
+              />
+            ) : null
+          }
+          control={
+            <Switch
+              checked={settings.pinSentMessagesToTop}
+              onCheckedChange={(checked) =>
+                updateSettings({ pinSentMessagesToTop: Boolean(checked) })
+              }
+              aria-label="Pin sent messages to top"
+            />
+          }
+        />
       </SettingsSection>
 
       <TypographySection />

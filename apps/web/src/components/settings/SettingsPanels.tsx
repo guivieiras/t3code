@@ -526,6 +526,15 @@ export function useSettingsRestore(onRestored?: () => void) {
         ? ["Auto-settle merged threads"]
         : []),
       ...(settings.wordWrap !== DEFAULT_UNIFIED_SETTINGS.wordWrap ? ["Word wrap"] : []),
+      ...(settings.openAudioPathLinksInModal !== DEFAULT_UNIFIED_SETTINGS.openAudioPathLinksInModal
+        ? ["Audio path previews"]
+        : []),
+      ...(settings.openImagePathLinksInModal !== DEFAULT_UNIFIED_SETTINGS.openImagePathLinksInModal
+        ? ["Image path previews"]
+        : []),
+      ...(settings.openVideoPathLinksInModal !== DEFAULT_UNIFIED_SETTINGS.openVideoPathLinksInModal
+        ? ["Video path previews"]
+        : []),
       ...getChangedTypographySettingLabels(settings),
       ...(settings.diffIgnoreWhitespace !== DEFAULT_UNIFIED_SETTINGS.diffIgnoreWhitespace
         ? ["Diff whitespace changes"]
@@ -598,6 +607,9 @@ export function useSettingsRestore(onRestored?: () => void) {
       settings.fontSizePrompt,
       settings.fontSizeTerminal,
       settings.glassOpacity,
+      settings.openAudioPathLinksInModal,
+      settings.openImagePathLinksInModal,
+      settings.openVideoPathLinksInModal,
       settings.enableLegacyTokenStreaming,
       settings.persistComposerContextStrip,
       settings.enableProviderUpdateChecks,
@@ -683,6 +695,9 @@ export function useSettingsRestore(onRestored?: () => void) {
       appearanceContrast: DEFAULT_UNIFIED_SETTINGS.appearanceContrast,
       timestampFormat: DEFAULT_UNIFIED_SETTINGS.timestampFormat,
       wordWrap: DEFAULT_UNIFIED_SETTINGS.wordWrap,
+      openAudioPathLinksInModal: DEFAULT_UNIFIED_SETTINGS.openAudioPathLinksInModal,
+      openImagePathLinksInModal: DEFAULT_UNIFIED_SETTINGS.openImagePathLinksInModal,
+      openVideoPathLinksInModal: DEFAULT_UNIFIED_SETTINGS.openVideoPathLinksInModal,
       persistComposerContextStrip: DEFAULT_UNIFIED_SETTINGS.persistComposerContextStrip,
       diffIgnoreWhitespace: DEFAULT_UNIFIED_SETTINGS.diffIgnoreWhitespace,
       showSkillsInSlashMenu: DEFAULT_UNIFIED_SETTINGS.showSkillsInSlashMenu,
@@ -1275,6 +1290,87 @@ export function AppearanceSettingsPanel() {
                 updateSettings({ pinSentMessagesToTop: Boolean(checked) })
               }
               aria-label="Pin sent messages to top"
+            />
+          }
+        />
+
+        <SettingsRow
+          {...searchableSetting("audio-path-previews")}
+          description="Open local audio path links in a player. Workspace paths use the drawer when you hold Ctrl."
+          resetAction={
+            settings.openAudioPathLinksInModal !==
+            DEFAULT_UNIFIED_SETTINGS.openAudioPathLinksInModal ? (
+              <SettingResetButton
+                label="audio path previews"
+                onClick={() =>
+                  updateSettings({
+                    openAudioPathLinksInModal: DEFAULT_UNIFIED_SETTINGS.openAudioPathLinksInModal,
+                  })
+                }
+              />
+            ) : null
+          }
+          control={
+            <Switch
+              checked={settings.openAudioPathLinksInModal}
+              onCheckedChange={(checked) =>
+                updateSettings({ openAudioPathLinksInModal: Boolean(checked) })
+              }
+              aria-label="Open audio path links in a player"
+            />
+          }
+        />
+
+        <SettingsRow
+          {...searchableSetting("image-path-previews")}
+          description="Open local image path links in an expanded preview. Workspace paths use the drawer when you hold Ctrl."
+          resetAction={
+            settings.openImagePathLinksInModal !==
+            DEFAULT_UNIFIED_SETTINGS.openImagePathLinksInModal ? (
+              <SettingResetButton
+                label="image path previews"
+                onClick={() =>
+                  updateSettings({
+                    openImagePathLinksInModal: DEFAULT_UNIFIED_SETTINGS.openImagePathLinksInModal,
+                  })
+                }
+              />
+            ) : null
+          }
+          control={
+            <Switch
+              checked={settings.openImagePathLinksInModal}
+              onCheckedChange={(checked) =>
+                updateSettings({ openImagePathLinksInModal: Boolean(checked) })
+              }
+              aria-label="Open image path links in expanded previews"
+            />
+          }
+        />
+
+        <SettingsRow
+          {...searchableSetting("video-path-previews")}
+          description="Open local video path links in a player. Workspace paths use the drawer when you hold Ctrl."
+          resetAction={
+            settings.openVideoPathLinksInModal !==
+            DEFAULT_UNIFIED_SETTINGS.openVideoPathLinksInModal ? (
+              <SettingResetButton
+                label="video path previews"
+                onClick={() =>
+                  updateSettings({
+                    openVideoPathLinksInModal: DEFAULT_UNIFIED_SETTINGS.openVideoPathLinksInModal,
+                  })
+                }
+              />
+            ) : null
+          }
+          control={
+            <Switch
+              checked={settings.openVideoPathLinksInModal}
+              onCheckedChange={(checked) =>
+                updateSettings({ openVideoPathLinksInModal: Boolean(checked) })
+              }
+              aria-label="Open video path links in a player"
             />
           }
         />

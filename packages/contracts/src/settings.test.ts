@@ -67,6 +67,33 @@ describe("ClientSettings sent message position", () => {
   });
 });
 
+describe("ClientSettings image path links", () => {
+  it("keeps workspace image links in the drawer by default and accepts modal previews", () => {
+    expect(decodeClientSettings({}).openImagePathLinksInModal).toBe(false);
+    expect(
+      decodeClientSettingsPatch({ openImagePathLinksInModal: true }).openImagePathLinksInModal,
+    ).toBe(true);
+  });
+});
+
+describe("ClientSettings audio path links", () => {
+  it("keeps workspace audio links in the drawer by default and accepts modal previews", () => {
+    expect(decodeClientSettings({}).openAudioPathLinksInModal).toBe(false);
+    expect(
+      decodeClientSettingsPatch({ openAudioPathLinksInModal: true }).openAudioPathLinksInModal,
+    ).toBe(true);
+  });
+});
+
+describe("ClientSettings video path links", () => {
+  it("keeps workspace video links in the drawer by default and accepts modal previews", () => {
+    expect(decodeClientSettings({}).openVideoPathLinksInModal).toBe(false);
+    expect(
+      decodeClientSettingsPatch({ openVideoPathLinksInModal: true }).openVideoPathLinksInModal,
+    ).toBe(true);
+  });
+});
+
 describe("ClientSettings word wrap", () => {
   it("defaults word wrap on", () => {
     expect(decodeClientSettings({}).wordWrap).toBe(true);

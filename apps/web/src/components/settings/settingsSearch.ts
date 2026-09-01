@@ -155,6 +155,21 @@ export const SETTINGS_SEARCH_ITEMS = [
     to: "/settings/general",
   },
   {
+    id: "audio-path-previews",
+    title: "Audio path previews",
+    to: "/settings/appearance",
+  },
+  {
+    id: "image-path-previews",
+    title: "Image path previews",
+    to: "/settings/appearance",
+  },
+  {
+    id: "video-path-previews",
+    title: "Video path previews",
+    to: "/settings/appearance",
+  },
+  {
     id: "project-grouping",
     title: "Project grouping",
     to: "/settings/general",

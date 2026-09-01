@@ -15,6 +15,10 @@ export const AssetResource = Schema.Union([
     threadId: ThreadId,
     path: TrimmedNonEmptyString.check(Schema.isMaxLength(ASSET_PATH_MAX_LENGTH)),
   }),
+  Schema.TaggedStruct("exact-file", {
+    threadId: ThreadId,
+    path: TrimmedNonEmptyString.check(Schema.isMaxLength(ASSET_PATH_MAX_LENGTH)),
+  }),
   Schema.TaggedStruct("attachment", {
     attachmentId: TrimmedNonEmptyString.check(Schema.isMaxLength(256)),
     /** Display name and mime from the `ChatAttachment` the caller holds. The
@@ -152,7 +156,41 @@ export class AssetPreviewTypeValidationError extends Schema.TaggedErrorClass<Ass
   },
 ) {
   override get message(): string {
-    return "Only browser documents and images can be previewed.";
+    return "Only supported preview file types can be served.";
+  }
+}
+
+export class AssetExactFilePathValidationError extends Schema.TaggedErrorClass<AssetExactFilePathValidationError>()(
+  "AssetExactFilePathValidationError",
+  {
+    resource: AssetResource,
+  },
+) {
+  override get message(): string {
+    return "Exact file path must be absolute.";
+  }
+}
+
+export class AssetExactFileInspectionError extends Schema.TaggedErrorClass<AssetExactFileInspectionError>()(
+  "AssetExactFileInspectionError",
+  {
+    resource: AssetResource,
+    cause: Schema.Defect(),
+  },
+) {
+  override get message(): string {
+    return "Failed to inspect the exact file asset.";
+  }
+}
+
+export class AssetExactFileNotFoundError extends Schema.TaggedErrorClass<AssetExactFileNotFoundError>()(
+  "AssetExactFileNotFoundError",
+  {
+    resource: AssetResource,
+  },
+) {
+  override get message(): string {
+    return "Exact file asset was not found or is not a regular file.";
   }
 }
 
@@ -255,6 +293,9 @@ export const AssetAccessError = Schema.Union([
   AssetWorkspaceRootNormalizationError,
   AssetWorkspacePathValidationError,
   AssetPreviewTypeValidationError,
+  AssetExactFilePathValidationError,
+  AssetExactFileInspectionError,
+  AssetExactFileNotFoundError,
   AssetWorkspaceAssetInspectionError,
   AssetWorkspaceAssetNotFoundError,
   AssetWorkspaceResolutionError,

@@ -2,6 +2,7 @@ import type { ComposerFileAttachment } from "../../composerDraftStore";
 import { type ChatImageAttachment, isVideoAttachment } from "../../types";
 
 export interface ExpandedImageItem {
+  id: string;
   src: string;
   name: string;
   type?: "video";
@@ -29,6 +30,20 @@ export async function downloadVideoPreview(src: string, name: string): Promise<v
   setTimeout(() => URL.revokeObjectURL(url), 30_000);
 }
 
+export function attachmentImagePreviewId(attachmentId: string): string {
+  return `attachment:${attachmentId}`;
+}
+
+export function workspaceImagePreviewId(filePath: string): string {
+  return `workspace:${filePath}`;
+}
+
+export function addMediaPreviewCacheBuster(assetUrl: string, cacheBuster: string): string {
+  const url = new URL(assetUrl);
+  url.searchParams.set("t3-preview", cacheBuster);
+  return url.toString();
+}
+
 export function buildExpandedImagePreview(
   images: ReadonlyArray<ChatImageAttachment | ComposerFileAttachment>,
   selectedImageId: string,
@@ -36,7 +51,14 @@ export function buildExpandedImagePreview(
   const selected = images.find((image) => image.id === selectedImageId);
   if (selected?.type === "file" && selected.file && isVideoAttachment(selected)) {
     return {
-      images: [{ src: URL.createObjectURL(selected.file), name: selected.name, type: "video" }],
+      images: [
+        {
+          id: attachmentImagePreviewId(selected.id),
+          src: URL.createObjectURL(selected.file),
+          name: selected.name,
+          type: "video",
+        },
+      ],
       index: 0,
     };
   }
@@ -54,6 +76,7 @@ export function buildExpandedImagePreview(
   }
   return {
     images: previewableImages.map((image) => ({
+      id: attachmentImagePreviewId(image.id),
       src: image.src,
       name: image.name,
     })),

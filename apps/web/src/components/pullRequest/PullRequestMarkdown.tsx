@@ -14,10 +14,12 @@ export const PullRequestMarkdownContext = createContext<string | null>(null);
  * A pull request body, rendered with the app's markdown renderer plus a card for each upload
  * embedded in it, which that renderer drops on the floor.
  *
- * The card links out instead of playing in place. GitHub serves the file as uploaded — Mac
- * recordings are `video/quicktime`, which no Chromium decodes — and the desktop window's
- * `media-src` allows only `'self'`, the app scheme and `blob:`, so a remote source is refused
- * before a byte is fetched. Opening the host works for every format.
+ * The card links out instead of playing in place, because the markdown renderer deliberately
+ * drops embedded media. A
+ * `github.com/user-attachments/assets/…` link is a 302 to a signed S3 URL that serves the file
+ * as uploaded — `video/quicktime` for anything recorded on a Mac, which no Chromium decodes —
+ * so an inline player would work inconsistently across uploads. A card that opens the host is a
+ * real answer for every format.
  */
 export function PullRequestMarkdown({
   text,

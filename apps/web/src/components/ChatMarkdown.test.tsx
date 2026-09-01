@@ -32,8 +32,25 @@ import ChatMarkdown, {
   canUseMarkdownFileShellActions,
   hasMarkdownFilePrimaryAction,
   orderedListGutterStyle,
+  shouldOpenAudioPathInModal,
+  shouldOpenImagePathInModal,
+  shouldOpenVideoPathInModal,
   shouldUseMarkdownFileBrowserPrimaryAction,
 } from "./ChatMarkdown";
+import { addMediaPreviewCacheBuster } from "./chat/ExpandedImagePreview";
+
+describe("addMediaPreviewCacheBuster", () => {
+  it("gives each modal open a distinct URL without dropping existing URL state", () => {
+    const assetUrl = "https://environment.example/api/assets/token/image.png?download=1#preview";
+
+    expect(addMediaPreviewCacheBuster(assetUrl, "open-1")).toBe(
+      "https://environment.example/api/assets/token/image.png?download=1&t3-preview=open-1#preview",
+    );
+    expect(addMediaPreviewCacheBuster(assetUrl, "open-2")).toBe(
+      "https://environment.example/api/assets/token/image.png?download=1&t3-preview=open-2#preview",
+    );
+  });
+});
 
 describe("canUseMarkdownFileShellActions", () => {
   const environmentId = EnvironmentId.make("environment-1");
@@ -393,6 +410,48 @@ describe("orderedListGutterStyle", () => {
   it("treats a missing/zero item count as a single item", () => {
     expect(orderedListGutterStyle(0, undefined)).toBeUndefined();
     expect(orderedListGutterStyle(0, 100)).toEqual({ "--list-gutter": "4ch" });
+  });
+});
+
+describe("shouldOpenImagePathInModal", () => {
+  it("opens image links in the modal only when the preference is enabled", () => {
+    expect(shouldOpenImagePathInModal(true, "/repo/screenshots/result.png")).toBe(true);
+    expect(shouldOpenImagePathInModal(false, "/repo/screenshots/result.png")).toBe(false);
+  });
+
+  it("opens exact image paths outside the workspace", () => {
+    expect(shouldOpenImagePathInModal(true, "/repo/src/index.ts")).toBe(false);
+    expect(shouldOpenImagePathInModal(true, "/tmp/result.png")).toBe(true);
+  });
+
+  it("uses the workspace drawer when Ctrl is held", () => {
+    expect(shouldOpenImagePathInModal(true, "/repo/screenshots/result.png", true)).toBe(false);
+  });
+});
+
+describe("shouldOpenAudioPathInModal", () => {
+  it("opens audio links in the modal only when the preference is enabled", () => {
+    expect(shouldOpenAudioPathInModal(true, "/repo/recordings/note.ogg")).toBe(true);
+    expect(shouldOpenAudioPathInModal(false, "/repo/recordings/note.ogg")).toBe(false);
+  });
+
+  it("opens exact audio paths but keeps non-audio and Ctrl-clicked links on existing paths", () => {
+    expect(shouldOpenAudioPathInModal(true, "/repo/src/index.ts")).toBe(false);
+    expect(shouldOpenAudioPathInModal(true, "/tmp/note.ogg")).toBe(true);
+    expect(shouldOpenAudioPathInModal(true, "/repo/recordings/note.ogg", true)).toBe(false);
+  });
+});
+
+describe("shouldOpenVideoPathInModal", () => {
+  it("opens video links in the modal only when the preference is enabled", () => {
+    expect(shouldOpenVideoPathInModal(true, "/repo/clips/demo.mp4")).toBe(true);
+    expect(shouldOpenVideoPathInModal(false, "/repo/clips/demo.mp4")).toBe(false);
+  });
+
+  it("opens exact video paths but keeps non-video and Ctrl-clicked links on existing paths", () => {
+    expect(shouldOpenVideoPathInModal(true, "/repo/src/index.ts")).toBe(false);
+    expect(shouldOpenVideoPathInModal(true, "/tmp/demo.mp4")).toBe(true);
+    expect(shouldOpenVideoPathInModal(true, "/repo/clips/demo.mp4", true)).toBe(false);
   });
 });
 

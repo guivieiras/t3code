@@ -90,7 +90,9 @@ import {
   ZapIcon,
 } from "lucide-react";
 import { Button } from "../ui/button";
+import type { ExpandedAudioPreview } from "./ExpandedAudioPreview";
 import { buildExpandedImagePreview, ExpandedImagePreview } from "./ExpandedImagePreview";
+import type { ExpandedVideoPreview } from "./ExpandedVideoPreview";
 import { ProposedPlanCard } from "./ProposedPlanCard";
 import { ChangedFilesCard } from "./ChangedFilesTree";
 import { shouldAutoExpandChangedFiles } from "./changedFilesPresentation";
@@ -173,7 +175,9 @@ interface TimelineRowSharedState {
   runs: ReadonlyArray<HandoffTimelineRun>;
   activeThreadEnvironmentId: EnvironmentId;
   onRevertUserMessage: (messageId: MessageId) => void;
+  onAudioExpand: (preview: ExpandedAudioPreview) => void;
   onImageExpand: (preview: ExpandedImagePreview) => void;
+  onVideoExpand: (preview: ExpandedVideoPreview) => void;
   onOpenTurnDiff: (runId: RunId, filePath?: string) => void;
   onOpenThread: (threadId: OrchestrationV2TurnItem["threadId"]) => void;
   onForkFromRun: (input: {
@@ -257,10 +261,12 @@ interface MessagesTimelineProps {
   revertTurnCountByUserMessageId: Map<MessageId, number>;
   onRevertUserMessage: (messageId: MessageId) => void;
   isRevertingCheckpoint: boolean;
+  onAudioExpand: (preview: ExpandedAudioPreview) => void;
   onImageExpand: (preview: ExpandedImagePreview) => void;
   onFileOpen?: (attachment: ChatFileAttachment) => void;
   openingVideoAttachmentId: string | null;
   onUseArtifactTemplate?: (template: CodexArtifactTemplate) => void;
+  onVideoExpand: (preview: ExpandedVideoPreview) => void;
   activeThreadEnvironmentId: EnvironmentId;
   markdownCwd: string | undefined;
   resolvedTheme: "light" | "dark";
@@ -309,10 +315,12 @@ export const MessagesTimeline = memo(function MessagesTimeline({
   revertTurnCountByUserMessageId,
   onRevertUserMessage,
   isRevertingCheckpoint,
+  onAudioExpand,
   onImageExpand,
   onFileOpen = NOOP_OPEN_ATTACHMENT,
   openingVideoAttachmentId,
   onUseArtifactTemplate = NOOP_USE_ARTIFACT_TEMPLATE,
+  onVideoExpand,
   activeThreadEnvironmentId,
   markdownCwd,
   resolvedTheme,
@@ -603,10 +611,12 @@ export const MessagesTimeline = memo(function MessagesTimeline({
       runs,
       activeThreadEnvironmentId,
       onRevertUserMessage,
+      onAudioExpand,
       onImageExpand,
       onFileOpen,
       openingVideoAttachmentId,
       onUseArtifactTemplate,
+      onVideoExpand,
       onOpenTurnDiff,
       onOpenThread,
       onForkFromRun,
@@ -626,10 +636,12 @@ export const MessagesTimeline = memo(function MessagesTimeline({
       runs,
       activeThreadEnvironmentId,
       onRevertUserMessage,
+      onAudioExpand,
       onImageExpand,
       onFileOpen,
       openingVideoAttachmentId,
       onUseArtifactTemplate,
+      onVideoExpand,
       onOpenTurnDiff,
       onOpenThread,
       onForkFromRun,
@@ -1481,11 +1493,13 @@ function AssistantTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "mess
           text={messageText}
           cwd={ctx.markdownCwd}
           threadRef={ctx.threadRef ?? undefined}
+          onAudioExpand={ctx.onAudioExpand}
+          onImageExpand={ctx.onImageExpand}
+          onVideoExpand={ctx.onVideoExpand}
           isStreaming={Boolean(row.message.streaming)}
           lineBreaks={shouldPreserveAssistantLineBreaks(messageText)}
           skills={ctx.skills}
           onUseArtifactTemplate={ctx.onUseArtifactTemplate}
-          onImageExpand={ctx.onImageExpand}
         />
         <AssistantChangedFilesSection
           turnSummary={row.assistantTurnDiffSummary}
@@ -1598,6 +1612,9 @@ function ProposedPlanTimelineRow({
         threadRef={ctx.threadRef ?? undefined}
         cwd={ctx.markdownCwd}
         workspaceRoot={ctx.workspaceRoot}
+        onAudioExpand={ctx.onAudioExpand}
+        onImageExpand={ctx.onImageExpand}
+        onVideoExpand={ctx.onVideoExpand}
       />
     </div>
   );
@@ -2513,6 +2530,9 @@ const UserMessageBody = memo(function UserMessageBody(props: {
             text={content}
             cwd={props.markdownCwd}
             threadRef={ctx.threadRef ?? undefined}
+            onAudioExpand={ctx.onAudioExpand}
+            onImageExpand={ctx.onImageExpand}
+            onVideoExpand={ctx.onVideoExpand}
             skills={props.skills}
             className="text-foreground"
             lineBreaks
@@ -2536,6 +2556,9 @@ const UserMessageBody = memo(function UserMessageBody(props: {
                   text={segment.text.trim()}
                   cwd={props.markdownCwd}
                   threadRef={ctx.threadRef ?? undefined}
+                  onAudioExpand={ctx.onAudioExpand}
+                  onImageExpand={ctx.onImageExpand}
+                  onVideoExpand={ctx.onVideoExpand}
                   skills={props.skills}
                   className="text-foreground"
                   lineBreaks
@@ -2625,6 +2648,9 @@ const UserMessageBody = memo(function UserMessageBody(props: {
           text={props.text}
           cwd={props.markdownCwd}
           threadRef={ctx.threadRef ?? undefined}
+          onAudioExpand={ctx.onAudioExpand}
+          onImageExpand={ctx.onImageExpand}
+          onVideoExpand={ctx.onVideoExpand}
           skills={props.skills}
           className="text-foreground"
           lineBreaks
@@ -2651,6 +2677,9 @@ const UserMessageBody = memo(function UserMessageBody(props: {
       text={props.text}
       cwd={props.markdownCwd}
       threadRef={ctx.threadRef ?? undefined}
+      onAudioExpand={ctx.onAudioExpand}
+      onImageExpand={ctx.onImageExpand}
+      onVideoExpand={ctx.onVideoExpand}
       skills={props.skills}
       className="text-foreground"
       lineBreaks
@@ -2687,6 +2716,9 @@ function UserMessageReviewCommentCard({ comment }: { comment: ReviewCommentConte
           text={formatReviewCommentFence(fenceLanguage, comment.diff)}
           cwd={ctx.markdownCwd}
           threadRef={ctx.threadRef ?? undefined}
+          onAudioExpand={ctx.onAudioExpand}
+          onImageExpand={ctx.onImageExpand}
+          onVideoExpand={ctx.onVideoExpand}
           skills={ctx.skills}
           className="text-foreground"
         />

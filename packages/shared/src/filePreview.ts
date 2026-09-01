@@ -1,5 +1,17 @@
 export const WORKSPACE_BROWSER_PREVIEW_EXTENSIONS = [".htm", ".html", ".pdf"] as const;
 
+export const WORKSPACE_AUDIO_PREVIEW_EXTENSIONS = [
+  ".aac",
+  ".flac",
+  ".m4a",
+  ".mp3",
+  ".oga",
+  ".ogg",
+  ".opus",
+  ".wav",
+  ".weba",
+] as const;
+
 export const WORKSPACE_IMAGE_PREVIEW_EXTENSIONS = [
   ".avif",
   ".gif",
@@ -11,6 +23,14 @@ export const WORKSPACE_IMAGE_PREVIEW_EXTENSIONS = [
   ".webp",
 ] as const;
 
+export const WORKSPACE_VIDEO_PREVIEW_EXTENSIONS = [
+  ".m4v",
+  ".mov",
+  ".mp4",
+  ".ogv",
+  ".webm",
+] as const;
+
 function hasPreviewExtension(path: string, extensions: ReadonlyArray<string>): boolean {
   const pathWithoutQuery = path.split(/[?#]/, 1)[0]?.toLowerCase() ?? "";
   return extensions.some((extension) => pathWithoutQuery.endsWith(extension));
@@ -20,10 +40,23 @@ export function isWorkspaceBrowserPreviewPath(path: string): boolean {
   return hasPreviewExtension(path, WORKSPACE_BROWSER_PREVIEW_EXTENSIONS);
 }
 
+export function isWorkspaceAudioPreviewPath(path: string): boolean {
+  return hasPreviewExtension(path, WORKSPACE_AUDIO_PREVIEW_EXTENSIONS);
+}
+
 export function isWorkspaceImagePreviewPath(path: string): boolean {
   return hasPreviewExtension(path, WORKSPACE_IMAGE_PREVIEW_EXTENSIONS);
 }
 
+export function isWorkspaceVideoPreviewPath(path: string): boolean {
+  return hasPreviewExtension(path, WORKSPACE_VIDEO_PREVIEW_EXTENSIONS);
+}
+
 export function isWorkspacePreviewEntryPath(path: string): boolean {
-  return isWorkspaceBrowserPreviewPath(path) || isWorkspaceImagePreviewPath(path);
+  return (
+    isWorkspaceAudioPreviewPath(path) ||
+    isWorkspaceBrowserPreviewPath(path) ||
+    isWorkspaceImagePreviewPath(path) ||
+    isWorkspaceVideoPreviewPath(path)
+  );
 }

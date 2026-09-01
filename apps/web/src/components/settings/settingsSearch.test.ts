@@ -174,6 +174,18 @@ describe("searchSettings", () => {
       id: "composer-context",
       to: "/settings/appearance",
     });
+    expect(searchSettings("audio path previews")[0]).toMatchObject({
+      id: "audio-path-previews",
+      to: "/settings/appearance",
+    });
+    expect(searchSettings("image path previews")[0]).toMatchObject({
+      id: "image-path-previews",
+      to: "/settings/appearance",
+    });
+    expect(searchSettings("video path previews")[0]).toMatchObject({
+      id: "video-path-previews",
+      to: "/settings/appearance",
+    });
     expect(searchSettings("environment identification")[0]).toMatchObject({
       id: "environment-identification",
       to: "/settings/appearance",

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 
 import {
+  isAudioPreviewFile,
   isBrowserPreviewFile,
   isImagePreviewFile,
   isSvgImagePreviewFile,
@@ -29,7 +30,9 @@ describe("resolveWorkspaceRelativeFilePath", () => {
 });
 
 describe("file preview types", () => {
-  it("recognizes browser and image previews", () => {
+  it("recognizes audio, browser, and image previews", () => {
+    expect(isAudioPreviewFile("audio/effect.OGG?download=1")).toBe(true);
+    expect(isAudioPreviewFile("audio/effect.ogg.ts")).toBe(false);
     expect(isBrowserPreviewFile("reports/summary.html")).toBe(true);
     expect(isImagePreviewFile("assets/icon.png")).toBe(true);
     expect(isImagePreviewFile("assets/diagram.SVG?raw=1")).toBe(true);

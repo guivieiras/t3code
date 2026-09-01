@@ -9,6 +9,7 @@ describe("ExpandedImageDialog", () => {
     const preview: ExpandedImagePreview = {
       images: [
         {
+          id: "demo.mp4",
           src: "https://environment.test/api/assets/demo.mp4",
           name: "demo.mp4",
           type: "video",

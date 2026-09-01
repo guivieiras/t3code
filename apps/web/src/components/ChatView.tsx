@@ -286,10 +286,16 @@ import {
 import { environmentShell } from "../state/shell";
 import { ChatComposer, type ChatComposerHandle } from "./chat/ChatComposer";
 import { DraftHeroHeadline } from "./chat/DraftHeroHeadline";
+import { ExpandedAudioDialog } from "./chat/ExpandedAudioDialog";
+import { type ExpandedAudioPreview } from "./chat/ExpandedAudioPreview";
 import { ExpandedImageDialog } from "./chat/ExpandedImageDialog";
+import { ExpandedVideoDialog } from "./chat/ExpandedVideoDialog";
+import { type ExpandedVideoPreview } from "./chat/ExpandedVideoPreview";
 import { PullRequestThreadDialog } from "./PullRequestThreadDialog";
 import { MessagesTimeline, type MessagesTimelineHistoryControls } from "./chat/MessagesTimeline";
 import { resolveTimelineIsAtEnd } from "./chat/MessagesTimeline.logic";
+import { ThreadImageGalleryDialog } from "./chat/ThreadImageGalleryDialog";
+import { collectThreadImageSources } from "./chat/ThreadImageGallery.logic";
 import { ChatHeader } from "./chat/ChatHeader";
 import { useRemoteOpenState } from "~/remoteOpen";
 import { shouldShowOpenInPicker } from "./chat/OpenInPicker.logic";
@@ -1523,12 +1529,14 @@ function ChatViewContent(props: ChatViewProps) {
   const composerRef = useComposerHandleContext() ?? localComposerRef;
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [isWorkspaceFileDragActive, setIsWorkspaceFileDragActive] = useState(false);
+  const [expandedAudio, setExpandedAudio] = useState<ExpandedAudioPreview | null>(null);
   const [expandedImage, setExpandedImage] = useState<ExpandedImagePreview | null>(null);
   useEffect(() => {
     const item = expandedImage?.images[expandedImage.index];
     if (item?.type !== "video" || !item.src.startsWith("blob:")) return;
     return () => revokeBlobPreviewUrl(item.src);
   }, [expandedImage]);
+  const [expandedVideo, setExpandedVideo] = useState<ExpandedVideoPreview | null>(null);
   const [optimisticUserMessages, setOptimisticUserMessages] = useState<ChatMessage[]>([]);
   const [feedbackSubmissionsByThreadKey, setFeedbackSubmissionsByThreadKey] = useState<
     Record<string, ReadonlyArray<CodexFeedbackSubmission>>
@@ -2789,7 +2797,14 @@ function ChatViewContent(props: ChatViewProps) {
             return;
           }
           setExpandedImage({
-            images: [{ src: previewUrl, name: attachment.name, type: "video" }],
+            images: [
+              {
+                id: `attachment:${attachment.id}`,
+                src: previewUrl,
+                name: attachment.name,
+                type: "video",
+              },
+            ],
             index: 0,
           });
         } catch (error) {
@@ -3038,6 +3053,14 @@ function ChatViewContent(props: ChatViewProps) {
         worktreePath: activeThread?.worktreePath ?? null,
       })
     : null;
+  const threadImageSources = useMemo(
+    () =>
+      collectThreadImageSources(
+        timelineEntries.flatMap((entry) => (entry.kind === "message" ? [entry.message] : [])),
+        gitCwd ?? undefined,
+      ),
+    [gitCwd, timelineEntries],
+  );
   const gitStatusCwd = activeThread?.worktreePath ?? gitCwd;
   const gitStatusQuery = useEnvironmentQuery(
     gitStatusCwd === null
@@ -4804,11 +4827,19 @@ function ChatViewContent(props: ChatViewProps) {
     resetLocalDispatch();
     cancelVideoPreviewRequest();
     setOpeningVideoAttachmentId(null);
+    setExpandedAudio(null);
     setExpandedImage(null);
+    setExpandedVideo(null);
   }, [cancelVideoPreviewRequest, draftId, resetLocalDispatch, threadId]);
 
+  const closeExpandedAudio = useCallback(() => {
+    setExpandedAudio(null);
+  }, []);
   const closeExpandedImage = useCallback(() => {
     setExpandedImage(null);
+  }, []);
+  const closeExpandedVideo = useCallback(() => {
+    setExpandedVideo(null);
   }, []);
 
   const activeWorktreePath = activeThread?.worktreePath ?? null;
@@ -7041,7 +7072,29 @@ function ChatViewContent(props: ChatViewProps) {
     (preview: ExpandedImagePreview) => {
       cancelVideoPreviewRequest();
       setOpeningVideoAttachmentId(null);
+      setExpandedAudio(null);
       setExpandedImage(preview);
+      setExpandedVideo(null);
+    },
+    [cancelVideoPreviewRequest],
+  );
+  const onExpandTimelineAudio = useCallback(
+    (preview: ExpandedAudioPreview) => {
+      cancelVideoPreviewRequest();
+      setOpeningVideoAttachmentId(null);
+      setExpandedImage(null);
+      setExpandedAudio(preview);
+      setExpandedVideo(null);
+    },
+    [cancelVideoPreviewRequest],
+  );
+  const onExpandTimelineVideo = useCallback(
+    (preview: ExpandedVideoPreview) => {
+      cancelVideoPreviewRequest();
+      setOpeningVideoAttachmentId(null);
+      setExpandedAudio(null);
+      setExpandedImage(null);
+      setExpandedVideo(preview);
     },
     [cancelVideoPreviewRequest],
   );
@@ -7424,9 +7477,11 @@ function ChatViewContent(props: ChatViewProps) {
                 onRevertUserMessage={onRevertUserMessage}
                 onUseArtifactTemplate={useArtifactTemplate}
                 isRevertingCheckpoint={isRevertingCheckpoint}
+                onAudioExpand={onExpandTimelineAudio}
                 onImageExpand={onExpandTimelineImage}
                 onFileOpen={openFileAttachment}
                 openingVideoAttachmentId={openingVideoAttachmentId}
+                onVideoExpand={onExpandTimelineVideo}
                 markdownCwd={gitCwd ?? undefined}
                 resolvedTheme={resolvedTheme}
                 timestampFormat={timestampFormat}
@@ -7841,11 +7896,29 @@ function ChatViewContent(props: ChatViewProps) {
           </RightPanelTabs>
         </RightPanelSheet>
       ) : null}
-      {expandedImage && (
-        <ExpandedImageDialog
+      {expandedAudio && (
+        <ExpandedAudioDialog
+          key={expandedAudio.src}
+          preview={expandedAudio}
+          onClose={closeExpandedAudio}
+        />
+      )}
+      {expandedImage && activeThreadRef ? (
+        <ThreadImageGalleryDialog
           key={`${expandedImage.images[expandedImage.index]?.src ?? "image"}:${expandedImage.index}`}
           preview={expandedImage}
+          sources={threadImageSources}
+          threadRef={activeThreadRef}
           onClose={closeExpandedImage}
+        />
+      ) : expandedImage ? (
+        <ExpandedImageDialog preview={expandedImage} onClose={closeExpandedImage} />
+      ) : null}
+      {expandedVideo && (
+        <ExpandedVideoDialog
+          key={expandedVideo.src}
+          preview={expandedVideo}
+          onClose={closeExpandedVideo}
         />
       )}
     </div>

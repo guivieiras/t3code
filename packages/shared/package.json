@@ -175,6 +175,10 @@
       "types": "./src/cliArgs.ts",
       "import": "./src/cliArgs.ts"
     },
+    "./codexConnection": {
+      "types": "./src/codexConnection.ts",
+      "import": "./src/codexConnection.ts"
+    },
     "./connectAuth": {
       "types": "./src/connectAuth.ts",
       "import": "./src/connectAuth.ts"

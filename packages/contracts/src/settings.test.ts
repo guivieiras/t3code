@@ -6,6 +6,7 @@ import {
   ClientSettingsSchema,
   ClientSettingsPatch,
   ClaudeSettings,
+  CodexSettings,
   DEFAULT_SERVER_SETTINGS,
   defaultEnabledForDriver,
   resolveProviderInstanceEnabled,
@@ -15,6 +16,7 @@ import {
 
 const decodeClientSettings = Schema.decodeUnknownSync(ClientSettingsSchema);
 const decodeClientSettingsPatch = Schema.decodeUnknownSync(ClientSettingsPatch);
+const decodeCodexSettings = Schema.decodeUnknownSync(CodexSettings);
 const decodeServerSettings = Schema.decodeUnknownSync(ServerSettings);
 const decodeServerSettingsPatch = Schema.decodeUnknownSync(ServerSettingsPatch);
 const encodeServerSettings = Schema.encodeSync(ServerSettings);
@@ -91,6 +93,13 @@ describe("ClientSettings video path links", () => {
     expect(
       decodeClientSettingsPatch({ openVideoPathLinksInModal: true }).openVideoPathLinksInModal,
     ).toBe(true);
+  });
+});
+
+describe("CodexSettings connection", () => {
+  it("defaults legacy settings to native Codex and accepts OpenRouter", () => {
+    expect(decodeCodexSettings({}).connection).toBe("native");
+    expect(decodeCodexSettings({ connection: "openrouter" }).connection).toBe("openrouter");
   });
 });
 

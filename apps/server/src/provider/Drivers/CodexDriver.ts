@@ -29,6 +29,7 @@ import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 import { HttpClient } from "effect/unstable/http";
 import { ChildProcessSpawner } from "effect/unstable/process";
+import { resolveCodexConnectionSettings } from "@t3tools/shared/codexConnection";
 
 import { makeCodexTextGeneration } from "../../textGeneration/CodexTextGeneration.ts";
 import * as BackgroundPolicy from "../../background/BackgroundPolicy.ts";
@@ -43,6 +44,7 @@ import { ProviderDriverError } from "../Errors.ts";
 import { checkCodexProviderStatus, makePendingCodexProvider } from "../Layers/CodexProvider.ts";
 import { makeManagedServerProvider } from "../makeManagedServerProvider.ts";
 import * as ModelManifest from "../ModelManifest.ts";
+import { applyOpenRouterCodexCatalog } from "../OpenRouterCodex.ts";
 import type { ProviderDriver, ProviderInstance } from "../ProviderDriver.ts";
 import type { ServerProviderDraft } from "../providerSnapshot.ts";
 import { mergeProviderInstanceEnvironment } from "../ProviderInstanceEnvironment.ts";
@@ -127,11 +129,14 @@ export const CodexDriver: ProviderDriver<CodexSettings, CodexDriverEnv> = {
       const eventLoggers = yield* ProviderEventLoggers;
       const modelManifest = yield* ModelManifest.ModelManifest;
       const processEnv = mergeProviderInstanceEnvironment(environment);
-      const homeLayout = yield* resolveCodexHomeLayout(config);
+      const connectionConfig = resolveCodexConnectionSettings(config, instanceId);
+      const isOpenRouter = connectionConfig.connection === "openrouter";
+      const resolvedDisplayName = displayName ?? (isOpenRouter ? "OpenRouter" : undefined);
+      const homeLayout = yield* resolveCodexHomeLayout(connectionConfig);
       const continuationIdentity = codexContinuationIdentity(homeLayout);
       const stampIdentity = withInstanceIdentity({
         instanceId,
-        displayName,
+        displayName: resolvedDisplayName,
         accentColor,
         continuationGroupKey: continuationIdentity.continuationKey,
       });
@@ -147,7 +152,7 @@ export const CodexDriver: ProviderDriver<CodexSettings, CodexDriverEnv> = {
         ),
       );
       const effectiveConfig = {
-        ...config,
+        ...connectionConfig,
         enabled,
         homePath: homeLayout.effectiveHomePath ?? "",
       } satisfies CodexSettings;
@@ -158,11 +163,11 @@ export const CodexDriver: ProviderDriver<CodexSettings, CodexDriverEnv> = {
 
       const orchestrationAdapter = yield* CodexAdapterV2Driver.create({
         instanceId,
-        displayName,
+        displayName: resolvedDisplayName,
         accentColor,
         environment,
         enabled,
-        config,
+        config: connectionConfig,
       }).pipe(
         Effect.mapError(
           (cause) =>
@@ -183,18 +188,29 @@ export const CodexDriver: ProviderDriver<CodexSettings, CodexDriverEnv> = {
       // Kick the TTL-gated manifest refresh in the background and classify
       // with the in-memory manifest, so a slow or hung fetch never delays the
       // provider check. A refresh that lands mid-probe applies on the next one.
-      const checkProvider = modelManifest.refreshInBackground.pipe(
-        Effect.andThen(
-          Effect.zipWith(
-            checkCodexProviderStatus(effectiveConfig, undefined, processEnv),
-            modelManifest.current,
-            (draft, manifest) =>
-              stampIdentity(ModelManifest.applyModelManifest(draft, manifest, DRIVER_KIND)),
-            { concurrent: true },
+      const checkProvider = modelManifest.refreshInBackground
+        .pipe(
+          Effect.andThen(
+            Effect.zipWith(
+              checkCodexProviderStatus(effectiveConfig, undefined, processEnv),
+              modelManifest.current,
+              (draft, manifest) =>
+                stampIdentity(ModelManifest.applyModelManifest(draft, manifest, DRIVER_KIND)),
+              { concurrent: true },
+            ),
           ),
-        ),
-        Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
-      );
+        )
+        .pipe(
+          Effect.flatMap((snapshot) =>
+            applyOpenRouterCodexCatalog({
+              snapshot,
+              settings: effectiveConfig,
+              environment: processEnv,
+            }),
+          ),
+          Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
+          Effect.provideService(HttpClient.HttpClient, httpClient),
+        );
       const snapshotSettings = makeProviderSnapshotSettingsSource(effectiveConfig, serverSettings);
       const snapshot = yield* makeManagedServerProvider<ProviderSnapshotSettings<CodexSettings>>({
         maintenanceCapabilities,
@@ -232,7 +248,8 @@ export const CodexDriver: ProviderDriver<CodexSettings, CodexDriverEnv> = {
         instanceId,
         driverKind: DRIVER_KIND,
         continuationIdentity,
-        displayName,
+        displayName: resolvedDisplayName,
+        ...(isOpenRouter ? { iconKey: "openrouter" } : {}),
         accentColor,
         enabled,
         snapshot,

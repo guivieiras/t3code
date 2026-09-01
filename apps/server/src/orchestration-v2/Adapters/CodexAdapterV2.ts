@@ -47,6 +47,7 @@ import * as Scope from "effect/Scope";
 import * as Semaphore from "effect/Semaphore";
 import * as Stream from "effect/Stream";
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
+import { resolveCodexConnectionSettings } from "@t3tools/shared/codexConnection";
 
 import { resolveAttachmentPath } from "../../attachmentStore.ts";
 import { getCodexServiceTierOptionValue } from "../../codexModelOptions.ts";
@@ -1374,7 +1375,8 @@ export const CodexAdapterV2Driver: ProviderAdapterDriver<CodexSettings, CodexAda
       const hostEnvironment = yield* HostProcessEnvironment;
       const idAllocator = yield* IdAllocatorV2;
       const serverConfig = yield* ServerConfig;
-      const homeLayout = yield* resolveCodexHomeLayout(config);
+      const connectionConfig = resolveCodexConnectionSettings(config, instanceId);
+      const homeLayout = yield* resolveCodexHomeLayout(connectionConfig);
 
       yield* materializeCodexShadowHome(homeLayout).pipe(
         Effect.mapError(
@@ -1389,7 +1391,7 @@ export const CodexAdapterV2Driver: ProviderAdapterDriver<CodexSettings, CodexAda
       );
 
       const settings = {
-        ...config,
+        ...connectionConfig,
         enabled,
         homePath: homeLayout.effectiveHomePath ?? "",
       } satisfies CodexSettings;

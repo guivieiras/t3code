@@ -1,12 +1,21 @@
 import { assert, it } from "@effect/vitest";
+import {
+  ApplicationProjectCreatedPayload,
+  ProjectId,
+  ProviderInstanceId,
+} from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
+import * as Schema from "effect/Schema";
 import * as SqlClient from "effect/unstable/sql/SqlClient";
 
 import { runMigrations } from "../Migrations.ts";
 import * as NodeSqliteClient from "../NodeSqliteClient.ts";
 
 const layer = it.layer(Layer.mergeAll(NodeSqliteClient.layerMemory()));
+const decodeProjectCreatedPayload = Schema.decodeUnknownEffect(
+  Schema.fromJsonString(ApplicationProjectCreatedPayload),
+);
 
 layer("043_ApplicationEventSource", (it) => {
   it.effect("moves V2 events and current project state behind one global sequence", () =>
@@ -68,6 +77,8 @@ layer("043_ApplicationEventSource", (it) => {
           title,
           workspace_root,
           default_model_selection_json,
+          default_thread_env_mode,
+          favicon_path,
           scripts_json,
           created_at,
           updated_at,
@@ -77,6 +88,8 @@ layer("043_ApplicationEventSource", (it) => {
           'Existing project',
           '/work/existing',
           '{"instanceId":"codex","model":"gpt-5.4"}',
+          'worktree',
+          'brand/icon.svg',
           '[]',
           '2026-06-19T00:00:00.000Z',
           '2026-06-20T00:00:00.000Z',
@@ -92,13 +105,15 @@ layer("043_ApplicationEventSource", (it) => {
         readonly stream_id: string;
         readonly event_type: string;
         readonly application_event_version: number;
+        readonly payload_json: string;
       }>`
         SELECT
           sequence,
           aggregate_kind,
           stream_id,
           event_type,
-          application_event_version
+          application_event_version,
+          payload_json
         FROM orchestration_events
         WHERE application_event_version = 2
         ORDER BY sequence ASC
@@ -111,6 +126,20 @@ layer("043_ApplicationEventSource", (it) => {
         ],
       );
       assert.ok(events[0]!.sequence < events[1]!.sequence);
+      assert.deepStrictEqual(yield* decodeProjectCreatedPayload(events[1]!.payload_json), {
+        projectId: ProjectId.make("project:existing"),
+        title: "Existing project",
+        workspaceRoot: "/work/existing",
+        defaultModelSelection: {
+          instanceId: ProviderInstanceId.make("codex"),
+          model: "gpt-5.4",
+        },
+        defaultThreadEnvMode: "worktree",
+        faviconPath: "brand/icon.svg",
+        scripts: [],
+        createdAt: "2026-06-19T00:00:00.000Z",
+        updatedAt: "2026-06-20T00:00:00.000Z",
+      });
 
       const receipts = yield* sql<{
         readonly aggregate_kind: string;

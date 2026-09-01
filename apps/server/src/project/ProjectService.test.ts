@@ -103,6 +103,7 @@ it.layer(TestLayer)("ProjectService", (it) => {
       assert.equal(created.workspaceRoot, "/work/project");
       assert.isNull(created.repositoryIdentity);
       assert.isNull(created.faviconPath);
+      assert.isNull(created.defaultThreadEnvMode);
 
       const hydratedCreated = yield* waitForProject(
         service,
@@ -116,8 +117,12 @@ it.layer(TestLayer)("ProjectService", (it) => {
         commandId: CommandId.make("command:project:update"),
         projectId,
         title: "Renamed",
+        faviconPath: "brand/icon.svg",
+        defaultThreadEnvMode: "worktree",
       });
       assert.equal(updated.title, "Renamed");
+      assert.equal(updated.faviconPath, "brand/icon.svg");
+      assert.equal(updated.defaultThreadEnvMode, "worktree");
       assert.equal(updated.createdAt, created.createdAt);
 
       const byId = yield* service.getById(projectId);
@@ -125,6 +130,8 @@ it.layer(TestLayer)("ProjectService", (it) => {
       assert.isTrue(Option.isSome(byId));
       assert.isTrue(Option.isSome(byWorkspace));
       assert.equal(Option.getOrThrow(byWorkspace).id, projectId);
+      assert.equal(Option.getOrThrow(byWorkspace).faviconPath, "brand/icon.svg");
+      assert.equal(Option.getOrThrow(byWorkspace).defaultThreadEnvMode, "worktree");
       assert.deepEqual(
         (yield* service.snapshot).projects.map((project) => project.id),
         [projectId],

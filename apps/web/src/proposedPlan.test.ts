@@ -2,6 +2,7 @@ import { describe, expect, it } from "vite-plus/test";
 
 import {
   buildCollapsedProposedPlanPreviewMarkdown,
+  buildFreshContextPlanImplementationPrompt,
   buildPlanImplementationThreadTitle,
   buildPlanImplementationPrompt,
   buildProposedPlanMarkdownFilename,
@@ -21,9 +22,18 @@ describe("proposedPlanTitle", () => {
 });
 
 describe("buildPlanImplementationPrompt", () => {
-  it("formats the plan exactly like the Codex follow-up handoff prompt", () => {
-    expect(buildPlanImplementationPrompt("## Ship it\n\n- step 1\n")).toBe(
-      "PLEASE IMPLEMENT THIS PLAN:\n## Ship it\n\n- step 1",
+  it("matches the Codex same-context implementation prompt", () => {
+    expect(buildPlanImplementationPrompt()).toBe("Implement the plan.");
+  });
+});
+
+describe("buildFreshContextPlanImplementationPrompt", () => {
+  it("matches the Codex fresh-context implementation handoff", () => {
+    expect(buildFreshContextPlanImplementationPrompt("## Ship it\n\n- step 1\n")).toBe(
+      "A previous agent produced the plan below to accomplish the user's task. " +
+        "Implement the plan in a fresh context. Treat the plan as the source of user intent, " +
+        "re-read files as needed, and carry the work through implementation and verification.\n\n" +
+        "## Ship it\n\n- step 1",
     );
   });
 });
@@ -68,10 +78,9 @@ describe("resolvePlanFollowUpSubmission", () => {
     expect(
       resolvePlanFollowUpSubmission({
         draftText: "   ",
-        planMarkdown: "## Ship it\n\n- step 1\n",
       }),
     ).toEqual({
-      text: "PLEASE IMPLEMENT THIS PLAN:\n## Ship it\n\n- step 1",
+      text: "Implement the plan.",
       interactionMode: "default",
     });
   });
@@ -80,7 +89,6 @@ describe("resolvePlanFollowUpSubmission", () => {
     expect(
       resolvePlanFollowUpSubmission({
         draftText: "Refine step 2 first",
-        planMarkdown: "## Ship it\n\n- step 1\n",
       }),
     ).toEqual({
       text: "Refine step 2 first",

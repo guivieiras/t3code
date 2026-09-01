@@ -10,6 +10,7 @@ import {
   type OrchestrationV2Command,
   type OrchestrationV2CreationSource,
   type PlanId,
+  type ProjectFaviconPath,
   type ProjectId,
   type ProjectScript,
   type ProviderApprovalDecision,
@@ -19,6 +20,7 @@ import {
   type RuntimeMode,
   type RuntimeRequestId,
   type ThreadId,
+  type ThreadEnvMode,
   type UploadChatAttachment,
 } from "@t3tools/contracts";
 import * as Crypto from "effect/Crypto";
@@ -46,6 +48,8 @@ export interface UpdateProjectInput extends CommandMetadata {
   readonly title?: string;
   readonly workspaceRoot?: string;
   readonly defaultModelSelection?: ModelSelection | null;
+  readonly defaultThreadEnvMode?: ThreadEnvMode | null;
+  readonly faviconPath?: ProjectFaviconPath | null;
   readonly scripts?: ReadonlyArray<ProjectScript>;
 }
 
@@ -286,6 +290,8 @@ const mutateProject = Effect.fn("EnvironmentCommands.mutateProject")(function* (
         readonly title?: string;
         readonly workspaceRoot?: string;
         readonly defaultModelSelection?: ModelSelection | null;
+        readonly defaultThreadEnvMode?: ThreadEnvMode | null;
+        readonly faviconPath?: ProjectFaviconPath | null;
         readonly scripts?: ReadonlyArray<ProjectScript>;
       }
     | {
@@ -329,6 +335,10 @@ export const updateProject = Effect.fn("EnvironmentCommands.updateProject")(func
     ...(input.defaultModelSelection === undefined
       ? {}
       : { defaultModelSelection: input.defaultModelSelection }),
+    ...(input.defaultThreadEnvMode === undefined
+      ? {}
+      : { defaultThreadEnvMode: input.defaultThreadEnvMode }),
+    ...(input.faviconPath === undefined ? {} : { faviconPath: input.faviconPath }),
     ...(input.scripts === undefined ? {} : { scripts: input.scripts }),
   });
 });

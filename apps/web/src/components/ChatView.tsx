@@ -135,8 +135,8 @@ import {
 import { useUiStateStore } from "../uiStateStore";
 import { useWorkspaceMutationRefresh } from "../hooks/useWorkspaceMutationRefresh";
 import {
+  buildFreshContextPlanImplementationPrompt,
   buildPlanImplementationThreadTitle,
-  buildPlanImplementationPrompt,
   resolvePlanFollowUpSubmission,
 } from "../proposedPlan";
 import {
@@ -5955,7 +5955,6 @@ function ChatViewContent(props: ChatViewProps) {
     if (!directAnnotation && showPlanFollowUpPrompt && activeProposedPlan) {
       const followUp = resolvePlanFollowUpSubmission({
         draftText: trimmed,
-        planMarkdown: activeProposedPlan.planMarkdown,
       });
       promptRef.current = "";
       clearComposerDraftContent(composerDraftTarget);
@@ -6741,7 +6740,7 @@ function ChatViewContent(props: ChatViewProps) {
     const createdAt = new Date().toISOString();
     const nextThreadId = newThreadId();
     const planMarkdown = activeProposedPlan.planMarkdown;
-    const implementationPrompt = buildPlanImplementationPrompt(planMarkdown);
+    const implementationPrompt = buildFreshContextPlanImplementationPrompt(planMarkdown);
     const outgoingImplementationPrompt = formatOutgoingPrompt({
       provider: ctxSelectedProvider,
       model: ctxSelectedModel,

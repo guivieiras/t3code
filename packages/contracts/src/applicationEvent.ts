@@ -14,7 +14,7 @@ import {
 import { RepositoryIdentity, ThreadEnvMode } from "./environment.ts";
 import { ModelSelection } from "./modelSelection.ts";
 import type { OrchestrationV2StoredEvent } from "./orchestrationV2.ts";
-import { ProjectScript } from "./project.ts";
+import { ProjectFaviconPath, ProjectScript } from "./project.ts";
 
 /**
  * Which client dispatched the command that produced this event (#7774).
@@ -49,7 +49,7 @@ export const ApplicationProjectCreatedPayload = Schema.Struct({
   // events from older servers still decode.
   defaultThreadEnvMode: Schema.optional(Schema.NullOr(ThreadEnvMode)),
   // Optional so persisted events from older servers still decode.
-  faviconPath: Schema.optional(Schema.NullOr(TrimmedNonEmptyString)),
+  faviconPath: Schema.optional(Schema.NullOr(ProjectFaviconPath)),
   scripts: Schema.Array(ProjectScript),
   createdAt: IsoDateTime,
   updatedAt: IsoDateTime,
@@ -64,7 +64,7 @@ export const ApplicationProjectMetaUpdatedPayload = Schema.Struct({
   defaultModelSelection: Schema.optional(Schema.NullOr(ModelSelection)),
   // Absent = leave unchanged; null = clear the override.
   defaultThreadEnvMode: Schema.optional(Schema.NullOr(ThreadEnvMode)),
-  faviconPath: Schema.optional(Schema.NullOr(TrimmedNonEmptyString)),
+  faviconPath: Schema.optional(Schema.NullOr(ProjectFaviconPath)),
   scripts: Schema.optional(Schema.Array(ProjectScript)),
   updatedAt: IsoDateTime,
 });

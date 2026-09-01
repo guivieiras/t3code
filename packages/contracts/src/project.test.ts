@@ -3,6 +3,7 @@ import { describe, expect, it } from "vite-plus/test";
 
 import {
   ProjectReadFileError,
+  ProjectMutation,
   ProjectSearchContentsError,
   ProjectSearchContentsInput,
   ProjectSearchEntriesError,
@@ -12,6 +13,33 @@ import {
 
 const decodeSearchEntriesInput = Schema.decodeUnknownSync(ProjectSearchEntriesInput);
 const decodeSearchContentsInput = Schema.decodeUnknownSync(ProjectSearchContentsInput);
+const decodeProjectMutation = Schema.decodeUnknownSync(ProjectMutation);
+
+describe("project mutations", () => {
+  it("accepts project icon and thread environment updates", () => {
+    expect(
+      decodeProjectMutation({
+        type: "project.update",
+        commandId: "00000000-0000-4000-8000-000000000000",
+        projectId: "project-1",
+        faviconPath: "brand/icon.svg",
+        defaultThreadEnvMode: "worktree",
+      }),
+    ).toMatchObject({
+      faviconPath: "brand/icon.svg",
+      defaultThreadEnvMode: "worktree",
+    });
+
+    expect(() =>
+      decodeProjectMutation({
+        type: "project.update",
+        commandId: "00000000-0000-4000-8000-000000000000",
+        projectId: "project-1",
+        faviconPath: ".env",
+      }),
+    ).toThrow();
+  });
+});
 
 describe("project search inputs", () => {
   it("allows an empty entries query for bounded frecency browsing", () => {

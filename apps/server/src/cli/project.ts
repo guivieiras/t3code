@@ -452,6 +452,12 @@ const runProjectMutation = Effect.fn("runProjectMutation")(function* (
                     ...(command.defaultModelSelection === undefined
                       ? {}
                       : { defaultModelSelection: command.defaultModelSelection }),
+                    ...(command.defaultThreadEnvMode === undefined
+                      ? {}
+                      : { defaultThreadEnvMode: command.defaultThreadEnvMode }),
+                    ...(command.faviconPath === undefined
+                      ? {}
+                      : { faviconPath: command.faviconPath }),
                     ...(command.scripts === undefined ? {} : { scripts: command.scripts }),
                   })
                   .pipe(Effect.asVoid)

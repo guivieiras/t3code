@@ -51,6 +51,16 @@ export const AssetCreateUrlResult = Schema.Struct({
 });
 export type AssetCreateUrlResult = typeof AssetCreateUrlResult.Type;
 
+export const AssetCreateUrlsInput = Schema.Struct({
+  resources: Schema.Array(AssetResource),
+});
+export type AssetCreateUrlsInput = typeof AssetCreateUrlsInput.Type;
+
+export const AssetCreateUrlsResult = Schema.Struct({
+  results: Schema.Array(Schema.NullOr(AssetCreateUrlResult)),
+});
+export type AssetCreateUrlsResult = typeof AssetCreateUrlsResult.Type;
+
 export const ATTACHMENT_UPLOAD_URL_TTL_MS = 10 * 60_000;
 
 const ImageAttachmentCreateUploadUrlInput = Schema.Struct({

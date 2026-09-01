@@ -1,4 +1,4 @@
-import type { AssetResource } from "@t3tools/contracts";
+import type { AssetCreateUrlResult, AssetResource } from "@t3tools/contracts";
 import {
   AssetAttachmentNotFoundError,
   AssetExactFileInspectionError,
@@ -235,6 +235,18 @@ const resolveCanonicalExactFileForRequest = (absolutePath: string) =>
     ),
     Effect.orElseSucceed(() => null),
   );
+
+export const createAssetUrls = Effect.fn("AssetAccess.createAssetUrls")(
+  <E, R>(
+    resources: ReadonlyArray<AssetResource>,
+    createUrl: (resource: AssetResource) => Effect.Effect<AssetCreateUrlResult, E, R>,
+  ) =>
+    Effect.forEach(
+      resources,
+      (resource) => createUrl(resource).pipe(Effect.option, Effect.map(Option.getOrNull)),
+      { concurrency: 8 },
+    ),
+);
 
 export const issueAssetUrl = Effect.fn("AssetAccess.issueAssetUrl")(function* (input: {
   readonly resource: AssetResource;

@@ -63,6 +63,7 @@ import {
   type ServerSelfUpdateProgressEvent,
   type FilesystemBrowseFailure,
   FilesystemBrowseError,
+  type AssetResource,
   AssetWorkspaceContextNotFoundError,
   AssetWorkspaceContextResolutionError,
   ChatAttachmentId,
@@ -139,7 +140,7 @@ import * as ServerSettings from "./serverSettings.ts";
 import * as TerminalManager from "./terminal/Manager.ts";
 import * as PreviewAutomationBroker from "./mcp/PreviewAutomationBroker.ts";
 import * as PreviewManager from "./preview/Manager.ts";
-import { issueAssetUrl } from "./assets/AssetAccess.ts";
+import { createAssetUrls, issueAssetUrl } from "./assets/AssetAccess.ts";
 import { attachmentRelativePath, createDeterministicAttachmentId } from "./attachmentStore.ts";
 import { parseBase64DataUrl } from "./imageMime.ts";
 import { deletePendingAttachment, issueAttachmentUploadUrl } from "./assets/AttachmentUpload.ts";
@@ -1230,6 +1231,57 @@ const makeWsRpcLayer = (
         }
       });
 
+      const createAssetUrl = Effect.fn("ws.assets.createUrl")(function* (resource: AssetResource) {
+        if (resource._tag === "attachment") {
+          return yield* issueAssetUrl({ resource });
+        }
+        if (resource._tag === "project-favicon") {
+          const project = yield* projectionSnapshotQuery
+            .getActiveProjectByWorkspaceRoot(resource.cwd)
+            .pipe(
+              Effect.mapError(
+                (cause) =>
+                  new AssetWorkspaceContextResolutionError({
+                    resource,
+                    cause,
+                  }),
+              ),
+            );
+          if (Option.isNone(project)) {
+            return yield* new AssetWorkspaceContextNotFoundError({ resource });
+          }
+          return yield* issueAssetUrl({
+            resource,
+            ...(project.value.faviconPath ? { projectFaviconPath: project.value.faviconPath } : {}),
+          });
+        }
+        const thread = yield* threadManagement.getThreadProjection(resource.threadId).pipe(
+          Effect.mapError(
+            (cause) =>
+              new AssetWorkspaceContextResolutionError({
+                resource,
+                cause,
+              }),
+          ),
+        );
+        const project = yield* projectService.getById(thread.thread.projectId).pipe(
+          Effect.mapError(
+            (cause) =>
+              new AssetWorkspaceContextResolutionError({
+                resource,
+                cause,
+              }),
+          ),
+        );
+        if (Option.isNone(project)) {
+          return yield* new AssetWorkspaceContextNotFoundError({ resource });
+        }
+        return yield* issueAssetUrl({
+          resource,
+          workspaceRoot: thread.thread.worktreePath ?? project.value.workspaceRoot,
+        });
+      });
+
       const handlers = ServerWsRpcGroup.of({
         [ORCHESTRATION_V2_WS_METHODS.dispatchCommand]: (command) =>
           observeRpcEffect(
@@ -2024,66 +2076,15 @@ const makeWsRpcLayer = (
             { "rpc.aggregate": "workspace" },
           ),
         [WS_METHODS.assetsCreateUrl]: (input) =>
+          observeRpcEffect(WS_METHODS.assetsCreateUrl, createAssetUrl(input.resource), {
+            "rpc.aggregate": "workspace",
+          }),
+        [WS_METHODS.assetsCreateUrls]: (input) =>
           observeRpcEffect(
-            WS_METHODS.assetsCreateUrl,
-            Effect.gen(function* () {
-              if (input.resource._tag === "attachment") {
-                return yield* issueAssetUrl({ resource: input.resource });
-              }
-              if (input.resource._tag === "project-favicon") {
-                const project = yield* projectionSnapshotQuery
-                  .getActiveProjectByWorkspaceRoot(input.resource.cwd)
-                  .pipe(
-                    Effect.mapError(
-                      (cause) =>
-                        new AssetWorkspaceContextResolutionError({
-                          resource: input.resource,
-                          cause,
-                        }),
-                    ),
-                  );
-                if (Option.isNone(project)) {
-                  return yield* new AssetWorkspaceContextNotFoundError({
-                    resource: input.resource,
-                  });
-                }
-                return yield* issueAssetUrl({
-                  resource: input.resource,
-                  ...(project.value.faviconPath
-                    ? { projectFaviconPath: project.value.faviconPath }
-                    : {}),
-                });
-              }
-              const thread = yield* threadManagement
-                .getThreadProjection(input.resource.threadId)
-                .pipe(
-                  Effect.mapError(
-                    (cause) =>
-                      new AssetWorkspaceContextResolutionError({
-                        resource: input.resource,
-                        cause,
-                      }),
-                  ),
-                );
-              const project = yield* projectService.getById(thread.thread.projectId).pipe(
-                Effect.mapError(
-                  (cause) =>
-                    new AssetWorkspaceContextResolutionError({
-                      resource: input.resource,
-                      cause,
-                    }),
-                ),
-              );
-              if (Option.isNone(project)) {
-                return yield* new AssetWorkspaceContextNotFoundError({
-                  resource: input.resource,
-                });
-              }
-              return yield* issueAssetUrl({
-                resource: input.resource,
-                workspaceRoot: thread.thread.worktreePath ?? project.value.workspaceRoot,
-              });
-            }),
+            WS_METHODS.assetsCreateUrls,
+            createAssetUrls(input.resources, createAssetUrl).pipe(
+              Effect.map((results) => ({ results })),
+            ),
             { "rpc.aggregate": "workspace" },
           ),
         [WS_METHODS.assetsPersistChatAttachments]: (input) =>

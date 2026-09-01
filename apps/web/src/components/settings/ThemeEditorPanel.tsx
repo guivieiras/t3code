@@ -108,6 +108,12 @@ const THEME_EDITOR_ROLE_GROUPS: ReadonlyArray<{
         ],
       },
       {
+        id: "placeholder",
+        label: "Placeholder",
+        role: "placeholder2",
+        roles: ["placeholder2"],
+      },
+      {
         id: "border",
         label: "Border",
         role: "border",

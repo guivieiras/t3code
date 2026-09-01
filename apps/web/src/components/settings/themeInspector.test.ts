@@ -34,6 +34,7 @@ describe("themeRoleFromUtilityClass", () => {
     expect(themeRoleFromUtilityClass("text-muted-foreground", "foreground")).toBe(
       "mutedForeground",
     );
+    expect(themeRoleFromUtilityClass("text-placeholder-2", "foreground")).toBe("placeholder2");
     expect(themeRoleFromUtilityClass("bg-primary/90", "background")).toBe("messageAction");
     expect(themeRoleFromUtilityClass("ring-ring", "border")).toBe("focus");
   });

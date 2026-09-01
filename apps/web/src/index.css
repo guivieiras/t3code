@@ -177,6 +177,7 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(t3-mobil
   --color-muted-foreground: var(--contrast-muted-foreground);
   --color-muted: var(--muted);
   --color-placeholder: var(--contrast-placeholder);
+  --color-placeholder-2: var(--contrast-placeholder-2);
   --color-secondary-label: var(--contrast-secondary-label);
   --color-icon-muted: var(--contrast-icon-muted);
   --color-secondary-foreground: var(--contrast-secondary-foreground);
@@ -1119,6 +1120,7 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(t3-mobil
   --muted: var(--color-zinc-50);
   --muted-foreground: var(--color-zinc-500);
   --placeholder: var(--muted-foreground);
+  --placeholder-2: var(--placeholder);
   --secondary-label: var(--muted-foreground);
   --icon-muted: var(--muted-foreground);
   --message-surface: var(--accent);
@@ -1284,6 +1286,7 @@ html[data-theme-id]:not([data-theme-id=""]) {
   --muted: var(--app-theme-muted);
   --muted-foreground: var(--app-theme-muted-foreground);
   --placeholder: var(--app-theme-placeholder);
+  --placeholder-2: var(--app-theme-placeholder-2);
   --secondary-label: var(--app-theme-secondary-label);
   --icon-muted: var(--app-theme-icon-muted);
   --accent: var(--app-theme-accent-surface);
@@ -1576,6 +1579,11 @@ html[data-theme-id="t3-chat"] [data-app-sidebar] {
   --contrast-placeholder: color-mix(
     in oklab,
     color-mix(in oklab, var(--placeholder) var(--appearance-contrast-base), var(--background)),
+    var(--appearance-contrast-target) var(--appearance-contrast-boost)
+  );
+  --contrast-placeholder-2: color-mix(
+    in oklab,
+    color-mix(in oklab, var(--placeholder-2) var(--appearance-contrast-base), var(--background)),
     var(--appearance-contrast-target) var(--appearance-contrast-boost)
   );
   --contrast-secondary-label: color-mix(

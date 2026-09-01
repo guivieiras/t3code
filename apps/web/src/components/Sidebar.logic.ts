@@ -630,20 +630,17 @@ export function firstValidTimestamp(
   return null;
 }
 
-// Sidebar sort: static order, newest anchor on top. Activity NEVER reorders
-// the list — a row holds its position between lifecycle transitions, so the
-// screen only moves when a thread enters or leaves the active list. The
-// anchor is creation time until an un-settle re-anchors it (see
-// activeThreadAnchorTimestampMs), so an un-settled thread surfaces at the
-// top instead of sinking back to its creation-order slot. Status (including
-// pending approval) is carried by each card's edge strip, not by position.
+// Created order stays fixed between lifecycle transitions, but an un-settled
+// thread is re-anchored when it returns to active work. Recency order follows
+// the latest user message and can move rows as work is revisited.
 export function sortThreadsForSidebar<
   T extends {
     readonly id: string;
-    readonly createdAt: string;
     readonly unsettledAt?: string | null | undefined;
-  },
->(threads: readonly T[]): T[] {
+  } & ThreadSortInput,
+>(threads: readonly T[], sortOrder: SidebarThreadSortOrder): T[] {
+  if (sortOrder === "updated_at") return sortThreads(threads, sortOrder);
+
   return [...threads].toSorted(
     (left, right) =>
       activeThreadAnchorTimestampMs(right) - activeThreadAnchorTimestampMs(left) ||

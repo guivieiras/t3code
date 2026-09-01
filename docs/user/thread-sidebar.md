@@ -24,6 +24,10 @@ Compact uses one line with the project icon, title, and current status or time. 
 provider, and environment details remain available when you hover the row. The density choice is
 stored on that web or desktop client.
 
+Choose whether active threads are ordered by their last user message or creation time under
+**Settings → General → Thread sorting**. Pinned, snoozed, and settled threads keep their own
+section-specific ordering.
+
 On web and desktop, drag a pinned thread to change its position. On mobile, open the thread's menu
 and choose **Move up** or **Move down**. The order is stored by the server and appears on your
 other connected devices.

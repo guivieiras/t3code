@@ -1143,7 +1143,7 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: {
         variant !== "slim"
           ? cn(
               "truncate",
-              isUnread || isWoke
+              isUnread || isWoke || status === "working"
                 ? "text-foreground"
                 : shouldRecede
                   ? "text-secondary-label"

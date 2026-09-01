@@ -92,6 +92,8 @@ function normalizeOutsideFences(value: string): string {
  * markdown parsing without touching examples inside inline or fenced code.
  */
 export function normalizeLatexMathDelimiters(markdown: string): string {
+  if (!markdown.includes("\\(") && !markdown.includes("\\[")) return markdown;
+
   let result = "";
   let plainTextStart = 0;
   let lineStart = 0;

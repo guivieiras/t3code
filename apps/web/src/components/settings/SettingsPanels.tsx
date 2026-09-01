@@ -505,6 +505,9 @@ export function useSettingsRestore(onRestored?: () => void) {
       ...(settings.sidebarDensity !== DEFAULT_UNIFIED_SETTINGS.sidebarDensity
         ? ["Sidebar density"]
         : []),
+      ...(settings.showThreadShortcutHints !== DEFAULT_UNIFIED_SETTINGS.showThreadShortcutHints
+        ? ["Thread shortcut hints"]
+        : []),
       ...(settings.sidebarThreadPreviewCount !== DEFAULT_UNIFIED_SETTINGS.sidebarThreadPreviewCount
         ? ["Visible threads"]
         : []),
@@ -601,6 +604,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       settings.sidebarAutoSettleAfterDays,
       settings.sidebarAutoSettleOnMerge,
       settings.sidebarDensity,
+      settings.showThreadShortcutHints,
       settings.sidebarProjectGroupingMode,
       settings.sidebarThreadSortOrder,
       settings.sidebarThreadPreviewCount,
@@ -686,6 +690,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       glassOpacity: DEFAULT_UNIFIED_SETTINGS.glassOpacity,
       sidebarDensity: DEFAULT_UNIFIED_SETTINGS.sidebarDensity,
       sidebarThreadPreviewCount: DEFAULT_UNIFIED_SETTINGS.sidebarThreadPreviewCount,
+      showThreadShortcutHints: DEFAULT_UNIFIED_SETTINGS.showThreadShortcutHints,
       sidebarProjectGroupingMode: DEFAULT_UNIFIED_SETTINGS.sidebarProjectGroupingMode,
       sidebarThreadSortOrder: DEFAULT_UNIFIED_SETTINGS.sidebarThreadSortOrder,
       sidebarAutoSettleAfterDays: DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleAfterDays,
@@ -2110,6 +2115,33 @@ export function GeneralSettingsPanel() {
                 </SelectItem>
               </SelectPopup>
             </Select>
+          }
+        />
+
+        <SettingsRow
+          {...searchableSetting("thread-shortcut-hints")}
+          description="Show jump hints while holding Command/Ctrl and shortcuts in the New thread tooltip."
+          resetAction={
+            settings.showThreadShortcutHints !==
+            DEFAULT_UNIFIED_SETTINGS.showThreadShortcutHints ? (
+              <SettingResetButton
+                label="thread shortcut hints"
+                onClick={() =>
+                  updateSettings({
+                    showThreadShortcutHints: DEFAULT_UNIFIED_SETTINGS.showThreadShortcutHints,
+                  })
+                }
+              />
+            ) : null
+          }
+          control={
+            <Switch
+              checked={settings.showThreadShortcutHints}
+              onCheckedChange={(checked) =>
+                updateSettings({ showThreadShortcutHints: Boolean(checked) })
+              }
+              aria-label="Thread shortcut hints"
+            />
           }
         />
 

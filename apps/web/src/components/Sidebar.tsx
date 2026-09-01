@@ -1986,6 +1986,7 @@ export default function Sidebar() {
   const sidebarProjectSortOrder = useClientSettings((s) => s.sidebarProjectSortOrder);
   const timestampFormat = useClientSettings((s) => s.timestampFormat);
   const sidebarDensity = useClientSettings((s) => s.sidebarDensity);
+  const showThreadShortcutHints = useClientSettings((s) => s.showThreadShortcutHints);
   const projectGroupingSettings = useClientSettings(selectProjectGroupingSettings);
   const {
     settleThread,
@@ -3626,11 +3627,11 @@ export default function Sidebar() {
   // match a thread-jump binding. Adding Shift (screenshots) or Alt no
   // longer matches ⌘1..9, so the overlay hides for chords like ⌘⇧4.
   const shortcutModifiers = useShortcutModifierState();
-  const shouldShowJumpHintsNow = shouldShowThreadJumpHintsForModifiers(
-    shortcutModifiers,
-    keybindings,
-    { platform: navigator.platform },
-  );
+  const shouldShowJumpHintsNow =
+    showThreadShortcutHints &&
+    shouldShowThreadJumpHintsForModifiers(shortcutModifiers, keybindings, {
+      platform: navigator.platform,
+    });
   useEffect(() => {
     setShowJumpHints(shouldShowJumpHintsNow);
   }, [shouldShowJumpHintsNow]);
@@ -3673,10 +3674,15 @@ export default function Sidebar() {
   // setups both commands create directly, so chat.newLocal is a valid
   // fallback. The second tooltip line (multi-project only) advertises
   // shift+click and its keyboard twin chat.newLocal for direct create.
-  const newThreadShortcutLabel =
-    shortcutLabelForCommand(keybindings, "chat.new") ??
-    (projectGroups.length <= 1 ? shortcutLabelForCommand(keybindings, "chat.newLocal") : undefined);
-  const newThreadInProjectShortcutLabel = shortcutLabelForCommand(keybindings, "chat.newLocal");
+  const newThreadShortcutLabel = showThreadShortcutHints
+    ? (shortcutLabelForCommand(keybindings, "chat.new") ??
+      (projectGroups.length <= 1
+        ? shortcutLabelForCommand(keybindings, "chat.newLocal")
+        : undefined))
+    : undefined;
+  const newThreadInProjectShortcutLabel = showThreadShortcutHints
+    ? shortcutLabelForCommand(keybindings, "chat.newLocal")
+    : undefined;
   return (
     <>
       <SidebarChromeHeader isElectron={isElectron} />
@@ -3754,7 +3760,7 @@ export default function Sidebar() {
                     />
                   </TooltipTrigger>
                   <TooltipPopup side="right">
-                    {projectGroups.length > 1 ? (
+                    {projectGroups.length > 1 && showThreadShortcutHints ? (
                       <span className="flex flex-col gap-0.5">
                         <span>
                           {newThreadShortcutLabel

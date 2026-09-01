@@ -39,6 +39,7 @@ const clientSettings: ClientSettings = {
   glassOpacity: 80,
   planModeEnabled: false,
   showSkillsInSlashMenu: false,
+  showThreadShortcutHints: true,
   persistComposerContextStrip: true,
   providerModelPreferences: {},
   sidebarDensity: "mixed",

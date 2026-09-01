@@ -7,6 +7,13 @@ import {
 } from "./T3OrchestrationInstructions.ts";
 
 describe("T3 orchestration provider instructions", () => {
+  it("does not describe tool-rendered artifacts as user-visible attachments", () => {
+    assert.include(T3_CODE_ORCHESTRATION_INSTRUCTIONS, "agent-only previews");
+    assert.include(T3_CODE_ORCHESTRATION_INSTRUCTIONS, "not durable user-visible chat attachments");
+    assert.include(T3_CODE_ORCHESTRATION_INSTRUCTIONS, "accessible file link");
+    assert.include(T3_CODE_ORCHESTRATION_INSTRUCTIONS, "exact saved path");
+  });
+
   it("distinguishes delegated subagents from ordinary top-level threads", () => {
     assert.include(T3_CODE_ORCHESTRATION_INSTRUCTIONS, "use `delegate_task`");
     assert.include(T3_CODE_ORCHESTRATION_INSTRUCTIONS, "ordinary top-level T3 conversations");

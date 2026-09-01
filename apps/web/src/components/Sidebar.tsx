@@ -28,6 +28,7 @@ import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/model
 import {
   scopeProjectRef,
   scopeThreadRef,
+  scopedProjectKey,
   scopedThreadKey,
 } from "@t3tools/client-runtime/environment";
 import type { ScopedThreadRef, ThreadId } from "@t3tools/contracts";
@@ -2178,6 +2179,17 @@ export default function Sidebar() {
       ),
     [projectGroups],
   );
+  const projectKeyByScopedProject = useMemo(
+    () =>
+      new Map(
+        projectGroups.flatMap((group) =>
+          group.memberProjectRefs.map(
+            (projectRef) => [scopedProjectKey(projectRef), group.projectKey] as const,
+          ),
+        ),
+      ),
+    [projectGroups],
+  );
 
   // now is quantized to the minute so effectiveSettled memoization doesn't
   // churn on every render; auto-settle thresholds are day-granular anyway.
@@ -3428,6 +3440,20 @@ export default function Sidebar() {
             }
             return;
           }
+          case "project-settings": {
+            const projectKey = projectKeyByScopedProject.get(
+              scopedProjectKey(scopeProjectRef(thread.environmentId, thread.projectId)),
+            );
+            if (projectKey === undefined) return;
+            if (isMobile) {
+              setOpenMobile(false);
+            }
+            await router.navigate({
+              to: "/projects/$projectKey",
+              params: { projectKey },
+            });
+            return;
+          }
           case "settle":
             attemptSettle(threadRef);
             return;
@@ -3563,9 +3589,13 @@ export default function Sidebar() {
       copyThreadIdToClipboard,
       deleteThread,
       handleMultiSelectContextMenu,
+      isMobile,
       markThreadUnread,
       projectCwdByKey,
+      projectKeyByScopedProject,
+      router,
       serverConfigs,
+      setOpenMobile,
       startThreadRename,
       updateThreadMetadata,
       timestampFormat,

@@ -69,7 +69,7 @@ describe("ElectronProtocol", () => {
           );
           assert.include(
             response.headers.get("content-security-policy") ?? "",
-            "media-src 'self' http: https:",
+            "media-src 'self' t3code-dev: blob: http: https:",
           );
           assert.include(
             response.headers.get("content-security-policy") ?? "",

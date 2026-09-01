@@ -1500,7 +1500,6 @@ function AssistantTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "mess
           lineBreaks={shouldPreserveAssistantLineBreaks(messageText)}
           skills={ctx.skills}
           onUseArtifactTemplate={ctx.onUseArtifactTemplate}
-          onImageExpand={ctx.onImageExpand}
         />
         <AssistantChangedFilesSection
           turnSummary={row.assistantTurnDiffSummary}

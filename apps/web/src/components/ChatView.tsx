@@ -3053,14 +3053,14 @@ function ChatViewContent(props: ChatViewProps) {
         worktreePath: activeThread?.worktreePath ?? null,
       })
     : null;
-  const threadImageSources = useMemo(
-    () =>
-      collectThreadImageSources(
-        timelineEntries.flatMap((entry) => (entry.kind === "message" ? [entry.message] : [])),
-        gitCwd ?? undefined,
-      ),
-    [gitCwd, timelineEntries],
-  );
+  const isThreadImageGalleryOpen = expandedImage !== null && activeThreadRef !== null;
+  const threadImageSources = useMemo(() => {
+    if (!isThreadImageGalleryOpen) return [];
+    return collectThreadImageSources(
+      timelineEntries.flatMap((entry) => (entry.kind === "message" ? [entry.message] : [])),
+      gitCwd ?? undefined,
+    );
+  }, [gitCwd, isThreadImageGalleryOpen, timelineEntries]);
   const gitStatusCwd = activeThread?.worktreePath ?? gitCwd;
   const gitStatusQuery = useEnvironmentQuery(
     gitStatusCwd === null

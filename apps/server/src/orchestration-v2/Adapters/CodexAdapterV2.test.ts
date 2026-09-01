@@ -48,6 +48,7 @@ import {
   buildCodexTurnStartParams,
   CODEX_DEFAULT_INSTANCE_ID,
   CODEX_DRIVER_KIND,
+  codexAppServerSpawnInputFromSettings,
   codexBackgroundCommandDetail,
   codexProviderTurnTokenUsage,
   codexThreadRuntimeParams,
@@ -96,6 +97,8 @@ describe("CodexAdapterV2 context usage", () => {
     });
   });
 });
+
+const decodeCodexSettings = Schema.decodeUnknownSync(CodexSettings);
 
 describe("CodexAdapterV2 assistant message streaming", () => {
   it.effect("makes accumulated assistant text visible after the bounded flush interval", () =>
@@ -539,6 +542,29 @@ describe("CodexAdapterV2 process spawning", () => {
     }
   });
 
+  it("passes configured launch arguments to the app-server process", () => {
+    const spawnInput = codexAppServerSpawnInputFromSettings({
+      settings: decodeCodexSettings({
+        binaryPath: "/opt/codex/bin/codex",
+        homePath: "/home/test/.codex-openrouter",
+        launchArgs: `-c 'model_provider="openrouter"' --enable responses-websockets`,
+      }),
+      environment: {
+        CODEX_HOME: "/home/test/.codex-ambient",
+        NODE_ENV: "test",
+      },
+    });
+
+    assert.deepEqual(spawnInput, {
+      command: "/opt/codex/bin/codex",
+      args: ["app-server", "-c", 'model_provider="openrouter"', "--enable", "responses-websockets"],
+      env: {
+        CODEX_HOME: "/home/test/.codex-openrouter",
+        NODE_ENV: "test",
+      },
+    });
+  });
+
   it.effect("resolves Windows command shims through the shared spawn policy", () =>
     Effect.gen(function* () {
       const command = yield* makeCodexAppServerSpawnCommand({
@@ -843,7 +869,7 @@ describe("CodexAdapterV2 background command detail", () => {
   });
 });
 
-const DEFAULT_CODEX_SETTINGS = Schema.decodeSync(CodexSettings)({});
+const DEFAULT_CODEX_SETTINGS = decodeCodexSettings({});
 const CODEX_TEST_MODEL_SELECTION = {
   instanceId: CODEX_DEFAULT_INSTANCE_ID,
   model: "gpt-5.4",

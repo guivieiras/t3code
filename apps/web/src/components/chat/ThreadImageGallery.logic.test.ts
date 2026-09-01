@@ -8,18 +8,26 @@ import {
 } from "./ThreadImageGallery.logic";
 
 describe("collectThreadImageSources", () => {
-  it("collects uploaded and workspace images across thread messages", () => {
+  it("collects only uploaded images and workspace images across thread messages", () => {
     expect(
       collectThreadImageSources(
         [
           {
             attachments: [
               {
+                type: "image",
                 id: "upload-1",
                 name: "upload.png",
                 previewUrl: "blob:upload-1",
               },
               {
+                type: "file",
+                id: "file-1",
+                name: "report.pdf",
+                previewUrl: "blob:file-1",
+              },
+              {
+                type: "image",
                 id: "annotation-1",
                 name: "preview-annotation-1.png",
                 previewUrl: "blob:annotation-1",

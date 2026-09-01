@@ -33,6 +33,7 @@ interface ThreadImageMessage {
   readonly text: string;
   readonly attachments?:
     | ReadonlyArray<{
+        readonly type: string;
         readonly id: string;
         readonly name: string;
         readonly previewUrl?: string | undefined;
@@ -93,7 +94,13 @@ export function collectThreadImageSources(
 
   for (const message of messages) {
     for (const attachment of message.attachments ?? []) {
-      if (!attachment.previewUrl || attachment.name.startsWith("preview-annotation-")) continue;
+      if (
+        attachment.type !== "image" ||
+        !attachment.previewUrl ||
+        attachment.name.startsWith("preview-annotation-")
+      ) {
+        continue;
+      }
       add({
         kind: "resolved",
         id: attachmentImagePreviewId(attachment.id),

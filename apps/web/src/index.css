@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "katex/dist/katex.min.css";
 
 @custom-variant dark (&:is(.dark, .dark *));
 @custom-variant light (&:not(.dark, .dark *));
@@ -1897,6 +1898,18 @@ code {
   border-left: 2px solid var(--contrast-border);
   padding-left: 0.8rem;
   color: var(--contrast-muted-foreground);
+}
+
+.chat-markdown .katex {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.chat-markdown .katex-display {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.2rem 0;
 }
 
 .chat-markdown section[data-footnotes] {

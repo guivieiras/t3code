@@ -69,10 +69,12 @@ import React, {
 import type { Components, Options as ReactMarkdownOptions } from "react-markdown";
 import ReactMarkdown from "react-markdown";
 import { defaultUrlTransform } from "react-markdown";
+import rehypeKatex from "rehype-katex";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
 import { remarkGithubAlerts } from "../markdown-github-alerts";
 import {
   artifactTemplateFromHastProperties,
@@ -80,6 +82,7 @@ import {
   remarkCodexDirectives,
   renderCodexFileCitationsAsMarkdown,
 } from "@t3tools/client-runtime/codex-markdown-directives";
+import { normalizeLatexMathDelimiters, rehypeMathCopySource } from "../markdown-math";
 import { renderSkillInlineMarkdownChildren } from "./chat/SkillInlineText";
 import {
   addMediaPreviewCacheBuster,
@@ -387,6 +390,7 @@ const CHAT_MARKDOWN_SANITIZE_SCHEMA = {
 
 const CHAT_MARKDOWN_REMARK_PLUGINS = [
   remarkGfm,
+  remarkMath,
   remarkGithubAlerts,
   remarkNormalizeListItemIndentation,
   remarkCodexDirectives,
@@ -396,6 +400,7 @@ const CHAT_MARKDOWN_REMARK_PLUGINS = [
 
 const CHAT_MARKDOWN_REMARK_PLUGINS_WITH_BREAKS = [
   remarkGfm,
+  remarkMath,
   remarkGithubAlerts,
   remarkNormalizeListItemIndentation,
   remarkCodexDirectives,
@@ -408,6 +413,13 @@ const CHAT_MARKDOWN_REHYPE_PLUGINS = [
   rehypeRaw,
   rehypePreserveImageSourceMeta,
   [rehypeSanitize, CHAT_MARKDOWN_SANITIZE_SCHEMA],
+  rehypeKatex,
+  rehypeMathCopySource,
+] satisfies NonNullable<ReactMarkdownOptions["rehypePlugins"]>;
+
+const CHAT_MARKDOWN_REHYPE_PLUGINS_WITHOUT_RAW_HTML = [
+  rehypeKatex,
+  rehypeMathCopySource,
 ] satisfies NonNullable<ReactMarkdownOptions["rehypePlugins"]>;
 
 /** GitHub's own five alert kinds, in its colors: the glyph names the urgency, the title says it. */
@@ -1829,6 +1841,7 @@ function ChatMarkdown({
   onVideoExpand,
   extraRemarkPlugins = EMPTY_REMARK_PLUGINS,
 }: ChatMarkdownProps) {
+  const normalizedText = useMemo(() => normalizeLatexMathDelimiters(text), [text]);
   const { resolvedTheme } = useTheme();
   const createAssetUrl = useAtomQueryRunner(assetEnvironment.createUrl, {
     reportFailure: false,
@@ -2659,12 +2672,16 @@ function ChatMarkdown({
     >
       <ReactMarkdown
         remarkPlugins={remarkPlugins}
-        rehypePlugins={parseRawHtml ? CHAT_MARKDOWN_REHYPE_PLUGINS : undefined}
+        rehypePlugins={
+          parseRawHtml
+            ? CHAT_MARKDOWN_REHYPE_PLUGINS
+            : CHAT_MARKDOWN_REHYPE_PLUGINS_WITHOUT_RAW_HTML
+        }
         skipHtml={false}
         components={markdownComponents}
         urlTransform={markdownUrlTransform}
       >
-        {text}
+        {normalizedText}
       </ReactMarkdown>
     </div>
   );

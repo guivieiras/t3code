@@ -285,7 +285,7 @@ describe("AssetAccess", () => {
     }).pipe(Effect.provide(testLayer)),
   );
 
-  it.effect("issues short-lived thread-scoped URLs for one exact file", () =>
+  it.effect("issues a short-lived URL for one exact file", () =>
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
@@ -306,19 +306,11 @@ describe("AssetAccess", () => {
           path: imagePath,
         },
       });
-      const otherThreadResult = yield* issueAssetUrl({
-        resource: {
-          _tag: "exact-file",
-          threadId: ThreadId.make("thread-2"),
-          path: imagePath,
-        },
-      });
       const suffix = result.relativeUrl.slice(`${ASSET_ROUTE_PREFIX}/`.length);
       const separatorIndex = suffix.indexOf("/");
       const token = suffix.slice(0, separatorIndex);
 
       expect(result.expiresAt).toBe(5 * 60 * 1000);
-      expect(otherThreadResult.relativeUrl).not.toBe(result.relativeUrl);
       expect(yield* resolveAsset(token, "result.png")).toEqual({
         kind: "file",
         path: canonicalImagePath,

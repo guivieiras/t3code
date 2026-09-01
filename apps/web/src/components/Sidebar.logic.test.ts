@@ -27,6 +27,7 @@ import {
   resolveAdjacentThreadId,
   resolveProjectStatusIndicator,
   resolveSidebarStageBadgeLabel,
+  resolveSidebarThreadRowVariant,
   resolveSidebarThreadStatus,
   resolveSidebarV2TopStatus,
   resolveThreadLastVisitedAt,
@@ -79,6 +80,26 @@ describe("animatePinnedLayoutChanges", () => {
 
   it("keeps layout movement while the user is sorting", () => {
     expect(animatePinnedLayoutChanges({ ...baseArgs, isSorting: true })).toBe(true);
+  });
+});
+
+describe("resolveSidebarThreadRowVariant", () => {
+  it("uses cards for active work at comfortable density", () => {
+    expect(resolveSidebarThreadRowVariant("active", "comfortable")).toBe("card");
+    expect(resolveSidebarThreadRowVariant("pinned", "comfortable")).toBe("card");
+  });
+
+  it("uses two-line rows for active work at mixed density", () => {
+    expect(resolveSidebarThreadRowVariant("active", "mixed")).toBe("mixed");
+    expect(resolveSidebarThreadRowVariant("pinned", "mixed")).toBe("mixed");
+  });
+
+  it("compacts active work without changing settled or snoozed rows", () => {
+    expect(resolveSidebarThreadRowVariant("active", "compact")).toBe("compact");
+    expect(resolveSidebarThreadRowVariant("pinned", "compact")).toBe("compact");
+    expect(resolveSidebarThreadRowVariant("settled", "compact")).toBe("slim");
+    expect(resolveSidebarThreadRowVariant("settled", "mixed")).toBe("slim");
+    expect(resolveSidebarThreadRowVariant("snoozed", "comfortable")).toBe("slim");
   });
 });
 

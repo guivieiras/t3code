@@ -22,6 +22,7 @@ import {
   DEFAULT_UNIFIED_SETTINGS,
   type EnvironmentIdentificationMode,
   MAX_APPEARANCE_CONTRAST,
+  type SidebarDensity,
   MAX_CODE_FONT_SIZE,
   MAX_GLASS_OPACITY,
   MAX_INTERFACE_FONT_SIZE,
@@ -152,6 +153,12 @@ const ENVIRONMENT_IDENTIFICATION_LABELS: Record<EnvironmentIdentificationMode, s
   artwork: "Artwork",
   pill: "Version pill",
   none: "None",
+};
+
+const SIDEBAR_DENSITY_LABELS: Record<SidebarDensity, string> = {
+  comfortable: "Comfortable",
+  mixed: "Mixed",
+  compact: "Compact",
 };
 
 const TIMESTAMP_FORMAT_LABELS = {
@@ -489,6 +496,9 @@ export function useSettingsRestore(onRestored?: () => void) {
       ...(settings.timestampFormat !== DEFAULT_UNIFIED_SETTINGS.timestampFormat
         ? ["Time format"]
         : []),
+      ...(settings.sidebarDensity !== DEFAULT_UNIFIED_SETTINGS.sidebarDensity
+        ? ["Sidebar density"]
+        : []),
       ...(settings.sidebarThreadPreviewCount !== DEFAULT_UNIFIED_SETTINGS.sidebarThreadPreviewCount
         ? ["Visible threads"]
         : []),
@@ -581,6 +591,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       settings.enableProviderUpdateChecks,
       settings.sidebarAutoSettleAfterDays,
       settings.sidebarAutoSettleOnMerge,
+      settings.sidebarDensity,
       settings.sidebarProjectGroupingMode,
       settings.sidebarThreadPreviewCount,
       settings.showSkillsInSlashMenu,
@@ -663,6 +674,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       showSkillsInSlashMenu: DEFAULT_UNIFIED_SETTINGS.showSkillsInSlashMenu,
       environmentIdentificationMode: DEFAULT_UNIFIED_SETTINGS.environmentIdentificationMode,
       glassOpacity: DEFAULT_UNIFIED_SETTINGS.glassOpacity,
+      sidebarDensity: DEFAULT_UNIFIED_SETTINGS.sidebarDensity,
       sidebarThreadPreviewCount: DEFAULT_UNIFIED_SETTINGS.sidebarThreadPreviewCount,
       sidebarProjectGroupingMode: DEFAULT_UNIFIED_SETTINGS.sidebarProjectGroupingMode,
       sidebarAutoSettleAfterDays: DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleAfterDays,
@@ -1973,6 +1985,46 @@ export function GeneralSettingsPanel() {
   return (
     <SettingsPageContainer>
       <SettingsSection title="General">
+        <SettingsRow
+          {...searchableSetting("sidebar-density")}
+          description="Choose how much detail active and pinned thread rows show."
+          resetAction={
+            settings.sidebarDensity !== DEFAULT_UNIFIED_SETTINGS.sidebarDensity ? (
+              <SettingResetButton
+                label="sidebar density"
+                onClick={() =>
+                  updateSettings({ sidebarDensity: DEFAULT_UNIFIED_SETTINGS.sidebarDensity })
+                }
+              />
+            ) : null
+          }
+          control={
+            <Select
+              value={settings.sidebarDensity}
+              onValueChange={(value) => {
+                if (value === "comfortable" || value === "mixed" || value === "compact") {
+                  updateSettings({ sidebarDensity: value });
+                }
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-40" aria-label="Sidebar density">
+                <SelectValue>{SIDEBAR_DENSITY_LABELS[settings.sidebarDensity]}</SelectValue>
+              </SelectTrigger>
+              <SelectPopup align="end" alignItemWithTrigger={false}>
+                <SelectItem hideIndicator value="comfortable">
+                  {SIDEBAR_DENSITY_LABELS.comfortable}
+                </SelectItem>
+                <SelectItem hideIndicator value="mixed">
+                  {SIDEBAR_DENSITY_LABELS.mixed}
+                </SelectItem>
+                <SelectItem hideIndicator value="compact">
+                  {SIDEBAR_DENSITY_LABELS.compact}
+                </SelectItem>
+              </SelectPopup>
+            </Select>
+          }
+        />
+
         <SettingsRow
           {...searchableSetting("project-grouping")}
           description="Combine matching repositories across environments."

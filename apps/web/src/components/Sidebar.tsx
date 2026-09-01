@@ -3425,8 +3425,8 @@ export default function Sidebar() {
         }
         switch (clicked.value) {
           case "new-thread-on-branch": {
-            // Explicit branch carry-over: reuse the thread's worktree when it
-            // has one, otherwise its branch on the local checkout.
+            // Reuse the thread's checkout context when it has one. Non-Git
+            // threads have neither value and simply open a local draft.
             const result = await settlePromise(() =>
               handleNewThreadRef.current(scopeProjectRef(thread.environmentId, thread.projectId), {
                 branch: thread.branch,

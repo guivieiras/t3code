@@ -33,19 +33,36 @@ describe("buildThreadActionMenuItems", () => {
         ...baseState,
         supports: { settlement: false, snooze: false, pinning: false, titleRegeneration: false },
       }),
-    ).toEqual(["project-settings", "rename", "mark-unread", "copy", "archive", "delete"]);
+    ).toEqual([
+      "new-thread-on-branch",
+      "project-settings",
+      "rename",
+      "mark-unread",
+      "copy",
+      "archive",
+      "delete",
+    ]);
   });
 
-  it("includes branch items only for threads with a branch", () => {
+  it("always includes new thread and only includes copy branch when a branch exists", () => {
     const withBranch = allIds({ ...baseState, branch: "feat/menu" });
-    expect(withBranch).toContain("new-thread-on-branch");
+    const withoutBranch = allIds(baseState);
+
+    expect(
+      buildThreadActionMenuItems({ ...baseState, branch: "feat/menu" }).find(
+        (item) => item.id === "new-thread-on-branch",
+      )?.label,
+    ).toBe("New thread on feat/menu");
+    expect(
+      buildThreadActionMenuItems(baseState).find((item) => item.id === "new-thread-on-branch")
+        ?.label,
+    ).toBe("New thread");
     expect(withBranch).toContain("copy-branch");
-    expect(allIds(baseState)).not.toContain("new-thread-on-branch");
-    expect(allIds(baseState)).not.toContain("copy-branch");
+    expect(withoutBranch).not.toContain("copy-branch");
   });
 
   it("places project settings after the branch shortcut", () => {
-    expect(ids(baseState).at(0)).toBe("project-settings");
+    expect(ids(baseState).slice(0, 2)).toEqual(["new-thread-on-branch", "project-settings"]);
     expect(ids({ ...baseState, branch: "feat/menu" }).slice(0, 2)).toEqual([
       "new-thread-on-branch",
       "project-settings",

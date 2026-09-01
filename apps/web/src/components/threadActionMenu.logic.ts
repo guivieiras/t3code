@@ -53,15 +53,11 @@ export function buildThreadActionMenuItems(
   state: ThreadActionMenuState,
 ): ReadonlyArray<ContextMenuItem<ThreadActionMenuId>> {
   return [
-    ...(state.branch
-      ? [
-          {
-            id: "new-thread-on-branch" as const,
-            label: `New thread on ${state.branch}`,
-            icon: "message-square-plus",
-          },
-        ]
-      : []),
+    {
+      id: "new-thread-on-branch",
+      label: state.branch ? `New thread on ${state.branch}` : "New thread",
+      icon: "message-square-plus",
+    },
     { id: "project-settings", label: "Project settings" },
     ...(state.supports.pinning
       ? [

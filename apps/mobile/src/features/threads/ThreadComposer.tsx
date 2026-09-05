@@ -54,6 +54,7 @@ import {
   ComposerActionButton,
   ComposerInlineControl,
   ComposerToolbarRow,
+  ComposerToolbarScroller,
 } from "../../components/ComposerToolbar";
 import { ProviderIcon } from "../../components/ProviderIcon";
 import type {
@@ -327,6 +328,7 @@ export const ThreadComposer = memo(function ThreadComposer(props: ThreadComposer
     props.connectionState !== "connected" || props.queueCount > 0 ? "Queue" : "Send";
   const currentModelSelection = props.selectedThread.modelSelection;
   const currentRuntimeMode = props.selectedThread.runtimeMode;
+  const isPlanMode = props.selectedThread.interactionMode === "plan";
   const connectionStatus = composerConnectionStatus({
     connectionError: props.connectionError,
     connectionState: props.connectionState,
@@ -776,7 +778,7 @@ export const ThreadComposer = memo(function ThreadComposer(props: ThreadComposer
                       onPickMedia={props.onPickDraftMedia}
                       onPickFiles={props.onPickDraftFiles}
                     />
-                    <View className="min-w-0 shrink" style={{ maxWidth: 152 }}>
+                    <ComposerToolbarScroller align="end" contentPaddingRight={0}>
                       <ComposerInlineControl
                         accessibilityLabel="Model and reasoning settings"
                         emphasized
@@ -787,7 +789,23 @@ export const ThreadComposer = memo(function ThreadComposer(props: ThreadComposer
                         maxWidth={152}
                         onPress={openSettings}
                       />
-                    </View>
+                      <ComposerInlineControl
+                        accessibilityHint={`Switches to ${isPlanMode ? "Build" : "Plan"} mode for the next message`}
+                        accessibilityLabel={`Interaction mode: ${isPlanMode ? "Plan" : "Build"}`}
+                        emphasized
+                        icon={
+                          isPlanMode
+                            ? { ios: "list.bullet.clipboard", android: "auto_awesome" }
+                            : { ios: "hammer", android: "construction" }
+                        }
+                        label={isPlanMode ? "Plan" : "Build"}
+                        onPress={() =>
+                          props.onUpdateInteractionMode(isPlanMode ? "default" : "plan")
+                        }
+                        selected={isPlanMode}
+                        showChevron={false}
+                      />
+                    </ComposerToolbarScroller>
                   </View>
                 )}
                 <View className="shrink-0 flex-row items-center">

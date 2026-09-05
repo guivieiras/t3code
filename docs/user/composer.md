@@ -8,6 +8,11 @@ On mobile, an empty composer shows an interrupt button while the agent is workin
 or an attachment replaces it with the send button. This applies to both compact and expanded
 composers.
 
+In an existing mobile thread, tap the message composer to expand it, then tap **Build** beside
+the model picker to switch to **Plan**. Tap **Plan** to switch back. The label shows the mode
+selected for your next message, including changes made with `/plan` or `/default`. The mode
+applies when you send the message; changing it does not interrupt an active turn.
+
 You can attach images up to 10 MB. On servers that support file uploads, you can also
 attach videos, text files, PDFs, ZIP archives, and other files. Each file can be up to the limit advertised
 by the server, capped at 50 MB. Each message can contain up to eight attachments in total. Files

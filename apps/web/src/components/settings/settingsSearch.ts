@@ -64,6 +64,12 @@ export const SETTINGS_SECTION_LABELS: Readonly<Record<SettingsPath, string>> = {
  */
 export const SETTINGS_SEARCH_ITEMS = [
   {
+    id: "completion-notifications",
+    title: "Completion notifications",
+    to: "/settings/general",
+    searchTerms: ["push notifications phone completed finished alerts"],
+  },
+  {
     id: "color-scheme",
     title: "Color scheme",
     to: "/settings/appearance",

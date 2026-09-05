@@ -35,6 +35,7 @@ import * as ThreadLaunch from "./orchestration-v2/ThreadLaunchService.ts";
 import * as ThreadManagement from "./orchestration-v2/ThreadManagementService.ts";
 import * as ProjectService from "./project/ProjectService.ts";
 import * as AgentAwarenessRelay from "./relay/AgentAwarenessRelay.ts";
+import * as WebPushCompletionListener from "./notifications/WebPushCompletionListener.ts";
 import * as ServerLifecycleEvents from "./serverLifecycleEvents.ts";
 import * as ServerSettings from "./serverSettings.ts";
 import { forkParked, forkParkedFiber } from "./serverActivation.ts";
@@ -492,7 +493,9 @@ export const make = (options?: StartupOptions) =>
           "orchestration-v2.effect-worker.start",
           startEffectWorkerWithRelay({
             runWorker: EffectWorker.runDaemon,
-            startRelay: agentAwarenessRelay.start(),
+            startRelay: Effect.all([agentAwarenessRelay.start(), WebPushCompletionListener.start], {
+              discard: true,
+            }),
             workerFiberRef: effectWorkerFiber,
           }),
         ),

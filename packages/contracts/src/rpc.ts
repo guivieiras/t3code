@@ -3,6 +3,7 @@ import * as Rpc from "effect/unstable/rpc/Rpc";
 import * as RpcGroup from "effect/unstable/rpc/RpcGroup";
 
 import { ExternalLauncherError, LaunchEditorInput } from "./editor.ts";
+import { WebPushEndpoint, WebPushSubscribeInput, WebPushStatus, WebPushError } from "./webPush.ts";
 import {
   AuthAccessStreamError,
   AuthAccessStreamEvent,
@@ -302,6 +303,9 @@ export const WS_METHODS = {
   serverUpdateServerWithProgress: "server.updateServerWithProgress",
   serverUpsertKeybinding: "server.upsertKeybinding",
   serverRemoveKeybinding: "server.removeKeybinding",
+  webPushStatus: "webPush.status",
+  webPushSubscribe: "webPush.subscribe",
+  webPushUnsubscribe: "webPush.unsubscribe",
   serverGetSettings: "server.getSettings",
   serverUpdateSettings: "server.updateSettings",
   serverDiscoverSourceControl: "server.discoverSourceControl",
@@ -424,6 +428,22 @@ export const WsServerUpdateServerWithProgressRpc = Rpc.make(
     stream: true,
   },
 );
+
+export const WsWebPushStatusRpc = Rpc.make(WS_METHODS.webPushStatus, {
+  payload: Schema.Struct({ endpoint: Schema.NullOr(WebPushEndpoint) }),
+  success: WebPushStatus,
+  error: Schema.Union([WebPushError, EnvironmentAuthorizationError]),
+});
+export const WsWebPushSubscribeRpc = Rpc.make(WS_METHODS.webPushSubscribe, {
+  payload: WebPushSubscribeInput,
+  success: Schema.Void,
+  error: Schema.Union([WebPushError, EnvironmentAuthorizationError]),
+});
+export const WsWebPushUnsubscribeRpc = Rpc.make(WS_METHODS.webPushUnsubscribe, {
+  payload: Schema.Struct({ endpoint: WebPushEndpoint }),
+  success: Schema.Void,
+  error: Schema.Union([WebPushError, EnvironmentAuthorizationError]),
+});
 
 export const WsServerGetSettingsRpc = Rpc.make(WS_METHODS.serverGetSettings, {
   payload: Schema.Struct({}),
@@ -1148,6 +1168,9 @@ export const WsRpcGroup = RpcGroup.make(
   WsServerUpdateServerWithProgressRpc,
   WsServerUpsertKeybindingRpc,
   WsServerRemoveKeybindingRpc,
+  WsWebPushStatusRpc,
+  WsWebPushSubscribeRpc,
+  WsWebPushUnsubscribeRpc,
   WsServerGetSettingsRpc,
   WsServerUpdateSettingsRpc,
   WsServerDiscoverSourceControlRpc,

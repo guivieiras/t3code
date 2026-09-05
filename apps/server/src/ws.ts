@@ -136,6 +136,7 @@ import * as ServerSelfUpdate from "./cloud/selfUpdate.ts";
 import * as ServerLifecycleEvents from "./serverLifecycleEvents.ts";
 import * as ServerRuntimeStartup from "./serverRuntimeStartup.ts";
 import * as ServerSettings from "./serverSettings.ts";
+import { WebPushNotifications } from "./notifications/WebPushNotifications.ts";
 import * as TerminalManager from "./terminal/Manager.ts";
 import * as PreviewAutomationBroker from "./mcp/PreviewAutomationBroker.ts";
 import * as PreviewManager from "./preview/Manager.ts";
@@ -589,6 +590,7 @@ const makeWsRpcLayer = (
       const serverSelfUpdate = yield* ServerSelfUpdate.ServerSelfUpdate;
       const config = yield* ServerConfig.ServerConfig;
       const lifecycleEvents = yield* ServerLifecycleEvents.ServerLifecycleEvents;
+      const webPush = yield* WebPushNotifications;
       const serverSettings = yield* ServerSettings.ServerSettingsService;
       const startup = yield* ServerRuntimeStartup.ServerRuntimeStartup;
       const workspaceEntries = yield* WorkspaceEntries.WorkspaceEntries;
@@ -1653,6 +1655,15 @@ const makeWsRpcLayer = (
               return { keybindings: keybindingsConfig, issues: [] };
             }),
             { "rpc.aggregate": "server" },
+          ),
+        [WS_METHODS.webPushStatus]: ({ endpoint }) =>
+          observeRpcEffect(WS_METHODS.webPushStatus, webPush.status(currentSessionId, endpoint)),
+        [WS_METHODS.webPushSubscribe]: (input) =>
+          observeRpcEffect(WS_METHODS.webPushSubscribe, webPush.subscribe(currentSessionId, input)),
+        [WS_METHODS.webPushUnsubscribe]: ({ endpoint }) =>
+          observeRpcEffect(
+            WS_METHODS.webPushUnsubscribe,
+            webPush.unsubscribe(currentSessionId, endpoint),
           ),
         [WS_METHODS.serverGetSettings]: (_input) =>
           observeRpcEffect(

@@ -52,6 +52,8 @@ import * as EnvironmentTheme from "./environmentTheme.ts";
 import * as Keybindings from "./keybindings.ts";
 import * as ServerRuntimeStartup from "./serverRuntimeStartup.ts";
 import * as AgentAwarenessRelay from "./relay/AgentAwarenessRelay.ts";
+import * as WebPushNotifications from "./notifications/WebPushNotifications.ts";
+import * as WebPushTransport from "./notifications/WebPushTransport.ts";
 import { hasCloudPublicConfig } from "./cloud/publicConfig.ts";
 import { ProviderRegistryLive } from "./provider/Layers/ProviderRegistry.ts";
 import * as ServerSettings from "./serverSettings.ts";
@@ -362,7 +364,10 @@ const OrchestrationApplicationLayerLive = CheckpointDiffQuery.layer.pipe(
   Layer.provideMerge(OrchestrationV2RuntimeLayerLive),
 );
 
-const RuntimeCoreDependenciesBaseLive = AgentAwarenessRelay.layer.pipe(
+const RuntimeCoreDependenciesBaseLive = Layer.merge(
+  AgentAwarenessRelay.layer,
+  WebPushNotifications.layer.pipe(Layer.provide(WebPushTransport.layer)),
+).pipe(
   // Core Services
   Layer.provideMerge(OrchestrationApplicationLayerLive),
   Layer.provideMerge(ServerSettingsLayerLive),

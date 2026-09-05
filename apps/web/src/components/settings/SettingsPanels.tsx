@@ -85,6 +85,7 @@ import { useProjects } from "../../state/entities";
 import { useArchivedThreadSnapshots } from "../../lib/archivedThreadsState";
 import { formatRelativeTimeLabel } from "../../timestampFormat";
 import { Button } from "../ui/button";
+import { WebPushSettings } from "./WebPushSettings";
 import { Collapsible, CollapsiblePanel, CollapsibleTrigger } from "../ui/collapsible";
 import {
   Dialog,
@@ -1972,6 +1973,7 @@ export function GeneralSettingsPanel() {
 
   return (
     <SettingsPageContainer>
+      <WebPushSettings />
       <SettingsSection title="General">
         <SettingsRow
           {...searchableSetting("project-grouping")}

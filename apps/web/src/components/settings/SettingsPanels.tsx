@@ -496,6 +496,10 @@ export function useSettingsRestore(onRestored?: () => void) {
       DEFAULT_UNIFIED_SETTINGS.sidebarProjectGroupingMode
         ? ["Project Grouping"]
         : []),
+      ...(settings.sidebarGroupThreadsByProject !==
+      DEFAULT_UNIFIED_SETTINGS.sidebarGroupThreadsByProject
+        ? ["Group threads by project"]
+        : []),
       ...(settings.sidebarAutoSettleAfterDays !==
       DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleAfterDays
         ? ["Auto-settle inactive threads"]
@@ -582,6 +586,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       settings.sidebarAutoSettleAfterDays,
       settings.sidebarAutoSettleOnMerge,
       settings.sidebarProjectGroupingMode,
+      settings.sidebarGroupThreadsByProject,
       settings.sidebarThreadPreviewCount,
       settings.showSkillsInSlashMenu,
       settings.timestampFormat,
@@ -665,6 +670,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       glassOpacity: DEFAULT_UNIFIED_SETTINGS.glassOpacity,
       sidebarThreadPreviewCount: DEFAULT_UNIFIED_SETTINGS.sidebarThreadPreviewCount,
       sidebarProjectGroupingMode: DEFAULT_UNIFIED_SETTINGS.sidebarProjectGroupingMode,
+      sidebarGroupThreadsByProject: DEFAULT_UNIFIED_SETTINGS.sidebarGroupThreadsByProject,
       sidebarAutoSettleAfterDays: DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleAfterDays,
       sidebarAutoSettleOnMerge: DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleOnMerge,
       enableLegacyTokenStreaming: DEFAULT_UNIFIED_SETTINGS.enableLegacyTokenStreaming,
@@ -1973,6 +1979,34 @@ export function GeneralSettingsPanel() {
   return (
     <SettingsPageContainer>
       <SettingsSection title="General">
+        <SettingsRow
+          {...searchableSetting("group-threads-by-project")}
+          description="Show project headings within the pinned, active, snoozed, and settled sections."
+          resetAction={
+            settings.sidebarGroupThreadsByProject !==
+            DEFAULT_UNIFIED_SETTINGS.sidebarGroupThreadsByProject ? (
+              <SettingResetButton
+                label="group threads by project"
+                onClick={() =>
+                  updateSettings({
+                    sidebarGroupThreadsByProject:
+                      DEFAULT_UNIFIED_SETTINGS.sidebarGroupThreadsByProject,
+                  })
+                }
+              />
+            ) : null
+          }
+          control={
+            <Switch
+              checked={settings.sidebarGroupThreadsByProject}
+              onCheckedChange={(checked) =>
+                updateSettings({ sidebarGroupThreadsByProject: checked })
+              }
+              aria-label="Group threads by project"
+            />
+          }
+        />
+
         <SettingsRow
           {...searchableSetting("project-grouping")}
           description="Combine matching repositories across environments."

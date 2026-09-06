@@ -4,6 +4,14 @@ Pin a thread from its context menu to keep it in the pinned section above your a
 `mod+shift+p` pins or unpins the thread you have open. Pinned threads are shown independently of
 their project, including when you connect to more than one environment.
 
+On web and desktop, enable **Settings → General → Group threads by project** to show project
+headings within the pinned, active, snoozed, and settled sections. Projects follow the project
+picker's order, and threads keep their section's ordering within each project. Pinned threads can
+be dragged within their project group. Turn the setting off to return to flat sections.
+
+This preference is off by default and saved on that web or desktop client. **Project grouping**
+separately controls whether matching repositories across environments count as one project.
+
 To require confirmation before unpinning, enable **Settings → General → Unpin confirmation**. The
 confirmation applies to the sidebar controls, thread menus, and the `mod+shift+p` shortcut.
 

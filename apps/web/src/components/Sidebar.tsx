@@ -127,6 +127,7 @@ import {
   filterSidebarProjectScopeItems,
   formatWorkingDurationLabel,
   firstValidTimestampMs,
+  groupSidebarThreadsByProject,
   hasUnseenCompletion,
   isSidebarNestedLinkClick,
   isTrailingDoubleClick,
@@ -1724,6 +1725,7 @@ export default function Sidebar() {
   const sidebarProjectSortOrder = useClientSettings((s) => s.sidebarProjectSortOrder);
   const timestampFormat = useClientSettings((s) => s.timestampFormat);
   const projectGroupingSettings = useClientSettings(selectProjectGroupingSettings);
+  const groupThreadsByProject = useClientSettings((s) => s.sidebarGroupThreadsByProject);
   const {
     settleThread,
     unsettleThread,
@@ -2273,9 +2275,53 @@ export default function Sidebar() {
     return routeThread === undefined ? [] : [routeThread];
   }, [routeThreadKey, snoozedShelfExpanded, snoozedThreads]);
 
+  const [optimisticPinnedOrder, setOptimisticPinnedOrder] = useState<{
+    readonly order: readonly string[];
+    /** pinOrderKey per thread as of the drop — the baseline that tells a
+        concurrent client's write apart from one of our own landing. */
+    readonly keysAtDrop: ReadonlyMap<string, string | null>;
+    /** The keys this drop writes (one per planned assignment). The
+        override holds until all of them appear in canonical state. */
+    readonly assignedKeys: ReadonlyMap<string, string>;
+  } | null>(null);
+  const orderedPinnedThreads = useMemo(() => {
+    if (optimisticPinnedOrder === null) return pinnedThreads;
+    return orderItemsByPreferredIds({
+      items: pinnedThreads,
+      preferredIds: optimisticPinnedOrder.order,
+      getId: (thread) => scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id)),
+    });
+  }, [optimisticPinnedOrder, pinnedThreads]);
+  const threadGroups = useMemo(() => {
+    const group = (sectionThreads: readonly EnvironmentThreadShell[]) => {
+      if (groupThreadsByProject) {
+        return groupSidebarThreadsByProject(sectionThreads, projectGroups);
+      }
+      return [{ projectKey: null, threads: sectionThreads }];
+    };
+    return {
+      pinned: group(orderedPinnedThreads),
+      active: group(activeThreads),
+      snoozed: group(visibleSnoozedThreads),
+      settled: group(renderedSettledThreads),
+    };
+  }, [
+    groupThreadsByProject,
+    projectGroups,
+    orderedPinnedThreads,
+    activeThreads,
+    visibleSnoozedThreads,
+    renderedSettledThreads,
+  ]);
   const orderedThreads = useMemo(
-    () => [...pinnedThreads, ...activeThreads, ...visibleSnoozedThreads, ...renderedSettledThreads],
-    [pinnedThreads, activeThreads, visibleSnoozedThreads, renderedSettledThreads],
+    () =>
+      [
+        ...threadGroups.pinned,
+        ...threadGroups.active,
+        ...threadGroups.snoozed,
+        ...threadGroups.settled,
+      ].flatMap((group) => group.threads),
+    [threadGroups],
   );
   const orderedThreadKeys = useMemo(
     () =>
@@ -2609,23 +2655,6 @@ export default function Sidebar() {
   const pinnedDndSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
   );
-  const [optimisticPinnedOrder, setOptimisticPinnedOrder] = useState<{
-    readonly order: readonly string[];
-    /** pinOrderKey per thread as of the drop — the baseline that tells a
-        concurrent client's write apart from one of our own landing. */
-    readonly keysAtDrop: ReadonlyMap<string, string | null>;
-    /** The keys this drop writes (one per planned assignment). The
-        override holds until all of them appear in canonical state. */
-    readonly assignedKeys: ReadonlyMap<string, string>;
-  } | null>(null);
-  const orderedPinnedThreads = useMemo(() => {
-    if (optimisticPinnedOrder === null) return pinnedThreads;
-    return orderItemsByPreferredIds({
-      items: pinnedThreads,
-      preferredIds: optimisticPinnedOrder.order,
-      getId: (thread) => scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id)),
-    });
-  }, [optimisticPinnedOrder, pinnedThreads]);
   useEffect(() => {
     if (optimisticPinnedOrder === null) return;
     const canonical = pinnedThreads.filter((thread) =>
@@ -3815,13 +3844,26 @@ export default function Sidebar() {
                       />
                     );
                   };
-                  // Draft block above everything, then the pinned block:
-                  // full cards above the inbox, closed by a thin divider (the
-                  // pin glyphs carry the meaning, so no header text). Both
-                  // vanish entirely at count 0.
-                  // Pinned rows render in the one shared pinned order; only
-                  // reorder-capable rows register as sortable (legacy-server
-                  // pins render in place as plain rows).
+                  const renderProjectHeader = (
+                    group: (typeof threadGroups.active)[number],
+                    section: string,
+                  ) => {
+                    if (group.projectKey === null) return null;
+                    const project = projectGroupByScopeKey.get(group.projectKey);
+                    return (
+                      <li
+                        key={`${section}:project:${group.projectKey}`}
+                        data-thread-selection-safe
+                        className="mt-3 mb-1 list-none px-2.5 first:mt-1"
+                      >
+                        <h3 className="truncate text-xs font-medium text-sidebar-muted-foreground">
+                          {project?.displayName ?? "Unknown project"}
+                        </h3>
+                      </li>
+                    );
+                  };
+                  // Drafts stay above the lifecycle sections. Each pinned project
+                  // gets its own drag context so dragging only reorders its threads.
                   const items: ReactNode[] = [
                     <SidebarDraftBlock
                       key="draft-sessions"
@@ -3832,37 +3874,42 @@ export default function Sidebar() {
                       routeDraftId={routeDraftIdForRows}
                       onNavigateToDraft={navigateToDraft}
                     />,
-                    <DndContext
-                      key="pinned-dnd"
-                      sensors={pinnedDndSensors}
-                      collisionDetection={closestCenter}
-                      modifiers={[restrictToVerticalAxis, restrictToFirstScrollableAncestor]}
-                      onDragEnd={handlePinnedDragEnd}
-                    >
-                      <SortableContext
-                        items={orderedPinnedThreads
-                          .map((thread) =>
-                            scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id)),
-                          )
-                          .filter((threadKey) => reorderablePinnedKeys.has(threadKey))}
-                        strategy={verticalListSortingStrategy}
-                      >
-                        {orderedPinnedThreads.map((thread) => {
-                          const threadKey = scopedThreadKey(
-                            scopeThreadRef(thread.environmentId, thread.id),
-                          );
-                          if (!reorderablePinnedKeys.has(threadKey)) {
-                            return renderThreadRow(thread, "pinned");
-                          }
-                          return (
-                            <SortablePinnedThreadRow key={threadKey} id={threadKey}>
-                              {(bag) => renderThreadRow(thread, "pinned", bag)}
-                            </SortablePinnedThreadRow>
-                          );
-                        })}
-                      </SortableContext>
-                    </DndContext>,
                   ];
+                  for (const group of threadGroups.pinned) {
+                    items.push(
+                      renderProjectHeader(group, "pinned"),
+                      <DndContext
+                        key={`pinned-dnd:${group.projectKey ?? "all"}`}
+                        sensors={pinnedDndSensors}
+                        collisionDetection={closestCenter}
+                        modifiers={[restrictToVerticalAxis, restrictToFirstScrollableAncestor]}
+                        onDragEnd={handlePinnedDragEnd}
+                      >
+                        <SortableContext
+                          items={group.threads
+                            .map((thread) =>
+                              scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id)),
+                            )
+                            .filter((threadKey) => reorderablePinnedKeys.has(threadKey))}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          {group.threads.map((thread) => {
+                            const threadKey = scopedThreadKey(
+                              scopeThreadRef(thread.environmentId, thread.id),
+                            );
+                            if (!reorderablePinnedKeys.has(threadKey)) {
+                              return renderThreadRow(thread, "pinned");
+                            }
+                            return (
+                              <SortablePinnedThreadRow key={threadKey} id={threadKey}>
+                                {(bag) => renderThreadRow(thread, "pinned", bag)}
+                              </SortablePinnedThreadRow>
+                            );
+                          })}
+                        </SortableContext>
+                      </DndContext>,
+                    );
+                  }
                   if (pinnedThreads.length > 0) {
                     items.push(
                       <li
@@ -3873,8 +3920,11 @@ export default function Sidebar() {
                       />,
                     );
                   }
-                  for (const thread of activeThreads) {
-                    items.push(renderThreadRow(thread, "active"));
+                  for (const group of threadGroups.active) {
+                    items.push(renderProjectHeader(group, "active"));
+                    for (const thread of group.threads) {
+                      items.push(renderThreadRow(thread, "active"));
+                    }
                   }
                   // Snoozed shelf: between the inbox and Settled — out of the
                   // way, never gone. The header always renders while anything
@@ -3911,8 +3961,11 @@ export default function Sidebar() {
                         </button>
                       </li>,
                     );
-                    for (const thread of visibleSnoozedThreads) {
-                      items.push(renderThreadRow(thread, "snoozed"));
+                    for (const group of threadGroups.snoozed) {
+                      items.push(renderProjectHeader(group, "snoozed"));
+                      for (const thread of group.threads) {
+                        items.push(renderThreadRow(thread, "snoozed"));
+                      }
                     }
                   }
                   if (settledThreads.length > 0) {
@@ -3946,8 +3999,11 @@ export default function Sidebar() {
                       </li>,
                     );
                   }
-                  for (const thread of renderedSettledThreads) {
-                    items.push(renderThreadRow(thread, "settled"));
+                  for (const group of threadGroups.settled) {
+                    items.push(renderProjectHeader(group, "settled"));
+                    for (const thread of group.threads) {
+                      items.push(renderThreadRow(thread, "settled"));
+                    }
                   }
                   return items;
                 })()}

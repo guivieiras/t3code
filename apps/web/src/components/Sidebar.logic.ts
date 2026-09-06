@@ -58,6 +58,35 @@ type LogicalSidebarProject = SidebarProject & {
 
 export type ThreadTraversalDirection = "previous" | "next";
 
+// Project groups follow the project picker order; threads retain their section's
+// ordering. Scoped identities keep unrelated projects on different servers apart.
+export function groupSidebarThreadsByProject<
+  T extends { environmentId: string; projectId: string },
+>(threads: readonly T[], projects: readonly LogicalSidebarProject[]) {
+  const groups = new Map<string, { projectKey: string; threads: T[] }>();
+  const groupByScopedProject = new Map<string, { projectKey: string; threads: T[] }>();
+  for (const project of projects) {
+    const group = { projectKey: project.projectKey, threads: [] as T[] };
+    groups.set(project.projectKey, group);
+    for (const ref of project.memberProjectRefs) {
+      groupByScopedProject.set(`${ref.environmentId}:${ref.projectId}`, group);
+    }
+  }
+  for (const thread of threads) {
+    const scopedKey = `${thread.environmentId}:${thread.projectId}`;
+    const knownGroup = groupByScopedProject.get(scopedKey);
+    if (knownGroup) {
+      knownGroup.threads.push(thread);
+      continue;
+    }
+    // Shells can arrive before their project metadata.
+    const group = groups.get(scopedKey) ?? { projectKey: scopedKey, threads: [] as T[] };
+    group.threads.push(thread);
+    groups.set(scopedKey, group);
+  }
+  return [...groups.values()].filter((group) => group.threads.length > 0);
+}
+
 export async function archiveSelectedThreadEntries<
   TEntry extends { readonly threadKey: string },
   TResult extends { readonly _tag: "Success" | "Failure" },

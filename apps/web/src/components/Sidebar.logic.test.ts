@@ -16,6 +16,7 @@ import {
   getSidebarThreadIdsToPrewarm,
   getVisibleSidebarThreadIds,
   getVisibleThreadsForProject,
+  groupSidebarThreadsByProject,
   hasUnseenCompletion,
   isContextMenuPointerDown,
   isSidebarSubagentThread,
@@ -55,6 +56,63 @@ import {
 import { makeThreadFixture, type ThreadFixtureOverrides } from "../test-fixtures";
 
 const localEnvironmentId = EnvironmentId.make("environment-local");
+
+describe("groupSidebarThreadsByProject", () => {
+  it("follows project order while preserving thread order and scoped repository grouping", () => {
+    const threads = [
+      { id: "b-new", environmentId: "local", projectId: "b" },
+      { id: "a-remote", environmentId: "remote", projectId: "a-checkout" },
+      { id: "b-old", environmentId: "local", projectId: "b" },
+      { id: "a-local", environmentId: "local", projectId: "a" },
+      { id: "unrelated-a", environmentId: "other", projectId: "a" },
+    ];
+    const project = (
+      projectKey: string,
+      memberProjectRefs: { environmentId: string; projectId: string }[],
+    ) => ({
+      id: projectKey,
+      title: projectKey,
+      projectKey,
+      memberProjectRefs,
+    });
+    const groups = groupSidebarThreadsByProject(threads, [
+      project("project-a", [
+        { environmentId: "local", projectId: "a" },
+        { environmentId: "remote", projectId: "a-checkout" },
+      ]),
+      project("empty-project", []),
+      project("project-b", [{ environmentId: "local", projectId: "b" }]),
+      project("other-a", [{ environmentId: "other", projectId: "a" }]),
+    ]);
+
+    expect(
+      groups.map((group) => [group.projectKey, group.threads.map((thread) => thread.id)]),
+    ).toEqual([
+      ["project-a", ["a-remote", "a-local"]],
+      ["project-b", ["b-new", "b-old"]],
+      ["other-a", ["unrelated-a"]],
+    ]);
+    expect(threads.map((thread) => thread.id)).toEqual([
+      "b-new",
+      "a-remote",
+      "b-old",
+      "a-local",
+      "unrelated-a",
+    ]);
+  });
+
+  it("keeps threads visible and environment-scoped before project metadata arrives", () => {
+    const threads = [
+      { id: "local-1", environmentId: "local", projectId: "a" },
+      { id: "remote-1", environmentId: "remote", projectId: "a" },
+      { id: "local-2", environmentId: "local", projectId: "a" },
+    ];
+    expect(groupSidebarThreadsByProject(threads, []).map((group) => group.threads)).toEqual([
+      [threads[0], threads[2]],
+      [threads[1]],
+    ]);
+  });
+});
 
 describe("animatePinnedLayoutChanges", () => {
   const baseArgs: Parameters<AnimateLayoutChanges>[0] = {

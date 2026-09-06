@@ -524,7 +524,10 @@ const ComposerFooterPrimaryActions = memo(function ComposerFooterPrimaryActions(
   hasSendableContent: boolean;
   preserveComposerFocusOnPointerDown?: boolean;
   isEditingQueuedMessage: boolean;
-  onSubmitMessage: React.MouseEventHandler<HTMLButtonElement>;
+  onSubmitMessage: (
+    event: React.MouseEvent<HTMLElement>,
+    dispatchMode?: ComposerDispatchMode,
+  ) => void;
   onPreviousPendingQuestion: () => void;
   onInterrupt: () => void;
   onImplementPlanInNewThread: () => void;
@@ -2246,14 +2249,15 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     ],
   );
   const handleSubmitMessage = useCallback(
-    (event: React.MouseEvent<HTMLButtonElement>) => {
+    (event: React.MouseEvent<HTMLElement>, dispatchMode?: ComposerDispatchMode) => {
       event.preventDefault();
       submitComposer(
         event,
-        resolveComposerDispatchMode({
-          phase,
-          queueModifier: event.metaKey || event.ctrlKey,
-        }),
+        dispatchMode ??
+          resolveComposerDispatchMode({
+            phase,
+            queueModifier: event.metaKey || event.ctrlKey,
+          }),
       );
     },
     [phase, submitComposer],

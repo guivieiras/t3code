@@ -1,4 +1,4 @@
-import { memo, type MouseEventHandler, type PointerEventHandler } from "react";
+import { memo, type MouseEvent, type PointerEventHandler } from "react";
 import {
   CheckIcon,
   ChevronDownIcon,
@@ -14,6 +14,7 @@ import { Button } from "../ui/button";
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from "../ui/menu";
 import { Spinner } from "../ui/spinner";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
+import type { ComposerDispatchMode } from "./composerDispatch";
 
 interface PendingActionState {
   questionIndex: number;
@@ -37,7 +38,7 @@ interface ComposerPrimaryActionsProps {
   hasSendableContent: boolean;
   preserveComposerFocusOnPointerDown?: boolean;
   isEditingQueuedMessage?: boolean;
-  onSubmitMessage?: MouseEventHandler<HTMLButtonElement>;
+  onSubmitMessage?: (event: MouseEvent<HTMLElement>, dispatchMode?: ComposerDispatchMode) => void;
   onPreviousPendingQuestion: () => void;
   onInterrupt: () => void;
   onImplementPlanInNewThread: () => void;
@@ -260,6 +261,8 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
   const submitTooltip =
     submitStatus ??
     (isRunning && !isEditingQueuedMessage ? "Enter to steer, Mod+Enter to queue" : submitLabel);
+  const isSubmitDisabled =
+    isSendBusy || isSendDisabled || isConnecting || isEnvironmentUnavailable || !hasSendableContent;
 
   const sendButton = (
     <button
@@ -272,13 +275,7 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
       )}
       {...pointerFocusProps}
       onClick={onSubmitMessage}
-      disabled={
-        isSendBusy ||
-        isSendDisabled ||
-        isConnecting ||
-        isEnvironmentUnavailable ||
-        !hasSendableContent
-      }
+      disabled={isSubmitDisabled}
       aria-label={submitStatus ?? submitLabel}
     >
       {stageBackdropVariant ? (
@@ -309,9 +306,46 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
   );
 
   return (
-    <Tooltip key="submit">
-      <TooltipTrigger render={<span className="inline-flex" />}>{sendButton}</TooltipTrigger>
-      <TooltipPopup>{submitTooltip}</TooltipPopup>
-    </Tooltip>
+    <div className="flex items-center gap-1">
+      <Tooltip key="submit">
+        <TooltipTrigger render={<span className="inline-flex" />}>{sendButton}</TooltipTrigger>
+        <TooltipPopup>{submitTooltip}</TooltipPopup>
+      </Tooltip>
+      {isRunning && !isEditingQueuedMessage ? (
+        <Menu>
+          <MenuTrigger
+            render={
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="rounded-full"
+                aria-label="Send options"
+                {...pointerFocusProps}
+                disabled={isSubmitDisabled}
+              />
+            }
+          >
+            <ChevronDownIcon className="size-3.5" />
+          </MenuTrigger>
+          <MenuPopup align="end" side="top">
+            <MenuItem
+              disabled={isSubmitDisabled}
+              onClick={(event) => onSubmitMessage?.(event, "steer")}
+            >
+              <CornerUpRightIcon />
+              Steer now
+            </MenuItem>
+            <MenuItem
+              disabled={isSubmitDisabled}
+              onClick={(event) => onSubmitMessage?.(event, "queue")}
+            >
+              <ListPlusIcon />
+              Queue message
+            </MenuItem>
+          </MenuPopup>
+        </Menu>
+      ) : null}
+    </div>
   );
 });

@@ -102,6 +102,10 @@ the active turn, or press `Enter` on desktop. Hold `Cmd` on macOS or `Ctrl` on W
 switch the button to a queue icon. Click while holding that key, or press `Cmd+Enter` or
 `Ctrl+Enter` on desktop, to queue the message for after the active turn.
 
+On mobile web, type a message while the agent is working, tap the chevron beside Send, then
+choose **Queue message** to send it after the active turn or **Steer now** to send it into the
+active turn. This menu is also available on desktop. Tapping Send directly still steers.
+
 Queued messages appear above the composer. Rows show a thumbnail of any attached image alongside
 the text. Drag a row by its handle to reorder it, use the handle's arrow keys, promote the message
 to a steer, or remove it.

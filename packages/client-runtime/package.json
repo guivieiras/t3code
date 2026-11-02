@@ -518,6 +518,10 @@
     "./provider-clients": {
       "types": "./src/providerClients.ts",
       "default": "./src/providerClients.ts"
+    },
+    "./model-brand-icons": {
+      "types": "./src/modelBrandIcons.ts",
+      "default": "./src/modelBrandIcons.ts"
     }
   },
   "scripts": {

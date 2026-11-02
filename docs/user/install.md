@@ -196,6 +196,12 @@ instance can have its own environment variables, such as API keys or a custom
 base URL. Mark secret values as sensitive; after saving, T3 Code does not display
 their original values.
 
+Give instances a display name, icon, and accent color to tell them apart in the
+model picker and sidebar. When two instances show the same icon, the icon also
+carries the instance initials. Models from a recognized publisher, such as
+`anthropic/claude-sonnet-4` or `gpt-5.4`, show that publisher's icon; other models
+use the instance icon.
+
 For provider-specific setup and accounts, see [Codex](./providers-codex.md),
 [Claude](./providers-claude.md), [OpenCode](./providers-opencode.md),
 [Antigravity](./providers-antigravity.md), [Pi](./providers-pi.md),

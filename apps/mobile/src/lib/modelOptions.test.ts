@@ -247,6 +247,24 @@ describe("mobile model options", () => {
     ).toBe(false);
   });
 
+  it("carries the instance icon and badges only instances that share an icon", () => {
+    const config = {
+      providers: [
+        { instanceId: "codex", driver: "codex" },
+        { instanceId: "codex_router", driver: "codex", iconKey: "openrouter" },
+      ].map((provider) => ({
+        ...provider,
+        enabled: true,
+        installed: true,
+        auth: { status: "authenticated" },
+        models: [{ slug: "test", name: "Test", capabilities: null }],
+      })),
+    } as unknown as ServerConfig;
+    const options = buildModelOptions(config, null, undefined, null);
+    expect(options.map((option) => option.providerIconKey)).toEqual([undefined, "openrouter"]);
+    expect(options.map((option) => option.providerBadge?.showBadge)).toEqual([false, false]);
+  });
+
   it("only badges ACP accounts that share the same agent", () => {
     const config = {
       settings: {

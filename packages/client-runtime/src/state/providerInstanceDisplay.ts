@@ -1,9 +1,10 @@
 import {
   defaultInstanceIdForDriver,
   PROVIDER_DISPLAY_NAMES,
-  type ProviderDriverKind,
+  ProviderDriverKind,
   type ServerProvider,
 } from "@t3tools/contracts";
+import { isModelBrandIconKey, type ModelBrandIconKey } from "@t3tools/shared/modelBrand";
 
 function humanizeSlug(slug: string): string {
   return slug
@@ -61,32 +62,52 @@ export function providerAccentForegroundColor(accentColor: string) {
   return blackContrast >= whiteContrast ? "#000000" : "#ffffff";
 }
 
-export function shouldShowInstanceBadge(
-  entry: {
-    readonly driverKind: ProviderDriverKind;
-    readonly accentColor?: string | undefined;
-    readonly acpRegistryAgentId?: string | undefined;
-    readonly enabled: boolean;
-  },
-  entries: Iterable<{
-    readonly driverKind: ProviderDriverKind;
-    readonly acpRegistryAgentId?: string | undefined;
-    readonly enabled: boolean;
-  }>,
+type InstanceIconEntry = {
+  readonly driverKind: ProviderDriverKind;
+  readonly iconKey?: string | undefined;
+  readonly acpRegistryAgentId?: string | undefined;
+  readonly enabled: boolean;
+};
+
+const DRIVER_BRAND_ICON_KEYS: Partial<Record<ProviderDriverKind, ModelBrandIconKey>> = {
+  [ProviderDriverKind.make("codex")]: "openai",
+  [ProviderDriverKind.make("claudeAgent")]: "anthropic",
+  [ProviderDriverKind.make("grok")]: "xai",
+};
+
+/** The glyph an instance icon renders, so an OpenAI-icon instance matches a plain Codex one. */
+export function providerInstanceIconIdentity(entry: Omit<InstanceIconEntry, "enabled">): string {
+  if (isModelBrandIconKey(entry.iconKey)) return entry.iconKey;
+  const driverBrand = DRIVER_BRAND_ICON_KEYS[entry.driverKind];
+  if (driverBrand) return driverBrand;
+  // Registry agents each render their own icon.
+  if (entry.driverKind === "acpRegistry") return `acpRegistry:${entry.acpRegistryAgentId ?? ""}`;
+  return `driver:${entry.driverKind}`;
+}
+
+/** Initials mark an instance only when another instance renders the same icon. */
+export function shouldShowInstanceInitials(
+  entry: InstanceIconEntry,
+  entries: Iterable<InstanceIconEntry>,
 ): boolean {
-  if (normalizeProviderAccentColor(entry.accentColor)) return true;
-  let sharedProviderCount = 0;
+  const identity = providerInstanceIconIdentity(entry);
+  let sharedIconCount = 0;
   for (const candidate of entries) {
-    if (candidate.driverKind !== entry.driverKind) continue;
     // Historical threads still need to distinguish accounts that are all disabled.
     if (entry.enabled && !candidate.enabled) continue;
-    if (
-      entry.driverKind === "acpRegistry" &&
-      candidate.acpRegistryAgentId !== entry.acpRegistryAgentId
-    ) {
-      continue;
-    }
-    if (++sharedProviderCount > 1) return true;
+    if (providerInstanceIconIdentity(candidate) !== identity) continue;
+    if (++sharedIconCount > 1) return true;
   }
   return false;
+}
+
+/** Whether an instance icon carries a badge: an accent color, or initials for a shared icon. */
+export function shouldShowInstanceBadge(
+  entry: InstanceIconEntry & { readonly accentColor?: string | undefined },
+  entries: Iterable<InstanceIconEntry>,
+): boolean {
+  return (
+    normalizeProviderAccentColor(entry.accentColor) !== undefined ||
+    shouldShowInstanceInitials(entry, entries)
+  );
 }

@@ -1604,6 +1604,7 @@ it.layer(
           driverKind: driver,
           continuationIdentity: { driverKind: driver, continuationKey: "codex:instance:codex" },
           displayName: undefined,
+          iconKey: "openrouter",
           enabled: true,
           snapshot: {
             resolveMaintenance: () =>
@@ -1667,6 +1668,8 @@ it.layer(
           const provider = (yield* registry.getProviders)[0];
           assert.strictEqual(provider?.status, "error");
           assert.strictEqual(provider?.message, unhealthyProvider.message);
+          // The registry stamps the configured icon onto every published snapshot.
+          assert.strictEqual(provider?.iconKey, "openrouter");
 
           yield* Ref.set(scanResult, { ...unhealthyProvider, skills: [] });
           yield* registry.refreshWorkspaceSnapshot({ instanceId, cwd: "/workspace" });

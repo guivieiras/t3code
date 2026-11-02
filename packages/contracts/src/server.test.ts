@@ -2,6 +2,7 @@ import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vite-plus/test";
 
 import { ExecutionEnvironmentDescriptor } from "./environment.ts";
+import { ProviderInstanceConfig } from "./providerInstance.ts";
 import {
   OtlpEndpointCheckInput,
   resolveEnvironmentMachineKind,
@@ -27,6 +28,23 @@ const baseProviderSnapshot = {
 };
 
 describe("ServerProvider", () => {
+  it("decodes optional provider instance presentation metadata", () => {
+    expect(
+      decodeServerProvider({
+        ...baseProviderSnapshot,
+        displayName: "OpenRouter",
+        iconKey: "openrouter",
+        accentColor: "#7c3aed",
+      }),
+    ).toMatchObject({ displayName: "OpenRouter", iconKey: "openrouter", accentColor: "#7c3aed" });
+  });
+
+  it("trims a configured instance icon key and rejects a blank one", () => {
+    const decodeConfig = Schema.decodeUnknownSync(ProviderInstanceConfig);
+    expect(decodeConfig({ driver: "codex", iconKey: "  openrouter  " }).iconKey).toBe("openrouter");
+    expect(() => decodeConfig({ driver: "codex", iconKey: "   " })).toThrow();
+  });
+
   it("preserves installed-version presence through the provider wire codec", () => {
     const encode = Schema.encodeSync(ServerProvider);
     for (const installation of [{}, { installedVersion: null }, { installedVersion: "1.2.3" }]) {

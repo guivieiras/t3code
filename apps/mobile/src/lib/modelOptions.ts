@@ -33,6 +33,7 @@ export type ModelOption = {
   readonly providerDriver: string;
   readonly supportedRuntimeModes?: ReadonlyArray<RuntimeMode>;
   readonly providerIconUrl?: string | undefined;
+  readonly providerIconKey?: string | undefined;
   readonly providerBadge?: {
     readonly displayName: string;
     readonly accentColor?: string;
@@ -306,6 +307,7 @@ export function buildModelOptions(
   };
   const badgeEntries = (config?.providers ?? []).map((provider) => ({
     driverKind: provider.driver,
+    iconKey: provider.iconKey,
     enabled: provider.enabled,
     acpRegistryAgentId: registryAgentId(provider.instanceId),
   }));
@@ -327,6 +329,7 @@ export function buildModelOptions(
       showBadge: shouldShowInstanceBadge(
         {
           driverKind: driver,
+          iconKey: snapshot?.iconKey ?? instance?.iconKey,
           accentColor,
           acpRegistryAgentId: registryAgentId(instanceId),
           enabled: snapshot?.enabled ?? instance?.enabled ?? false,
@@ -377,6 +380,7 @@ export function buildModelOptions(
           ? {}
           : { supportedRuntimeModes: provider.supportedRuntimeModes }),
         ...(provider.iconUrl ? { providerIconUrl: provider.iconUrl } : {}),
+        ...(provider.iconKey ? { providerIconKey: provider.iconKey } : {}),
         isHidden: !model.isCustom && hiddenModels.has(model.slug),
         canHide: !model.isCustom,
         isDefault: model.isDefault === true,
@@ -441,6 +445,9 @@ export function buildModelOptions(
         providerKey: fallbackModelSelection.instanceId,
         providerLabel,
         providerDriver,
+        ...((provider?.iconKey ?? instanceConfig?.iconKey)
+          ? { providerIconKey: provider?.iconKey ?? instanceConfig?.iconKey }
+          : {}),
         providerBadge: providerBadgeFor(fallbackModelSelection.instanceId),
         isDefault: false,
         isLegacy: model?.isLegacy === true,

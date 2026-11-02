@@ -166,6 +166,7 @@ const buildEntry = Effect.fn("ProviderInstanceRegistry.buildEntry")(function* <R
         driverKind: entry.driver,
         instanceId,
         displayName: entry.displayName,
+        iconKey: entry.iconKey,
         accentColor: entry.accentColor,
         reason: blocked,
       }),
@@ -179,6 +180,7 @@ const buildEntry = Effect.fn("ProviderInstanceRegistry.buildEntry")(function* <R
         driverKind: entry.driver,
         instanceId,
         displayName: entry.displayName,
+        iconKey: entry.iconKey,
         accentColor: entry.accentColor,
         reason: `Driver '${entry.driver}' is not registered in this build.`,
       }),
@@ -201,6 +203,7 @@ const buildEntry = Effect.fn("ProviderInstanceRegistry.buildEntry")(function* <R
         driverKind: entry.driver,
         instanceId,
         displayName: entry.displayName,
+        iconKey: entry.iconKey,
         accentColor: entry.accentColor,
         reason: `Invalid config for instance '${rawInstanceId}': ${detail}`,
       }),
@@ -216,6 +219,7 @@ const buildEntry = Effect.fn("ProviderInstanceRegistry.buildEntry")(function* <R
         driverKind: entry.driver,
         instanceId,
         displayName: entry.displayName,
+        iconKey: entry.iconKey,
         accentColor: entry.accentColor,
         reason: "Reading secrets…",
       }),
@@ -236,6 +240,7 @@ const buildEntry = Effect.fn("ProviderInstanceRegistry.buildEntry")(function* <R
         driverKind: entry.driver,
         instanceId,
         displayName: entry.displayName,
+        iconKey: entry.iconKey,
         accentColor: entry.accentColor,
         reason: `Could not read ${unreadable.join(", ")} from its secret provider. Unlock it, then refresh.`,
       }),
@@ -270,6 +275,7 @@ const buildEntry = Effect.fn("ProviderInstanceRegistry.buildEntry")(function* <R
         driverKind: entry.driver,
         instanceId,
         displayName: entry.displayName,
+        iconKey: entry.iconKey,
         accentColor: entry.accentColor,
         reason: `Driver '${entry.driver}' failed to create instance: ${createResult.failure.detail}`,
       }),
@@ -279,7 +285,10 @@ const buildEntry = Effect.fn("ProviderInstanceRegistry.buildEntry")(function* <R
   return {
     kind: "live" as const,
     live: {
-      instance: createResult.success,
+      // Drivers never see the icon; the registry stamps it so every driver gets it for free.
+      instance: entry.iconKey
+        ? { ...createResult.success, iconKey: entry.iconKey }
+        : createResult.success,
       scope: childScope,
       entry,
       secrets,

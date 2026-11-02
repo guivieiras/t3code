@@ -35,6 +35,7 @@ import { RadioGroup } from "../ui/radio-group";
 import { toastManager } from "../ui/toast";
 import { providerClients } from "./providerDriverMeta";
 import { ProviderAccentColorPicker } from "./ProviderAccentColorPicker";
+import { ProviderIconPicker } from "./ProviderIconPicker";
 import { SettingsGroup } from "./SettingsGroup";
 import { SettingsRow } from "./settingsLayout";
 import { ProviderSettingsForm, deriveProviderSettingsFields } from "./ProviderSettingsForm";
@@ -217,10 +218,12 @@ export function AddProviderInstanceDialog({
   const isPreparingRegistryAgent = registry.preparingId !== null;
   const defaultIdentity: ProviderIdentityDraft = {
     label: driverOption.label,
+    iconKey: "",
     accentColor: "",
     instanceIdOverride: null,
   };
-  const { label, accentColor, instanceIdOverride } = identityByDriver[driver] ?? defaultIdentity;
+  const { label, iconKey, accentColor, instanceIdOverride } =
+    identityByDriver[driver] ?? defaultIdentity;
   const instanceId =
     instanceIdOverride ??
     deriveAvailableInstanceId(
@@ -396,6 +399,7 @@ export function AddProviderInstanceDialog({
       driver,
       enabled: true,
       ...(label.trim().length > 0 ? { displayName: label.trim() } : {}),
+      ...(iconKey ? { iconKey } : {}),
       ...(normalizedAccentColor ? { accentColor: normalizedAccentColor } : {}),
       ...(hasConfig ? { config } : {}),
       ...(isLocalAcp && localEnvironment.length > 0 ? { environment: localEnvironment } : {}),
@@ -679,6 +683,18 @@ export function AddProviderInstanceDialog({
                         setIdentityDraft({ instanceIdOverride: event.target.value });
                       }}
                       aria-invalid={showInstanceIdError}
+                    />
+                  }
+                />
+                <SettingsRow
+                  title="Icon"
+                  description="Optional. Unrecognized model brands use it too."
+                  control={
+                    <ProviderIconPicker
+                      driverKind={driver}
+                      displayName={label || driverOption.label}
+                      value={iconKey || undefined}
+                      onCommit={(value) => setIdentityDraft({ iconKey: value })}
                     />
                   }
                 />

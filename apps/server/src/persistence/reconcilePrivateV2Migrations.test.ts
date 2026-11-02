@@ -55,6 +55,14 @@ const seedPrivateLayout = Effect.gen(function* () {
   `;
 });
 
+// A later private build appended web push as migration 53.
+const seedPrivateWebPush = Effect.gen(function* () {
+  const sql = yield* SqlClient.SqlClient;
+  yield* sql`CREATE TABLE web_push_completions (thread_id TEXT PRIMARY KEY, run_ordinal INTEGER NOT NULL)`;
+  yield* sql`INSERT INTO web_push_completions (thread_id, run_ordinal) VALUES ('private-thread', 3)`;
+  yield* sql`INSERT INTO effect_sql_migrations (migration_id, name) VALUES (53, 'WebPushNotifications')`;
+});
+
 const schemaOf = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient;
   return yield* sql<{ readonly type: string; readonly name: string; readonly sql: string | null }>`
@@ -73,47 +81,55 @@ const history = Effect.gen(function* () {
 });
 
 describe("private V2 migration layout upgrade", () => {
-  it.effect("moves the private layout onto main's ids and matches a fresh schema", () =>
-    Effect.gen(function* () {
-      const sql = yield* SqlClient.SqlClient;
-      yield* seedPrivateLayout;
-      const imports = yield* sql`SELECT * FROM orchestration_v2_legacy_imports`;
+  it.effect.each([false, true])(
+    "moves the private layout onto main's ids and matches a fresh schema (web push: %s)",
+    (withWebPush) =>
+      Effect.gen(function* () {
+        const sql = yield* SqlClient.SqlClient;
+        yield* seedPrivateLayout;
+        if (withWebPush) yield* seedPrivateWebPush;
+        const imports = yield* sql`SELECT * FROM orchestration_v2_legacy_imports`;
 
-      const executed = yield* runMigrations();
-      assert.deepStrictEqual(executed.slice(0, 11), [
-        [45, "ProjectionProjectsAutoPull"],
-        [46, "RepairAutomaticSettlementTimestamps"],
-        [47, "ProjectionProjectIcon"],
-        [48, "ProjectionThreadBranchPullRequest"],
-        [49, "ProjectionThreadsActiveOrderKey"],
-        [50, "ProjectionThreadPullRequests"],
-        [51, "ProjectionThreadMessageContext"],
-        [52, "ProjectionThreadTitleState"],
-        [53, "PullRequestFilesViewed"],
-        [54, "ProjectionThreadsAutoSettleDisabledAt"],
-        [55, "OrchestrationV2"],
-      ]);
-      assert.deepStrictEqual(executed.at(-1), migrationManifest.at(-1));
-      assert.deepStrictEqual(yield* runMigrations(), []);
-      assert.deepStrictEqual(yield* history, migrationManifest);
-      assert.deepStrictEqual(yield* sql`SELECT * FROM orchestration_v2_legacy_imports`, imports);
+        const executed = yield* runMigrations();
+        assert.deepStrictEqual(executed.slice(0, 11), [
+          [45, "ProjectionProjectsAutoPull"],
+          [46, "RepairAutomaticSettlementTimestamps"],
+          [47, "ProjectionProjectIcon"],
+          [48, "ProjectionThreadBranchPullRequest"],
+          [49, "ProjectionThreadsActiveOrderKey"],
+          [50, "ProjectionThreadPullRequests"],
+          [51, "ProjectionThreadMessageContext"],
+          [52, "ProjectionThreadTitleState"],
+          [53, "PullRequestFilesViewed"],
+          [54, "ProjectionThreadsAutoSettleDisabledAt"],
+          [55, "OrchestrationV2"],
+        ]);
+        assert.deepStrictEqual(executed.at(-1), migrationManifest.at(-1));
+        assert.deepStrictEqual(yield* runMigrations(), []);
+        assert.deepStrictEqual(yield* history, migrationManifest);
+        assert.deepStrictEqual(yield* sql`SELECT * FROM orchestration_v2_legacy_imports`, imports);
 
-      // 044 is recorded, not run, so carried-over default models survive.
-      const [created] = yield* sql<{ readonly payload_json: string }>`
+        // 044 is recorded, not run, so carried-over default models survive.
+        const [created] = yield* sql<{ readonly payload_json: string }>`
         SELECT payload_json FROM orchestration_events WHERE event_id = 'project-created'
       `;
-      assert.deepStrictEqual(
-        JSON.parse(created!.payload_json).defaultModelSelection,
-        defaultModelSelection,
-      );
+        assert.deepStrictEqual(
+          JSON.parse(created!.payload_json).defaultModelSelection,
+          defaultModelSelection,
+        );
 
-      const upgraded = yield* schemaOf;
-      const fresh = yield* runMigrations().pipe(
-        Effect.andThen(schemaOf),
-        Effect.provide(NodeSqliteClient.layer({ filename: ":memory:" })),
-      );
-      assert.deepStrictEqual(upgraded, fresh);
-    }).pipe(Effect.provide(NodeSqliteClient.layer({ filename: ":memory:" }))),
+        if (withWebPush) {
+          assert.deepStrictEqual(yield* sql`SELECT * FROM web_push_completions`, [
+            { thread_id: "private-thread", run_ordinal: 3 },
+          ]);
+        }
+        const upgraded = (yield* schemaOf).filter((entry) => entry.name !== "web_push_completions");
+        const fresh = yield* runMigrations().pipe(
+          Effect.andThen(schemaOf),
+          Effect.provide(NodeSqliteClient.layer({ filename: ":memory:" })),
+        );
+        assert.deepStrictEqual(upgraded, fresh);
+      }).pipe(Effect.provide(NodeSqliteClient.layer({ filename: ":memory:" }))),
   );
 
   it.effect("rolls back schema and history together on failure and can retry", () =>

@@ -32,6 +32,9 @@ export const PRIVATE_V2_MIGRATION_SLOTS = [
   [52, "LegacyV1ImportState"],
 ] as const;
 
+// A later private build appended web push here; its tables stay and its service now owns them.
+const PRIVATE_WEB_PUSH_SLOT = [53, "WebPushNotifications"] as const;
+
 const RELEASED_SLOTS = [
   [44, "ClearAutomaticProjectModelDefaults", undefined],
   [45, "ProjectionProjectsAutoPull", ProjectionProjectsAutoPull],
@@ -65,8 +68,12 @@ export const reconcilePrivateV2Migrations = Effect.fn("reconcilePrivateV2Migrati
         SELECT migration_id, name FROM effect_sql_migrations ORDER BY migration_id
       `;
       const tail = history.filter((row) => row.migration_id >= 44);
+      const hasWebPushSlot =
+        tail.length === PRIVATE_V2_MIGRATION_SLOTS.length + 1 &&
+        tail.at(-1)?.migration_id === PRIVATE_WEB_PUSH_SLOT[0] &&
+        tail.at(-1)?.name === PRIVATE_WEB_PUSH_SLOT[1];
       const isPrivateLayout =
-        tail.length === PRIVATE_V2_MIGRATION_SLOTS.length &&
+        tail.length === PRIVATE_V2_MIGRATION_SLOTS.length + (hasWebPushSlot ? 1 : 0) &&
         PRIVATE_V2_MIGRATION_SLOTS.every(
           ([id, name], index) => tail[index]?.migration_id === id && tail[index]?.name === name,
         );
@@ -98,7 +105,7 @@ export const reconcilePrivateV2Migrations = Effect.fn("reconcilePrivateV2Migrati
       // Left behind by a private token-usage migration that never shipped.
       yield* sql`DROP TABLE IF EXISTS orchestration_v2_projection_thread_token_usage`;
 
-      yield* sql`DELETE FROM effect_sql_migrations WHERE migration_id BETWEEN 44 AND 52`;
+      yield* sql`DELETE FROM effect_sql_migrations WHERE migration_id BETWEEN 44 AND 53`;
       for (const [id, name] of [...RELEASED_SLOTS, [55, "OrchestrationV2"] as const]) {
         yield* sql`INSERT INTO effect_sql_migrations (migration_id, name) VALUES (${id}, ${name})`;
       }

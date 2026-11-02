@@ -22,7 +22,7 @@ Ordinary coding tasks need no T3 tools.
 
 - Answer data with a trend or comparison with a chart, and show any visual the user asks for here: pass its HTML to \`html_preview\`, then \`html_render\`. If the visual is a file, pass that file's HTML. A screenshot on disk or a text description does not show it. Never start a server for it. Tools a web page exposes give data only. Never use them to show results. Asked for an image to post, send, or use elsewhere: a \`.png\` file and its path, never \`html_render\`.
 - Never use \`preview_*\` unasked to verify or show your own edit. Use them when the current request asks for browser work, including recording edits, or names a page or tab. Do not repeat preview calls from an earlier turn. Public pages: web fetch or search unless browser work was asked; then preview tools only, no web fetch. Close a tab you opened before you reply, unless the user asked for it or uses it.
-- Images and files shown only in tool results are agent-only previews, not visible to the user. Never say one is attached, shared, or shown above unless your reply embeds it with Markdown image syntax or links its absolute path.`,
+- Tool-result images and files are agent-only. Embed or link one by absolute path before saying you shared it.`,
 ];
 
 export const T3_CODE_ORCHESTRATION_INSTRUCTIONS = `

@@ -173,6 +173,7 @@ function shell(overrides: Partial<typeof thread> = {}, ...others: Partial<typeof
   return {
     status: "live",
     snapshot: Option.some({
+      projects: [],
       threads: [overrides, ...others].map((override) =>
         toV2ThreadShell({ ...thread, ...override }),
       ),
@@ -258,7 +259,7 @@ it("holds a completion through a continuation gap and notifies once it settles",
   await vi.advanceTimersByTimeAsync(WORKING_EXIT_GRACE_MS - 1);
   expect(TestNotification.sent).toEqual([]);
   await vi.advanceTimersByTimeAsync(1);
-  expect(TestNotification.sent.map((sent) => sent.title)).toEqual(["Thread completed"]);
+  expect(TestNotification.sent.map((sent) => sent.title)).toEqual(["Test thread"]);
 });
 
 it.each(["hasPendingApprovals", "hasPendingUserInput"] as const)(
@@ -305,7 +306,7 @@ it.each(["hasPendingApprovals", "hasPendingUserInput"] as const)(
     expect(TestNotification.sent.map(({ title }) => title)).toEqual([
       "Approval needed",
       flag === "hasPendingApprovals" ? "Approval needed" : "Input needed",
-      "Thread completed",
+      "Test thread",
     ]);
   },
 );
@@ -326,7 +327,7 @@ it.each([false, true])(
     state.shells.set("one", continued ? shell() : completed);
     await vi.advanceTimersByTimeAsync(WORKING_EXIT_GRACE_MS);
     expect(TestNotification.sent.map(({ title }) => title)).toEqual(
-      continued ? [] : ["Thread completed"],
+      continued ? [] : ["Test thread"],
     );
   },
 );

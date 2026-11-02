@@ -121,9 +121,13 @@ export const MODEL_BRAND_ICON_OPTIONS = MODEL_BRAND_ICON_KEYS.map((key) => ({
   ...MODEL_BRAND_ICONS[key],
 }));
 
+export function modelBrandIcon(iconKey: ModelBrandIconKey): ProviderIcon {
+  return MODEL_BRAND_ICONS[iconKey].icon;
+}
+
 /** The bundled icon for an instance or model icon key; unknown keys fall back to the driver. */
 export function resolveModelBrandIcon(
   iconKey: string | null | undefined,
 ): ProviderIcon | undefined {
-  return isModelBrandIconKey(iconKey) ? MODEL_BRAND_ICONS[iconKey].icon : undefined;
+  return isModelBrandIconKey(iconKey) ? modelBrandIcon(iconKey) : undefined;
 }

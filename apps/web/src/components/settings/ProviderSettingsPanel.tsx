@@ -99,7 +99,7 @@ import { ProviderSetupSection, readAntigravityAuthMethod } from "./ProviderSetup
 import { ProviderAuthenticationSection } from "./ProviderAuthenticationSection";
 import { CodexSetupSection, CodexManagedRuntimeFields } from "./CodexSetupSection";
 import { readCodexSetupMode } from "./CodexSetupSection.logic";
-import { providerClients } from "./providerDriverMeta";
+import { providerClientForInstance, providerClients } from "./providerDriverMeta";
 import { searchableSetting } from "./settingsSearch";
 import { CompactIdleThreadsRow } from "./SettingsPanels";
 import {
@@ -1242,7 +1242,7 @@ function ProviderInstanceRow({
       ? allProjects.filter((project) => project.environmentId === environmentId)
       : undefined;
   const instance = explicitInstance ?? { driver };
-  const driverOption = providerClients.get(driver);
+  const driverOption = providerClientForInstance(driver, instance.config);
   const updateCandidate =
     liveProvider !== undefined && isProviderSettingsUpdateCandidate(liveProvider)
       ? liveProvider

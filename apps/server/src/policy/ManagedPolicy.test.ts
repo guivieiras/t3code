@@ -302,7 +302,8 @@ it.layer(NodeServices.layer)("ManagedPolicy.load", (it) => {
         });
         assert.includeMembers(
           [...(codexHome.summary?.limits?.providers?.lockedInstanceFields?.[codex] ?? [])],
-          ["config.homePath", "config.shadowHomePath"],
+          // An OpenRouter connection would append launch arguments the pin does not set.
+          ["config.homePath", "config.shadowHomePath", "config.connection"],
         );
         // A server URL makes OpenCode skip the local launch a pin sets, so the pin owns it too.
         const opencode = ProviderDriverKind.make("opencode");

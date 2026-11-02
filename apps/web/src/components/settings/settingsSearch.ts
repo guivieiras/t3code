@@ -460,6 +460,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["usage quota rate limit reset recover continue"],
   },
   {
+    id: "sidebar-density",
+    title: msg("Sidebar density"),
+    to: "/settings/general",
+    searchTerms: ["compact mixed comfortable rows thread list sidebar dense"],
+  },
+  {
     id: "working-shelf",
     title: msg("Working section"),
     to: "/settings/general",

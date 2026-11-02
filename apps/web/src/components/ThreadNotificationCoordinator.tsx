@@ -31,6 +31,7 @@ import {
 } from "../threadNotifications";
 import { resolveSidebarThreadStatus, type SidebarThreadStatus } from "./Sidebar.logic";
 import {
+  buildCompletionNotification,
   createThreadNotificationGate,
   type ThreadNotificationKind,
   type ThreadNotificationObservation,
@@ -147,9 +148,13 @@ export function startThreadNotifications(
       Notification.permission !== "granted"
     )
       return;
+    const content =
+      kind === "completion"
+        ? completionNotificationContent(environmentId, state)
+        : { title, body: thread.title };
     try {
-      const notification = new Notification(title, {
-        body: thread.title,
+      const notification = new Notification(content.title, {
+        body: content.body,
         tag: threadNotificationTag(environmentId, thread.id),
         silent: true,
         // Windows drops clicks after a toast moves into Notification Center.
@@ -168,6 +173,31 @@ export function startThreadNotifications(
     } catch {
       // Some browsers expose Notification but reject desktop presentation.
     }
+  };
+
+  const completionNotificationContent = (
+    environmentId: EnvironmentId,
+    state: NotificationState,
+  ) => {
+    const shell = registry.get(environmentShell.stateValueAtom(environmentId)).snapshot;
+    const project = Option.isSome(shell)
+      ? shell.value.projects.find((candidate) => candidate.id === state.thread.projectId)
+      : undefined;
+    // Name the environment only when several could have sent it.
+    const identities = registry.get(environmentSummaries.identitiesAtom);
+    const latestMessage = state.raw.latestVisibleMessage;
+    return buildCompletionNotification({
+      threadTitle: state.thread.title,
+      finalReply: latestMessage?.role === "assistant" ? latestMessage.text : null,
+      projectTitle: project?.title ?? null,
+      branch: state.thread.branch,
+      startedAt: state.thread.latestRun?.startedAt ?? null,
+      completedAt: state.thread.latestRun?.completedAt ?? null,
+      environmentLabel:
+        identities.length > 1
+          ? (identities.find((identity) => identity.environmentId === environmentId)?.label ?? null)
+          : null,
+    });
   };
 
   const observeThreads = (

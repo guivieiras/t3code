@@ -2,7 +2,10 @@ import { WORKING_EXIT_GRACE_MS } from "@t3tools/client-runtime/state/thread-inbo
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import {
+  buildCompletionNotification,
+  compactCompletionPreview,
   createThreadNotificationGate,
+  formatRunDuration,
   type ThreadNotificationObservation,
 } from "./ThreadNotificationCoordinator.logic";
 
@@ -189,5 +192,45 @@ describe("createThreadNotificationGate", () => {
     observe(completed(2), { ...visible, quiet: true });
     vi.advanceTimersByTime(WORKING_EXIT_GRACE_MS * 2);
     expect(notify).not.toHaveBeenCalled();
+  });
+});
+
+describe("completion notification content", () => {
+  it("leads with the final reply, then where and how long it ran", () => {
+    expect(
+      buildCompletionNotification({
+        threadTitle: "Improve notifications",
+        finalReply: "  Done.\n\nAll tests pass.  ",
+        projectTitle: "t3code",
+        branch: "feat/notify",
+        startedAt: "2026-08-18T11:00:01.000Z",
+        completedAt: "2026-08-18T12:00:00.000Z",
+        environmentLabel: "Laptop",
+      }),
+    ).toEqual({
+      title: "Improve notifications",
+      body: "Done. All tests pass.\nt3code · feat/notify · 59m 59s · Laptop",
+    });
+  });
+
+  it("falls back when nothing but the title is known", () => {
+    expect(
+      buildCompletionNotification({
+        threadTitle: "Untitled",
+        finalReply: " \n ",
+        projectTitle: null,
+        branch: null,
+        startedAt: null,
+        completedAt: "2026-08-18T12:00:00.000Z",
+        environmentLabel: null,
+      }),
+    ).toEqual({ title: "Untitled", body: "Thread completed" });
+  });
+
+  it("truncates long replies and formats short and long runs", () => {
+    expect(compactCompletionPreview("123456789", 6)).toBe("12345…");
+    expect(formatRunDuration("2026-08-18T11:59:59.500Z", "2026-08-18T12:00:00.000Z")).toBe("<1s");
+    expect(formatRunDuration("2026-08-18T10:00:00.000Z", "2026-08-18T12:05:00.000Z")).toBe("2h 5m");
+    expect(formatRunDuration("2026-08-18T12:00:01.000Z", "2026-08-18T12:00:00.000Z")).toBeNull();
   });
 });

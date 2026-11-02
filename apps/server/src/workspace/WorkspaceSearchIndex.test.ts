@@ -28,13 +28,10 @@ function fileItem(relativePath: string): FileItem {
   };
 }
 
-it.effect("filters image searches before applying the result limit", () =>
+it.effect("constrains image searches to image extensions before native paging", () =>
   Effect.scoped(
     Effect.gen(function* () {
-      const items = [
-        ...Array.from({ length: 200 }, (_, index) => fileItem(`src/file-${index}.ts`)),
-        fileItem("public/icon.svg"),
-      ];
+      const items = [fileItem("src/file.ts"), fileItem("public/icon.svg")];
       const fileSearch = vi.fn(() => ({
         ok: true as const,
         value: {
@@ -53,12 +50,15 @@ it.effect("filters image searches before applying the result limit", () =>
 
       const searchIndex = yield* WorkspaceSearchIndex.make("/workspace/project");
       const resultWithoutKind = yield* searchIndex.search("", 200, undefined, true);
-      const resultWithDirectoryKind = yield* searchIndex.search("", 200, "directory", true);
+      const resultWithDirectoryKind = yield* searchIndex.search("icon", 10, "directory", true);
 
       expect(resultWithoutKind.entries).toEqual([{ kind: "file", path: "public/icon.svg" }]);
       expect(resultWithDirectoryKind.entries).toEqual([{ kind: "file", path: "public/icon.svg" }]);
       expect(fileSearch).toHaveBeenCalledTimes(2);
-      expect(fileSearch).toHaveBeenCalledWith("", { pageSize: 25_002 });
+      const constraint =
+        "*.avif *.bmp *.gif *.ico *.heic *.heif *.jpeg *.jpg *.png *.svg *.tif *.tiff *.webp *.icns";
+      expect(fileSearch).toHaveBeenNthCalledWith(1, constraint, { pageSize: 201 });
+      expect(fileSearch).toHaveBeenNthCalledWith(2, `${constraint} icon`, { pageSize: 11 });
     }),
   ),
 );

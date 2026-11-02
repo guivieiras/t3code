@@ -23,7 +23,11 @@ import {
   type EnvironmentId,
   type ThreadId,
 } from "@t3tools/contracts";
-import type { SidebarProjectSortOrder, SidebarThreadSortOrder } from "@t3tools/contracts/settings";
+import type {
+  SidebarDensity,
+  SidebarProjectSortOrder,
+  SidebarThreadSortOrder,
+} from "@t3tools/contracts/settings";
 import type { AsyncResult } from "effect/reactivity";
 import {
   effectiveSnoozed,
@@ -183,6 +187,29 @@ export function resolveSidebarThreadSection(input: {
   if (input.settled) return "settled";
   if (input.pinned) return "pinned";
   return "active";
+}
+
+// "folder" rows sit inside a boring sidebar project folder; "compact" and "mixed"
+// are the one- and two-line stand-ins for cards.
+export type SidebarThreadRowVariant =
+  | "card"
+  | "mixed"
+  | "compact"
+  | "slim"
+  | "folder"
+  | "folder-multiline";
+
+// Folder rows follow the boring sidebar's own multiline toggle, and settled or
+// snoozed rows stay slim; density only reshapes the rows that would be cards.
+export function resolveSidebarThreadRowVariant(input: {
+  readonly section: SidebarSection;
+  readonly density: SidebarDensity;
+  readonly inFolder: boolean;
+  readonly folderRowsMultiline: boolean;
+}): SidebarThreadRowVariant {
+  if (input.inFolder) return input.folderRowsMultiline ? "folder-multiline" : "folder";
+  if (input.section === "snoozed" || input.section === "settled") return "slim";
+  return input.density === "comfortable" ? "card" : input.density;
 }
 
 // Keep cached placement on the first connection attempt, matching mobile's threadRouteIsHydrating.

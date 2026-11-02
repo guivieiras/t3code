@@ -16,6 +16,7 @@ import {
   orderItemsByPreferredIds,
   pinOrderKeyBetween,
   resolveSidebarSweepKeys,
+  resolveSidebarThreadRowVariant,
   resolveSidebarThreadStatus,
   resolveThreadStatusPill,
   resolveWorkingStartedAt,
@@ -194,6 +195,41 @@ function makeLatestRun(overrides?: {
       overrides?.completedAt !== undefined ? overrides.completedAt : "2026-03-09T10:05:00.000Z",
   };
 }
+
+describe("resolveSidebarThreadRowVariant", () => {
+  const variant = (
+    section: SidebarSection,
+    density: "comfortable" | "mixed" | "compact",
+    folder?: { multiline: boolean },
+  ) =>
+    resolveSidebarThreadRowVariant({
+      section,
+      density,
+      inFolder: folder !== undefined,
+      folderRowsMultiline: folder?.multiline ?? false,
+    });
+
+  it("reshapes only the rows that would be cards", () => {
+    for (const section of ["active", "pinned", "working"] as const) {
+      expect(variant(section, "comfortable")).toBe("card");
+      expect(variant(section, "mixed")).toBe("mixed");
+      expect(variant(section, "compact")).toBe("compact");
+    }
+  });
+
+  it("keeps settled and snoozed rows slim at every density", () => {
+    for (const section of ["settled", "snoozed"] as const) {
+      for (const density of ["comfortable", "mixed", "compact"] as const) {
+        expect(variant(section, density)).toBe("slim");
+      }
+    }
+  });
+
+  it("leaves project folder rows to the boring sidebar's multiline toggle", () => {
+    expect(variant("active", "compact", { multiline: true })).toBe("folder-multiline");
+    expect(variant("active", "mixed", { multiline: false })).toBe("folder");
+  });
+});
 
 describe("orderItemsByPreferredIds", () => {
   it("resolves legacy preference aliases without materializing project state", () => {

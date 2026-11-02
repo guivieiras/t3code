@@ -67,6 +67,11 @@ export const SidebarThreadSortOrder = Schema.Literals(["updated_at", "created_at
 export type SidebarThreadSortOrder = typeof SidebarThreadSortOrder.Type;
 const DEFAULT_SIDEBAR_THREAD_SORT_ORDER: SidebarThreadSortOrder = "updated_at";
 
+// How much detail active, pinned, and working rows show outside project folders.
+export const SidebarDensity = Schema.Literals(["comfortable", "mixed", "compact"]);
+export type SidebarDensity = typeof SidebarDensity.Type;
+const DEFAULT_SIDEBAR_DENSITY: SidebarDensity = "comfortable";
+
 export const SidebarProjectGroupingMode = Schema.Literals([
   "repository",
   "repository_path",
@@ -493,6 +498,9 @@ export const ClientSettingsSchema = Schema.Struct({
   legacySidebarEnabled: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(false))),
   showThreadShortcutHints: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
   sidebarWorkingShelfEnabled: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
+  sidebarDensity: SidebarDensity.pipe(
+    Schema.withDecodingDefault(Effect.succeed(DEFAULT_SIDEBAR_DENSITY)),
+  ),
   sidebarProjectGroupingMode: SidebarProjectGroupingMode.pipe(
     Schema.withDecodingDefault(Effect.succeed(DEFAULT_SIDEBAR_PROJECT_GROUPING_MODE)),
   ),
@@ -1809,6 +1817,7 @@ export const ClientSettingsPatch = Schema.Struct({
   legacySidebarEnabled: Schema.optionalKey(Schema.Boolean),
   showThreadShortcutHints: Schema.optionalKey(Schema.Boolean),
   sidebarWorkingShelfEnabled: Schema.optionalKey(Schema.Boolean),
+  sidebarDensity: Schema.optionalKey(SidebarDensity),
   sidebarProjectGroupingMode: Schema.optionalKey(SidebarProjectGroupingMode),
   sidebarProjectGroupingOverrides: Schema.optionalKey(
     Schema.Record(TrimmedNonEmptyString, SidebarProjectGroupingMode),

@@ -120,15 +120,12 @@ export function buildThreadActionMenuItems(
     ...(state.canFind
       ? [{ id: "find" as const, label: "Find in thread", icon: "text-search" }]
       : []),
-    ...(state.branch
-      ? [
-          {
-            id: "new-thread-on-branch" as const,
-            label: `New thread on ${state.branch}`,
-            icon: "message-square-plus",
-          },
-        ]
-      : []),
+    // Threads without a branch (non-Git projects) still offer a plain new thread.
+    {
+      id: "new-thread-on-branch" as const,
+      label: state.branch ? `New thread on ${state.branch}` : "New thread",
+      icon: "message-square-plus",
+    },
     ...(state.supports.pinning
       ? [
           state.isPinned

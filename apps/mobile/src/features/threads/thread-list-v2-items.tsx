@@ -961,15 +961,11 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
   const menuActions = useMemo<MenuAction[]>(() => {
     const nested = Platform.OS === "ios";
     const direct: MenuAction[] = [
-      ...(thread.branch
-        ? [
-            {
-              id: "new-thread-on-branch",
-              title: getThreadListV2NewBranchMenuTitle(thread.branch),
-              image: "square.and.pencil",
-            },
-          ]
-        : []),
+      {
+        id: "new-thread-on-branch",
+        title: thread.branch ? getThreadListV2NewBranchMenuTitle(thread.branch) : "New thread",
+        image: "square.and.pencil",
+      },
       { id: "copy-thread", title: "Copy thread", image: "text.bubble" },
       { id: "copy-thread-id", title: "Copy thread ID", image: "doc.on.doc" },
     ];

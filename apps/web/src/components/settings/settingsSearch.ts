@@ -428,6 +428,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     to: "/settings/appearance",
   },
   {
+    id: "media-link-previews",
+    title: "Open media links in preview",
+    to: "/settings/appearance",
+    searchTerms: ["image video path modal lightbox expanded file panel drawer"],
+  },
+  {
     id: "project-grouping",
     title: msg("Project grouping"),
     to: "/settings/general",

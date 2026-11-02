@@ -42,6 +42,8 @@ interface MarkdownFileLinkProps {
   openInEditorMenuLabel: string;
   onOpenInBrowser?: (() => Promise<AtomCommandResult<unknown, unknown>>) | undefined;
   onOpenMedia?: (() => void) | undefined;
+  /** Primary clicks open media in the expanded preview; Ctrl+click keeps the file panel. */
+  preferMediaPreview?: boolean | undefined;
   onReveal?: (() => Promise<AtomCommandResult<unknown, unknown>>) | undefined;
   revealLabel?: string | undefined;
 }
@@ -65,6 +67,7 @@ export const MarkdownFileLink = memo(function MarkdownFileLink({
   openInEditorMenuLabel,
   onOpenInBrowser,
   onOpenMedia,
+  preferMediaPreview = false,
   onReveal,
   revealLabel,
   resolveCopyPaths,
@@ -108,6 +111,10 @@ export const MarkdownFileLink = memo(function MarkdownFileLink({
   };
 
   const handleOpenInFilePreview = () => {
+    if (preferMediaPreview && onOpenMedia) {
+      onOpenMedia();
+      return;
+    }
     if (threadRef && panelPath) {
       onOpenInPanel(panelPath, line);
       return;
@@ -337,6 +344,10 @@ export const MarkdownFileLink = memo(function MarkdownFileLink({
               onClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
+                if (preferMediaPreview && onOpenMedia && event.ctrlKey && threadRef && panelPath) {
+                  onOpenInPanel(panelPath, line);
+                  return;
+                }
                 if (onOpen && shouldOpenMarkdownFileLinkInEditor(event)) {
                   handleOpenInEditor();
                   return;
@@ -408,6 +419,7 @@ function areMarkdownFileLinkPropsEqual(
     previous.openInEditorMenuLabel === next.openInEditorMenuLabel &&
     previous.onOpenInBrowser === next.onOpenInBrowser &&
     previous.onOpenMedia === next.onOpenMedia &&
+    previous.preferMediaPreview === next.preferMediaPreview &&
     previous.onReveal === next.onReveal &&
     previous.resolveCopyPaths === next.resolveCopyPaths &&
     previous.revealLabel === next.revealLabel

@@ -422,6 +422,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["anchor scroll follow bottom prompt timeline"],
   },
   {
+    id: "media-link-previews",
+    title: "Open media links in preview",
+    to: "/settings/appearance",
+    searchTerms: ["image video path modal lightbox expanded file panel drawer"],
+  },
+  {
     id: "project-grouping",
     title: "Project grouping",
     to: "/settings/general",

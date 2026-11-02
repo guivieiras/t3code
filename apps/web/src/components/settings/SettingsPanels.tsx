@@ -513,6 +513,9 @@ export function useSettingsRestore(onRestored?: () => void) {
     ...(settings.pinSentMessagesToTop !== DEFAULT_UNIFIED_SETTINGS.pinSentMessagesToTop
       ? ["Pin sent messages to top"]
       : []),
+    ...(settings.openMediaLinksInPreview !== DEFAULT_UNIFIED_SETTINGS.openMediaLinksInPreview
+      ? ["Open media links in preview"]
+      : []),
     ...getChangedTypographySettingLabels(settings),
     ...(settings.diffFilesCollapsed !== DEFAULT_UNIFIED_SETTINGS.diffFilesCollapsed
       ? ["Default diff file state"]
@@ -641,6 +644,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       wordWrap: DEFAULT_UNIFIED_SETTINGS.wordWrap,
       persistComposerContextStrip: DEFAULT_UNIFIED_SETTINGS.persistComposerContextStrip,
       pinSentMessagesToTop: DEFAULT_UNIFIED_SETTINGS.pinSentMessagesToTop,
+      openMediaLinksInPreview: DEFAULT_UNIFIED_SETTINGS.openMediaLinksInPreview,
       diffFilesCollapsed: DEFAULT_UNIFIED_SETTINGS.diffFilesCollapsed,
       diffIgnoreWhitespace: DEFAULT_UNIFIED_SETTINGS.diffIgnoreWhitespace,
       diffLayout: DEFAULT_UNIFIED_SETTINGS.diffLayout,

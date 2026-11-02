@@ -453,6 +453,7 @@ export const ClientSettingsSchema = Schema.Struct({
     Schema.withDecodingDefault(Effect.succeed(false)),
   ),
   pinSentMessagesToTop: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
+  openMediaLinksInPreview: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(false))),
 
   favorites: ModelFavorites.pipe(Schema.withDecodingDefault(Effect.succeed([]))),
   providerModelPreferences: ProviderModelPreferences.pipe(
@@ -1787,6 +1788,7 @@ export const ClientSettingsPatch = Schema.Struct({
   fontSmoothing: Schema.optionalKey(Schema.Boolean),
   persistComposerContextStrip: Schema.optionalKey(Schema.Boolean),
   pinSentMessagesToTop: Schema.optionalKey(Schema.Boolean),
+  openMediaLinksInPreview: Schema.optionalKey(Schema.Boolean),
   favorites: Schema.optionalKey(ModelFavorites),
   providerModelPreferences: Schema.optionalKey(ProviderModelPreferences),
   pullRequestMergeMethodOverrides: Schema.optionalKey(

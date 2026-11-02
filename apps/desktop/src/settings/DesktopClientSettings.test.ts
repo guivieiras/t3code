@@ -56,6 +56,7 @@ const clientSettings: ClientSettings = {
   showSkillsInSlashMenu: false,
   persistComposerContextStrip: true,
   pinSentMessagesToTop: false,
+  openMediaLinksInPreview: true,
   providerModelPreferences: {},
   sidebarProjectGroupingMode: "repository_path",
   sidebarProjectGroupingOverrides: {

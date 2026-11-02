@@ -356,6 +356,7 @@ export function AppearanceSettingsPanel() {
             "appearance-interface",
             searchableSetting("composer-context").id,
             searchableSetting("sent-message-position").id,
+            searchableSetting("media-link-previews").id,
           ]}
         >
           <SettingsRow
@@ -500,6 +501,32 @@ export function AppearanceSettingsPanel() {
                   updateSettings({ pinSentMessagesToTop: Boolean(checked) })
                 }
                 aria-label="Pin sent messages to top"
+              />
+            }
+          />
+          <SettingsRow
+            {...searchableSetting("media-link-previews")}
+            description="Open image and video file links in chat in the expanded preview instead of the file panel. Ctrl+click still opens the file panel."
+            resetAction={
+              settings.openMediaLinksInPreview !==
+              DEFAULT_UNIFIED_SETTINGS.openMediaLinksInPreview ? (
+                <SettingResetButton
+                  label="media link previews"
+                  onClick={() =>
+                    updateSettings({
+                      openMediaLinksInPreview: DEFAULT_UNIFIED_SETTINGS.openMediaLinksInPreview,
+                    })
+                  }
+                />
+              ) : null
+            }
+            control={
+              <Switch
+                checked={settings.openMediaLinksInPreview}
+                onCheckedChange={(checked) =>
+                  updateSettings({ openMediaLinksInPreview: Boolean(checked) })
+                }
+                aria-label="Open media links in preview"
               />
             }
           />

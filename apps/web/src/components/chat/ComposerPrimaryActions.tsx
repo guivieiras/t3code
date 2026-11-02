@@ -2,12 +2,13 @@ import {
   memo,
   useEffect,
   useState,
-  type MouseEventHandler,
+  type MouseEvent,
   type PointerEventHandler,
   type ReactNode,
 } from "react";
 import {
   CheckIcon,
+  ChevronDownIcon,
   ChevronLeftIcon,
   Minimize2Icon,
   PlayIcon,
@@ -20,10 +21,13 @@ import { cn, isMacPlatform } from "~/lib/utils";
 import { useShortcutModifierState } from "../../shortcutModifierState";
 import { StageBackdropButtonArt, useSidebarStageBackdropVariant } from "../SidebarStageBackdrop";
 import { Button } from "../ui/button";
+import { Menu, MenuItem, MenuPopup, MenuTrigger } from "../ui/menu";
 import { Spinner } from "../ui/spinner";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
+import { composerFloatingLayerProps } from "./composerEventScope";
 import {
   alternateComposerDispatchAction,
+  type ComposerDispatchMode,
   resolveComposerDispatchMode,
 } from "@t3tools/client-runtime/state/composer-dispatch";
 
@@ -57,7 +61,8 @@ interface ComposerPrimaryActionsProps {
   canResume?: boolean;
   preserveComposerFocusOnPointerDown?: boolean;
   isEditingQueuedMessage?: boolean;
-  onSubmitMessage?: MouseEventHandler<HTMLButtonElement>;
+  /** An explicit mode comes from the send options menu, which touch screens need. */
+  onSubmitMessage?: (event: MouseEvent<HTMLElement>, dispatchMode?: ComposerDispatchMode) => void;
   onResume?: () => void;
   onPreviousPendingQuestion: () => void;
   onInterrupt: () => void;
@@ -398,6 +403,12 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
         ? `Click to ${followUpBehavior}, ${isMacPlatform(navigator.platform) ? "⌘" : "Ctrl"}-click${alternateShortcutLabel ? ` or ${alternateShortcutLabel}` : ""} to ${alternateAction}`
         : submitLabel);
 
+  const isSubmitDisabled =
+    isSendBusy ||
+    isSendDisabled ||
+    isEnvironmentUnavailable ||
+    (!hasSendableContent && !showResume);
+
   const sendButton = (
     <button
       type={showResume ? "button" : "submit"}
@@ -416,12 +427,7 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
         if (showResume) onResume?.();
         else onSubmitMessage?.(event);
       }}
-      disabled={
-        isSendBusy ||
-        isSendDisabled ||
-        isEnvironmentUnavailable ||
-        (!hasSendableContent && !showResume)
-      }
+      disabled={isSubmitDisabled}
       aria-label={submitStatus ?? submitLabel}
     >
       {stageBackdropVariant ? (
@@ -453,12 +459,50 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
     </button>
   );
 
-  const submit = (
+  const submitButton = (
     <Tooltip key="submit">
       <TooltipTrigger render={<span className="inline-flex" />}>{sendButton}</TooltipTrigger>
       <TooltipPopup>{submitTooltip}</TooltipPopup>
     </Tooltip>
   );
+  const submit =
+    isRunning && !isEditingQueuedMessage && !showResume ? (
+      <div className="flex items-center gap-1">
+        {submitButton}
+        <Menu>
+          <MenuTrigger
+            render={
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                aria-label="Send options"
+                {...pointerFocusProps}
+                disabled={isSubmitDisabled}
+              />
+            }
+          >
+            <ChevronDownIcon className="size-3.5" />
+          </MenuTrigger>
+          <MenuPopup align="end" side="top" {...composerFloatingLayerProps}>
+            <MenuItem
+              disabled={isSubmitDisabled || !canSteer}
+              onClick={(event) => onSubmitMessage?.(event, "steer")}
+            >
+              Steer now
+            </MenuItem>
+            <MenuItem
+              disabled={isSubmitDisabled}
+              onClick={(event) => onSubmitMessage?.(event, "queue")}
+            >
+              Queue message
+            </MenuItem>
+          </MenuPopup>
+        </Menu>
+      </div>
+    ) : (
+      submitButton
+    );
   if (compactTokens === null || hideCompactToggle) {
     return withStopButton(
       <>

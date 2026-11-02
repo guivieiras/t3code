@@ -2220,16 +2220,20 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       );
     },
   });
-  const handleSubmitMessage = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleSubmitMessage = (
+    event: React.MouseEvent<HTMLElement>,
+    dispatchMode?: ComposerDispatchMode,
+  ) => {
     event.preventDefault();
     submitComposer(
       event,
-      resolveComposerDispatchMode({
-        running: phase === "running" || phase === "connecting",
-        alternateModifier: event.metaKey || event.ctrlKey,
-        activeTurnDefault: followUpBehavior,
-        canSteer,
-      }),
+      dispatchMode ??
+        resolveComposerDispatchMode({
+          running: phase === "running" || phase === "connecting",
+          alternateModifier: event.metaKey || event.ctrlKey,
+          activeTurnDefault: followUpBehavior,
+          canSteer,
+        }),
     );
   };
   const handleSubmitMessageStable = useStableCallback(handleSubmitMessage);

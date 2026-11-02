@@ -46,7 +46,9 @@ running half-upgraded. See `packages/client-runtime/src/connection/compatibility
 `effect_sql_migrations` records `migration_id` and `name`, but the migrator compares ids only:
 rows at or below the recorded maximum are skipped without checking names. A database that ran a
 local or fork migration under an id this build later assigns to a different migration therefore
-never receives this build's migration at that id. After repairing supported V2 preview ledgers,
+never receives this build's migration at that id. After repairing supported V2 preview ledgers
+(and the private integration layout that ran V2 as split migrations 44-52, see
+[`reconcilePrivateV2Migrations`](../../apps/server/src/persistence/reconcilePrivateV2Migrations.ts)),
 [`runMigrations`](../../apps/server/src/persistence/Migrations.ts) rejects history that would skip a
 requested migration at id 55 or later without its expected name. Earlier name clashes remain
 warnings for compatibility with site-local migrations. There is no safe id range for a fork inside

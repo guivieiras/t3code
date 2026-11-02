@@ -51,13 +51,20 @@ function sanitizePlanFileSegment(input: string): string {
   return sanitized.length > 0 ? sanitized : "plan";
 }
 
-export const PLAN_IMPLEMENTATION_PROMPT_PREFIX = "PLEASE IMPLEMENT THIS PLAN:\n";
+// Both prompts match Codex's own plan handoffs, so providers see the wording they were tuned on.
+export const PLAN_IMPLEMENTATION_PROMPT = "Implement the plan.";
 
-export function buildPlanImplementationPrompt(planMarkdown: string): string {
-  return `${PLAN_IMPLEMENTATION_PROMPT_PREFIX}${planMarkdown.trim()}`;
+export const FRESH_CONTEXT_PLAN_IMPLEMENTATION_PREFIX =
+  "A previous agent produced the plan below to accomplish the user's task. " +
+  "Implement the plan in a fresh context. Treat the plan as the source of user intent, " +
+  "re-read files as needed, and carry the work through implementation and verification.";
+
+/** The plan travels with the prompt because the new thread has no context. */
+export function buildFreshContextPlanImplementationPrompt(planMarkdown: string): string {
+  return `${FRESH_CONTEXT_PLAN_IMPLEMENTATION_PREFIX}\n\n${planMarkdown.trim()}`;
 }
 
-export function resolvePlanFollowUpSubmission(input: { draftText: string; planMarkdown: string }): {
+export function resolvePlanFollowUpSubmission(input: { draftText: string }): {
   text: string;
   interactionMode: "default" | "plan";
 } {
@@ -70,7 +77,7 @@ export function resolvePlanFollowUpSubmission(input: { draftText: string; planMa
   }
 
   return {
-    text: buildPlanImplementationPrompt(input.planMarkdown),
+    text: PLAN_IMPLEMENTATION_PROMPT,
     interactionMode: "default",
   };
 }

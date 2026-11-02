@@ -25,7 +25,7 @@ import { useComposerDraftStore } from "../../composerDraftStore";
 import type { ComposerHandleRef } from "../../composerHandleContext";
 import type { buildMessageContext } from "../../lib/composerContextRecords";
 import {
-  buildPlanImplementationPrompt,
+  buildFreshContextPlanImplementationPrompt,
   buildPlanImplementationThreadTitle,
 } from "../../proposedPlan";
 import type { LatestProposedPlanState } from "../../session-logic";
@@ -294,7 +294,7 @@ export function useImplementPlanInNewThread(input: ImplementPlanInNewThreadInput
       model: sendCtx.selectedModel,
       models: sendCtx.selectedProviderModels,
       effort: sendCtx.selectedPromptEffort,
-      text: buildPlanImplementationPrompt(planMarkdown),
+      text: buildFreshContextPlanImplementationPrompt(planMarkdown),
     });
     const nextThreadTitle = truncate(buildPlanImplementationThreadTitle(planMarkdown));
     const nextThreadModelSelection: ModelSelection = sendCtx.selectedModelSelection;

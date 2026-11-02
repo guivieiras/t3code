@@ -3,7 +3,10 @@ import {
   ATTACHMENT_ONLY_BOOTSTRAP_PROMPT,
   collectComposerContextReferences,
 } from "@t3tools/shared/composerContextReferences";
-import { PLAN_IMPLEMENTATION_PROMPT_PREFIX } from "../../proposedPlan";
+import {
+  FRESH_CONTEXT_PLAN_IMPLEMENTATION_PREFIX,
+  PLAN_IMPLEMENTATION_PROMPT,
+} from "../../proposedPlan";
 
 const CLAUDE_ULTRATHINK_PREFIX = "Ultrathink:\n";
 const REVIEW_COMMENT_BLOCK_PATTERN = /<review_comment\b[^>]*>[\s\S]*?<\/review_comment>/g;
@@ -110,7 +113,8 @@ export function recallableComposerPrompt(messageText: string): string {
   const trimmed = prompt.trim();
   if (
     trimmed === ATTACHMENT_ONLY_BOOTSTRAP_PROMPT ||
-    trimmed.startsWith(PLAN_IMPLEMENTATION_PROMPT_PREFIX)
+    trimmed === PLAN_IMPLEMENTATION_PROMPT ||
+    trimmed.startsWith(FRESH_CONTEXT_PLAN_IMPLEMENTATION_PREFIX)
   ) {
     return "";
   }

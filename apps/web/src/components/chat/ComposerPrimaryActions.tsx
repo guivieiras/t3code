@@ -1,4 +1,4 @@
-import { memo, type MouseEventHandler, type PointerEventHandler } from "react";
+import { memo, type MouseEvent, type PointerEventHandler } from "react";
 import { CheckIcon, ChevronDownIcon, ChevronLeftIcon, Minimize2Icon, PlayIcon } from "lucide-react";
 import { CornerUpRight, ListPlus } from "lucide";
 import { MorphIcon } from "~/components/MorphIcon";
@@ -14,6 +14,7 @@ import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { composerFloatingLayerProps } from "./composerEventScope";
 import {
   alternateComposerDispatchAction,
+  type ComposerDispatchMode,
   resolveComposerDispatchMode,
 } from "@t3tools/client-runtime/state/composer-dispatch";
 
@@ -44,7 +45,8 @@ interface ComposerPrimaryActionsProps {
   canResume?: boolean;
   preserveComposerFocusOnPointerDown?: boolean;
   isEditingQueuedMessage?: boolean;
-  onSubmitMessage?: MouseEventHandler<HTMLButtonElement>;
+  /** An explicit mode comes from the send options menu, which touch screens need. */
+  onSubmitMessage?: (event: MouseEvent<HTMLElement>, dispatchMode?: ComposerDispatchMode) => void;
   onResume?: () => void;
   onPreviousPendingQuestion: () => void;
   onInterrupt: () => void;
@@ -300,6 +302,12 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
         ? `Click to ${followUpBehavior}, ${isMacPlatform(navigator.platform) ? "⌘" : "Ctrl"}-click${alternateShortcutLabel ? ` or ${alternateShortcutLabel}` : ""} to ${alternateAction}`
         : submitLabel);
 
+  const isSubmitDisabled =
+    isSendBusy ||
+    isSendDisabled ||
+    isEnvironmentUnavailable ||
+    (!hasSendableContent && !showResume);
+
   const sendButton = (
     <button
       type={showResume ? "button" : "submit"}
@@ -310,13 +318,8 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
           : "bg-message-action text-message-action-foreground enabled:shadow-message-action/24 hover:bg-message-action-hover disabled:bg-foreground/12 disabled:text-muted-foreground",
       )}
       {...pointerFocusProps}
-      onClick={showResume ? onResume : onSubmitMessage}
-      disabled={
-        isSendBusy ||
-        isSendDisabled ||
-        isEnvironmentUnavailable ||
-        (!hasSendableContent && !showResume)
-      }
+      onClick={showResume ? onResume : (event) => onSubmitMessage?.(event)}
+      disabled={isSubmitDisabled}
       aria-label={submitStatus ?? submitLabel}
     >
       {stageBackdropVariant ? (
@@ -346,12 +349,50 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
     </button>
   );
 
-  const submit = (
+  const submitButton = (
     <Tooltip key="submit">
       <TooltipTrigger render={<span className="inline-flex" />}>{sendButton}</TooltipTrigger>
       <TooltipPopup>{submitTooltip}</TooltipPopup>
     </Tooltip>
   );
+  const submit =
+    isRunning && !isEditingQueuedMessage && !showResume ? (
+      <div className="flex items-center gap-1">
+        {submitButton}
+        <Menu>
+          <MenuTrigger
+            render={
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                aria-label="Send options"
+                {...pointerFocusProps}
+                disabled={isSubmitDisabled}
+              />
+            }
+          >
+            <ChevronDownIcon className="size-3.5" />
+          </MenuTrigger>
+          <MenuPopup align="end" side="top" {...composerFloatingLayerProps}>
+            <MenuItem
+              disabled={isSubmitDisabled || !canSteer}
+              onClick={(event) => onSubmitMessage?.(event, "steer")}
+            >
+              Steer now
+            </MenuItem>
+            <MenuItem
+              disabled={isSubmitDisabled}
+              onClick={(event) => onSubmitMessage?.(event, "queue")}
+            >
+              Queue message
+            </MenuItem>
+          </MenuPopup>
+        </Menu>
+      </div>
+    ) : (
+      submitButton
+    );
   if (compactTokens === null) return submit;
 
   return (

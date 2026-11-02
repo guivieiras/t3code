@@ -1,5 +1,6 @@
 import { useAtomValue } from "@effect/atom-react";
 import { NotificationSettings } from "./NotificationSettings";
+import { PushNotificationSettings } from "./PushNotificationSettings";
 import { PRIVACY_POLICY_URL } from "../../legalLinks";
 import { CheckIcon } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -824,6 +825,7 @@ export function GeneralSettingsPanel() {
             />
           }
         />
+        <PushNotificationSettings />
       </SettingsSection>
 
       <SettingsSection id="sidebar" title="Sidebar">

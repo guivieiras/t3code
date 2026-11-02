@@ -156,6 +156,17 @@ needs you. Use the pen button on a folder, or right-click it, to start a thread 
 Pinned threads stay above the folders, and Snoozed and Settled stay below them. In this mode you
 cannot drag threads, and the Working section is off. Each device keeps its own choice.
 
+### Choose sidebar density
+
+On web and desktop, choose **Comfortable**, **Mixed**, or **Compact** under **Settings → General →
+Sidebar density** to change how active, pinned, and working threads appear. Comfortable shows the
+project, title, and branch across three lines. Mixed puts the title and status on the first line,
+then the project, branch, and activity indicators on the second. Compact uses one line with the
+project icon, title, agent, and status or time. All three keep the snooze and settle buttons on
+hover, and the full project, branch, agent, and environment details appear when you hover a row.
+Settled and snoozed threads always use one line. With the boring sidebar, threads inside project
+folders follow its own multiline setting instead. Each device keeps its own choice.
+
 ## Settle finished work
 
 Choose **Settle thread** from its menu to move finished work out of the active list

@@ -302,6 +302,20 @@ describe("ClientSettings notifications", () => {
   });
 });
 
+describe("ClientSettings sidebar density", () => {
+  it("defaults to comfortable and accepts every density", () => {
+    expect(decodeClientSettings({}).sidebarDensity).toBe("comfortable");
+    for (const sidebarDensity of ["comfortable", "mixed", "compact"] as const) {
+      expect(decodeClientSettings({ sidebarDensity }).sidebarDensity).toBe(sidebarDensity);
+      expect(decodeClientSettingsPatch({ sidebarDensity }).sidebarDensity).toBe(sidebarDensity);
+    }
+  });
+
+  it("rejects unsupported densities", () => {
+    expect(() => decodeClientSettingsPatch({ sidebarDensity: "dense" })).toThrow();
+  });
+});
+
 describe("ClientSettings quit confirmation", () => {
   it.each([
     [true, "hold"],

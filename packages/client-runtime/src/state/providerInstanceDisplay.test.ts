@@ -4,11 +4,14 @@ import { describe, expect, it } from "vite-plus/test";
 import {
   normalizeProviderAccentColor,
   providerAccentForegroundColor,
+  providerInstanceIconIdentity,
   providerInstanceInitials,
   shouldShowInstanceBadge,
+  shouldShowInstanceInitials,
 } from "./providerInstanceDisplay.ts";
 
 const codex = ProviderDriverKind.make("codex");
+const claude = ProviderDriverKind.make("claudeAgent");
 const acpRegistry = ProviderDriverKind.make("acpRegistry");
 
 describe("providerInstanceInitials", () => {
@@ -81,5 +84,47 @@ describe("shouldShowInstanceBadge", () => {
     expect(shouldShowInstanceBadge(disabled, [enabled, disabled])).toBe(true);
     expect(shouldShowInstanceBadge(disabled, [disabled, { ...disabled }])).toBe(true);
     expect(shouldShowInstanceBadge(disabled, [disabled])).toBe(false);
+  });
+});
+
+describe("provider instance icon initials", () => {
+  it("treats an explicit icon and the matching driver fallback as the same icon", () => {
+    const plain = { driverKind: codex, enabled: true };
+    const explicitOpenAi = { driverKind: codex, iconKey: "openai", enabled: true };
+    const router = { driverKind: codex, iconKey: "openrouter", enabled: true };
+    const entries = [plain, explicitOpenAi, router];
+
+    expect(providerInstanceIconIdentity(plain)).toBe("openai");
+    expect(providerInstanceIconIdentity(explicitOpenAi)).toBe("openai");
+    expect(shouldShowInstanceInitials(plain, entries)).toBe(true);
+    expect(shouldShowInstanceInitials(explicitOpenAi, entries)).toBe(true);
+    expect(shouldShowInstanceInitials(router, entries)).toBe(false);
+  });
+
+  it("shows initials when different drivers use the same configured icon", () => {
+    const first = { driverKind: codex, iconKey: "openrouter", enabled: true };
+    const second = { driverKind: claude, iconKey: "openrouter", enabled: true };
+    expect(shouldShowInstanceInitials(first, [first, second])).toBe(true);
+    expect(shouldShowInstanceBadge(second, [first, second])).toBe(true);
+  });
+
+  it("drops the badge for same-driver instances whose icons differ", () => {
+    const plain = { driverKind: codex, enabled: true };
+    const router = { driverKind: codex, iconKey: "openrouter", enabled: true };
+    expect(shouldShowInstanceBadge(plain, [plain, router])).toBe(false);
+    expect(shouldShowInstanceBadge(router, [plain, router])).toBe(false);
+  });
+
+  it("uses the rendered driver fallback for an unknown configured icon", () => {
+    const plain = { driverKind: codex, enabled: true };
+    const unknown = { driverKind: codex, iconKey: "not-a-bundled-icon", enabled: true };
+    expect(providerInstanceIconIdentity(unknown)).toBe("openai");
+    expect(shouldShowInstanceInitials(unknown, [plain, unknown])).toBe(true);
+  });
+
+  it("keeps a lone accent color as a badge without initials", () => {
+    const entry = { driverKind: codex, accentColor: "#ff5500", enabled: true };
+    expect(shouldShowInstanceBadge(entry, [entry])).toBe(true);
+    expect(shouldShowInstanceInitials(entry, [entry])).toBe(false);
   });
 });

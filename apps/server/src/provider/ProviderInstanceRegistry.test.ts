@@ -775,12 +775,14 @@ describe("ProviderInstanceRegistry — multi-instance codex slice", () => {
         const configMap: ProviderInstanceConfigMap = {
           [codexId]: {
             driver: ProviderDriverKind.make("codex"),
+            iconKey: "openrouter",
             enabled: false,
             config: makeCodexConfig({}),
           },
           [ghostId]: {
             driver: ProviderDriverKind.make("ghostDriver"),
             displayName: "A fork-only driver we don't ship",
+            iconKey: "qwen",
             enabled: false,
             config: { arbitrary: "payload", preserved: true },
           },
@@ -794,6 +796,7 @@ describe("ProviderInstanceRegistry — multi-instance codex slice", () => {
         const instances = yield* registry.listInstances;
         expect(instances).toHaveLength(1);
         expect(instances[0]!.instanceId).toBe(codexId);
+        expect(instances[0]!.iconKey).toBe("openrouter");
 
         const unavailable = yield* registry.listUnavailable;
         expect(unavailable).toHaveLength(1);
@@ -802,6 +805,7 @@ describe("ProviderInstanceRegistry — multi-instance codex slice", () => {
         expect(ghost.driver).toBe("ghostDriver");
         expect(ghost.availability).toBe("unavailable");
         expect(ghost.unavailableReason).toMatch(/ghostDriver/);
+        expect(ghost.iconKey).toBe("qwen");
       }).pipe(Effect.provide(layerTest)),
   );
 });

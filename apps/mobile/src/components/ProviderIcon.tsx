@@ -12,10 +12,16 @@ import { useAppearancePreferences } from "../features/settings/appearance/Appear
 import { AppText as Text } from "./ui/AppText";
 import { cn } from "../lib/cn";
 import { getProviderClient } from "@t3tools/client-runtime/provider-clients";
+import { resolveModelBrandIcon } from "@t3tools/client-runtime/model-brand-icons";
+import { resolveModelBrandIconKey } from "@t3tools/shared/modelBrand";
 
 type ProviderIconProps = {
   readonly provider: string | null | undefined;
   readonly iconUrl?: string | null | undefined;
+  /** The instance's chosen icon; replaces the driver icon when it is a bundled brand. */
+  readonly iconKey?: string | null | undefined;
+  /** A recognized model publisher wins over both the instance and driver icons. */
+  readonly modelSlug?: string | null | undefined;
   readonly size?: number;
 };
 
@@ -74,8 +80,11 @@ export function ProviderIcon(props: ProviderIconProps) {
   const gradientId = useId();
   const size = props.size ?? 16;
   const mono = isDarkMode ? "#e5e5e5" : "#171717";
+  const brandIcon = resolveModelBrandIcon(
+    (props.modelSlug ? resolveModelBrandIconKey(props.modelSlug) : undefined) ?? props.iconKey,
+  );
 
-  if (props.provider?.trim().toLowerCase() === "antigravity") {
+  if (!brandIcon && props.provider?.trim().toLowerCase() === "antigravity") {
     return (
       <Image
         source={require("../../assets/antigravity.png")}
@@ -84,11 +93,11 @@ export function ProviderIcon(props: ProviderIconProps) {
       />
     );
   }
-  if (props.provider === "acpRegistry") {
+  if (!brandIcon && props.provider === "acpRegistry") {
     return <AcpRegistryProviderIcon color={mono} iconUrl={props.iconUrl} size={size} />;
   }
 
-  if (props.provider === "claudeAgent") {
+  if (!brandIcon && props.provider === "claudeAgent") {
     return (
       <Svg width={size} height={size} viewBox="0 0 256 257" fill="none">
         <Path
@@ -99,7 +108,7 @@ export function ProviderIcon(props: ProviderIconProps) {
     );
   }
 
-  const packageIcon = getProviderClient(props.provider)?.icon;
+  const packageIcon = brandIcon ?? getProviderClient(props.provider)?.icon;
   if (packageIcon) {
     const themeFill = (fill: { readonly light: string; readonly dark: string }) =>
       isDarkMode ? fill.dark : fill.light;
@@ -154,6 +163,8 @@ export function ProviderIcon(props: ProviderIconProps) {
 
 export function ProviderInstanceIcon(props: {
   readonly iconUrl?: string | null;
+  readonly iconKey?: string | null | undefined;
+  readonly modelSlug?: string | null | undefined;
   readonly provider: string | null | undefined;
   readonly size?: number;
   readonly displayName: string;
@@ -165,7 +176,13 @@ export function ProviderInstanceIcon(props: {
   return (
     <View style={{ position: "relative" }}>
       <View style={{ opacity: 0.6 }}>
-        <ProviderIcon iconUrl={props.iconUrl} provider={props.provider} size={props.size} />
+        <ProviderIcon
+          iconUrl={props.iconUrl}
+          iconKey={props.iconKey}
+          modelSlug={props.modelSlug}
+          provider={props.provider}
+          size={props.size}
+        />
       </View>
       {props.showBadge ? (
         // An absolute badge alone is capped at icon width and clips initials.

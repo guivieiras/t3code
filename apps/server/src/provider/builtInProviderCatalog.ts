@@ -5,6 +5,8 @@ import type { ManagedServerProvider } from "@t3tools/provider-core/server/snapsh
 export type ProviderSnapshotSource = {
   readonly instanceId: ProviderInstanceId;
   readonly driverKind: ProviderDriverKind;
+  /** User-selected presentation icon for this configured instance. */
+  readonly iconKey?: string | undefined;
   readonly getSnapshot: ManagedServerProvider["getSnapshot"];
   readonly refresh: ManagedServerProvider["refresh"];
   readonly streamChanges: Stream.Stream<ServerProvider>;

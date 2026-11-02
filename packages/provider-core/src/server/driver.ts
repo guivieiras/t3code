@@ -37,6 +37,8 @@ export interface ProviderInstance {
   readonly driverKind: ProviderDriverKind;
   readonly continuationIdentity: ProviderContinuationIdentity;
   readonly displayName: string | undefined;
+  /** User-selected icon; stamped by the instance registry, not by drivers. */
+  readonly iconKey?: string | undefined;
   readonly accentColor?: string | undefined;
   readonly enabled: boolean;
   readonly snapshot: ManagedServerProvider;

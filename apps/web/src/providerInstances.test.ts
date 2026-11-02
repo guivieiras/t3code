@@ -25,6 +25,7 @@ function provider(input: {
   availability?: ServerProvider["availability"];
   displayName?: string;
   accentColor?: string;
+  iconKey?: string;
   status?: ServerProvider["status"];
   models?: ServerProvider["models"];
   supportsTextGeneration?: boolean;
@@ -37,6 +38,7 @@ function provider(input: {
       : { supportsTextGeneration: input.supportsTextGeneration }),
     ...(input.displayName ? { displayName: input.displayName } : {}),
     ...(input.accentColor ? { accentColor: input.accentColor } : {}),
+    ...(input.iconKey ? { iconKey: input.iconKey } : {}),
     enabled: input.enabled ?? true,
     installed: true,
     version: null,
@@ -159,6 +161,26 @@ describe("applyProviderInstanceSettings", () => {
 
     expect(codex?.enabled).toBe(true);
     expect(grok?.enabled).toBe(false);
+  });
+});
+
+describe("deriveProviderInstanceEntries", () => {
+  it("preserves the configured instance icon so it can drive badges", () => {
+    const entries = deriveProviderInstanceEntries([
+      provider({ provider: ProviderDriverKind.make("codex"), instanceId: "codex" }),
+      provider({
+        provider: ProviderDriverKind.make("codex"),
+        instanceId: "openrouter",
+        iconKey: "openrouter",
+      }),
+    ]);
+    const [codex, openRouter] = entries;
+    if (!codex || !openRouter) throw new Error("missing fixture entry");
+
+    expect(openRouter.iconKey).toBe("openrouter");
+    // Same driver, different icons: the glyph alone tells them apart.
+    expect(shouldShowInstanceBadge(codex, entries)).toBe(false);
+    expect(shouldShowInstanceBadge(openRouter, entries)).toBe(false);
   });
 });
 

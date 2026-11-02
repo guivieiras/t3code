@@ -107,7 +107,11 @@ import { ThreadSearchMatchExcerpt } from "../ThreadSearchMatch";
 import { makeWorkspaceFileDropHandlers } from "../chat/workspaceFileDrop";
 import { ProviderInstanceIcon } from "../chat/ProviderInstanceIcon";
 import { getTriggerDisplayModelName } from "../chat/providerIconUtils";
-import { shouldShowInstanceBadge, type ProviderInstanceEntry } from "../../providerInstances";
+import {
+  shouldShowInstanceBadge,
+  shouldShowInstanceInitials,
+  type ProviderInstanceEntry,
+} from "../../providerInstances";
 import { useThreadRunningTerminalIds } from "../../state/terminalSessions";
 import { InlineButton } from "../ui/button";
 import { Kbd } from "../ui/kbd";
@@ -125,6 +129,7 @@ export type SidebarProviderEntry = Pick<
   | "driverKind"
   | "enabled"
   | "displayName"
+  | "iconKey"
   | "accentColor"
   | "acpRegistryAgentId"
   | "acpRegistryIconUrl"
@@ -192,14 +197,20 @@ function SidebarProviderStack(props: {
     currentEntry,
     props.providerEntryByInstanceId.values(),
   );
+  const showInstanceInitials = shouldShowInstanceInitials(
+    currentEntry,
+    props.providerEntryByInstanceId.values(),
+  );
   const current = (
     <ProviderInstanceIcon
       driverKind={currentEntry.driverKind}
       displayName={currentEntry.displayName}
+      iconKey={currentEntry.iconKey}
       accentColor={currentEntry.accentColor}
       acpRegistryAgentId={currentEntry.acpRegistryAgentId}
       acpRegistryIconUrl={currentEntry.acpRegistryIconUrl}
       showBadge={showInstanceBadge}
+      badgeContent={showInstanceInitials ? "initials" : "none"}
       size="compact"
       iconClassName="opacity-60"
     />
@@ -217,6 +228,7 @@ function SidebarProviderStack(props: {
             key={instanceId}
             driverKind={entry.driverKind}
             displayName={entry.displayName}
+            iconKey={entry.iconKey}
             acpRegistryAgentId={entry.acpRegistryAgentId}
             acpRegistryIconUrl={entry.acpRegistryIconUrl}
             iconClassName="size-3 opacity-35 grayscale"
@@ -313,6 +325,7 @@ function SidebarThreadTooltip({
               displayName={
                 providerEntry?.displayName ?? thread.runtime?.providerName ?? modelInstanceId
               }
+              iconKey={providerEntry?.iconKey}
               accentColor={providerEntry?.accentColor}
               acpRegistryAgentId={providerEntry?.acpRegistryAgentId}
               acpRegistryIconUrl={providerEntry?.acpRegistryIconUrl}

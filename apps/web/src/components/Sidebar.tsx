@@ -286,6 +286,7 @@ function sameSidebarProviderEntries(
       other.driverKind !== entry.driverKind ||
       other.enabled !== entry.enabled ||
       other.displayName !== entry.displayName ||
+      other.iconKey !== entry.iconKey ||
       other.accentColor !== entry.accentColor ||
       other.acpRegistryAgentId !== entry.acpRegistryAgentId ||
       other.acpRegistryIconUrl !== entry.acpRegistryIconUrl ||

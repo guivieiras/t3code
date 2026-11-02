@@ -8,6 +8,7 @@ import { cn } from "~/lib/utils";
 import {
   isProviderInstancePickerReady,
   shouldShowInstanceBadge,
+  shouldShowInstanceInitials,
   type ProviderInstanceEntry,
 } from "../../providerInstances";
 
@@ -133,6 +134,7 @@ export const ModelPickerSidebar = memo(function ModelPickerSidebar(props: {
             const isSelected = props.selectedInstanceId === entry.instanceId;
             const isHovered = hoveredInstanceId === entry.instanceId;
             const showInstanceBadge = shouldShowInstanceBadge(entry, props.instanceEntries);
+            const showInstanceInitials = shouldShowInstanceInitials(entry, props.instanceEntries);
 
             const tooltip = isUnavailable
               ? describeUnavailableInstance(entry)
@@ -165,10 +167,12 @@ export const ModelPickerSidebar = memo(function ModelPickerSidebar(props: {
                 <ProviderInstanceIcon
                   driverKind={entry.driverKind}
                   displayName={entry.displayName}
+                  iconKey={entry.iconKey}
                   accentColor={entry.accentColor}
                   acpRegistryAgentId={entry.acpRegistryAgentId}
                   acpRegistryIconUrl={entry.acpRegistryIconUrl}
                   showBadge={showInstanceBadge}
+                  badgeContent={showInstanceInitials ? "initials" : "none"}
                   className="size-6 z-30"
                   iconClassName="size-5"
                   indicatorBackground={

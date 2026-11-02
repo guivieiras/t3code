@@ -143,6 +143,29 @@ describe("command permissions", () => {
     ),
   );
 
+  it.effect.each([WS_METHODS.webPushSubscribe, WS_METHODS.webPushUnsubscribe])(
+    "requires the destination read grant to change push notifications with %s",
+    (method) =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const registry = yield* setup;
+          const push = createCommandPermissions(runtime, method);
+          registry.set(sessions(env), AsyncResult.success(grant(true)));
+          expect(registry.get(push.permissionAtom(env))).toBe(false);
+          registry.set(
+            sessions(env),
+            AsyncResult.success({
+              ...grant(false),
+              scopes: [AuthOrchestrationReadScope],
+              permissions: [AuthOrchestrationReadScope],
+            }),
+          );
+          expect(registry.get(push.permissionAtom(env))).toBe(true);
+          yield* push.authorize(registry, env);
+        }),
+      ),
+  );
+
   it.effect.each([WS_METHODS.scheduledTasksDelete, ORCHESTRATION_V2_WS_METHODS.stopWorkflow])(
     "uses the target grant for both availability and execution of %s",
     (method) =>

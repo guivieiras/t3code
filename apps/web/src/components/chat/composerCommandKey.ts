@@ -229,7 +229,14 @@ export function composerCommandKeyHandler(input: {
       sendShortcut,
       prompt: promptRef.current,
     });
-    if (key === "Tab" && event.shiftKey && submissionIntent === null) {
+    if (
+      key === "Tab" &&
+      event.shiftKey &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.altKey &&
+      submissionIntent === null
+    ) {
       return applyListEdit(event, listOutdentForTab);
     }
     const { trigger } = resolveActiveComposerTrigger();

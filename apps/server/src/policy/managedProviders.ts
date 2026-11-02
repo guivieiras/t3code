@@ -52,16 +52,15 @@ const PACKAGED_CLIENTS: ReadonlyArray<ProviderClientDefinition> = [
 ];
 
 /**
- * Fields that make an instance launch without the settings a pin sets: managed Codex runs T3's own
- * runtime against OpenAI, and a server URL points OpenCode at a server it does not start. A policy
- * that owns a pin owns these too, holding each at the value given here, which clients still send
- * when they add an instance.
+ * Fields that make an instance launch without the settings a pin sets: managed Codex, an OpenRouter
+ * Codex connection's own launch arguments, and an OpenCode server URL. A policy that owns a pin
+ * owns these too, holding each at the value given here, which clients still send when adding.
  */
 const PIN_BYPASS_FIELDS: ReadonlyMap<
   ProviderDriverKind,
   Readonly<Record<string, unknown>>
 > = new Map<ProviderDriverKind, Readonly<Record<string, unknown>>>([
-  [ProviderDriverKind.make("codex"), { setupMode: "existing" }],
+  [ProviderDriverKind.make("codex"), { setupMode: "existing", connection: "native" }],
   [ProviderDriverKind.make("opencode"), { serverUrl: "" }],
 ]);
 

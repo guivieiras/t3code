@@ -632,6 +632,10 @@ export const CodexSettings = makeProviderSettingsSchema(
     setupMode: Schema.optionalKey(Schema.Literals(["managed", "existing"])).pipe(
       Schema.annotateKey({ providerSettingsForm: { hidden: true } }),
     ),
+    /** Where turns go. Absent means OpenAI; managed setups always use OpenAI. */
+    connection: Schema.optionalKey(Schema.Literals(["native", "openrouter"])).pipe(
+      Schema.annotateKey({ providerSettingsForm: { hidden: true } }),
+    ),
     enabled: Schema.Boolean.pipe(
       Schema.withDecodingDefault(Effect.succeed(true)),
       Schema.annotateKey({ providerSettingsForm: { hidden: true } }),

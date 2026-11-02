@@ -33,7 +33,8 @@ import { Collapsible, CollapsiblePanel, CollapsibleTrigger } from "../ui/collaps
 import { Input } from "../ui/input";
 import { RadioGroup } from "../ui/radio-group";
 import { toastManager } from "../ui/toast";
-import { providerClients } from "./providerDriverMeta";
+import { OPENROUTER_API_KEY_ENV } from "@t3tools/shared/codexConnection";
+import { OPENROUTER_CODEX_CLIENT, providerClients } from "./providerDriverMeta";
 import { ProviderAccentColorPicker } from "./ProviderAccentColorPicker";
 import { ProviderIconPicker } from "./ProviderIconPicker";
 import { SettingsGroup } from "./SettingsGroup";
@@ -70,18 +71,24 @@ function slugifyLabel(value: string): string {
     .slice(0, 48);
 }
 
-function deriveInstanceId(driver: ProviderDriverKind, label: string): string {
+function deriveInstanceId(prefix: string, label: string): string {
   const slug = slugifyLabel(label);
-  return slug ? `${driver}_${slug}` : "";
+  return slug ? `${prefix}_${slug}` : "";
 }
 
 const INSTANCE_ID_PATTERN = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
 const DEFAULT_DRIVER_KIND = ProviderDriverKind.make("codex");
 const ACP_REGISTRY_DRIVER_KIND = ProviderDriverKind.make("acpRegistry");
 const DEFAULT_DRIVER_OPTION = providerClients.definitions[0]!;
-const DRIVER_OPTIONS = providerClients.definitions.filter(
-  (option) => option.driverKind !== ACP_REGISTRY_DRIVER_KIND,
-);
+// OpenRouter is a Codex instance; its own selection key keeps its drafts apart from plain Codex.
+const OPENROUTER_OPTION_KEY = ProviderDriverKind.make("openrouterCodex");
+const optionKey = (option: ProviderClientDefinition) =>
+  option === OPENROUTER_CODEX_CLIENT ? OPENROUTER_OPTION_KEY : option.driverKind;
+const DRIVER_OPTIONS = providerClients.definitions
+  .filter((option) => option.driverKind !== ACP_REGISTRY_DRIVER_KIND)
+  .flatMap((option) =>
+    option.driverKind === DEFAULT_DRIVER_KIND ? [option, OPENROUTER_CODEX_CLIENT] : [option],
+  );
 const FEATURED_DRIVER_OPTIONS = DRIVER_OPTIONS.filter((option) => option.featured !== false);
 const MORE_DRIVER_OPTIONS = DRIVER_OPTIONS.filter((option) => option.featured === false);
 const EMPTY_CONFIG_DRAFT: Record<string, unknown> = {};
@@ -119,13 +126,14 @@ function ProviderOptionGrid({
     >
       {options.map((option) => (
         <RadioPrimitive.Root
-          key={option.driverKind}
-          value={option.driverKind}
+          key={optionKey(option)}
+          value={optionKey(option)}
           className="relative flex cursor-pointer items-center gap-3 rounded-lg bg-card px-3 py-3 text-left text-muted-foreground outline-none ring-1 ring-black/5 hover:bg-muted focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring data-checked:bg-primary/8 data-checked:text-foreground data-checked:ring-2 data-checked:ring-inset data-checked:ring-primary data-checked:hover:bg-primary/8 dark:bg-white/3 dark:ring-white/5 dark:hover:bg-white/5 dark:data-checked:bg-primary/15 dark:data-checked:ring-primary dark:data-checked:hover:bg-primary/15"
         >
           <ProviderInstanceIcon
             driverKind={option.driverKind}
             displayName={option.label}
+            iconKey={option === OPENROUTER_CODEX_CLIENT ? "openrouter" : undefined}
             iconClassName="size-4"
           />
           <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
@@ -194,6 +202,7 @@ export function AddProviderInstanceDialog({
   const [isManualAcpConfiguration, setIsManualAcpConfiguration] = useState(false);
   const [showMoreProviders, setShowMoreProviders] = useState(false);
   const [configByDriver, setConfigByDriver] = useState<Record<string, Record<string, unknown>>>({});
+  const [openRouterApiKey, setOpenRouterApiKey] = useState("");
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [createdInstanceId, setCreatedInstanceId] = useState<ProviderInstanceId | null>(null);
@@ -206,7 +215,13 @@ export function AddProviderInstanceDialog({
     ...Object.keys(settings.providerInstances ?? {}),
   ]);
 
-  const driverOption = providerClients.get(driver) ?? DEFAULT_DRIVER_OPTION;
+  const isOpenRouter = driver === OPENROUTER_OPTION_KEY;
+  // `driver` is the selected option; the instance itself runs on this driver.
+  const instanceDriver = isOpenRouter ? DEFAULT_DRIVER_KIND : driver;
+  const instanceIdPrefix = isOpenRouter ? "openrouter" : driver;
+  const driverOption = isOpenRouter
+    ? OPENROUTER_CODEX_CLIENT
+    : (providerClients.get(driver) ?? DEFAULT_DRIVER_OPTION);
   const isAcpRegistry = driver === ACP_REGISTRY_DRIVER_KIND;
   const showRegistrySearch =
     !createdInstanceId &&
@@ -218,7 +233,7 @@ export function AddProviderInstanceDialog({
   const isPreparingRegistryAgent = registry.preparingId !== null;
   const defaultIdentity: ProviderIdentityDraft = {
     label: driverOption.label,
-    iconKey: "",
+    iconKey: isOpenRouter ? "openrouter" : "",
     accentColor: "",
     instanceIdOverride: null,
   };
@@ -229,9 +244,9 @@ export function AddProviderInstanceDialog({
     deriveAvailableInstanceId(
       (candidateLabel) => {
         if (!candidateLabel.trim() || candidateLabel === driverOption.label) {
-          return isAcpRegistry ? `${driver}_custom` : driver;
+          return isAcpRegistry ? `${driver}_custom` : instanceIdPrefix;
         }
-        return deriveInstanceId(driver, candidateLabel);
+        return deriveInstanceId(instanceIdPrefix, candidateLabel);
       },
       label,
       existingIds,
@@ -380,7 +395,7 @@ export function AddProviderInstanceDialog({
   };
 
   // A policy that owns this driver's launch settings also rules out ChatGPT's own runtime.
-  const driverLocks = managedInstanceLocks(managedPolicy, driver);
+  const driverLocks = managedInstanceLocks(managedPolicy, instanceDriver);
 
   const handleSave = async () => {
     if (!readEnvironmentScope(environmentId, AuthProvidersManageScope)) return;
@@ -389,20 +404,31 @@ export function AddProviderInstanceDialog({
     if (instanceIdError !== null || (isAcpRegistry && acpSelectionError !== null)) return;
 
     const config =
-      driver === "codex"
-        ? { ...configByDriver[driver], setupMode: "existing" }
+      instanceDriver === "codex"
+        ? {
+            ...configByDriver[driver],
+            setupMode: "existing",
+            ...(isOpenRouter ? { connection: "openrouter" } : {}),
+          }
         : (configByDriver[driver] ?? {});
+    const trimmedOpenRouterApiKey = openRouterApiKey.trim();
+    const environment =
+      isLocalAcp && localEnvironment.length > 0
+        ? localEnvironment
+        : isOpenRouter && trimmedOpenRouterApiKey
+          ? [{ name: OPENROUTER_API_KEY_ENV, value: trimmedOpenRouterApiKey, sensitive: true }]
+          : [];
     const hasConfig = Object.keys(config).length > 0;
     const normalizedAccentColor = normalizeProviderAccentColor(accentColor);
 
     const nextInstance: ProviderInstanceConfig = {
-      driver,
+      driver: instanceDriver,
       enabled: true,
       ...(label.trim().length > 0 ? { displayName: label.trim() } : {}),
       ...(iconKey ? { iconKey } : {}),
       ...(normalizedAccentColor ? { accentColor: normalizedAccentColor } : {}),
       ...(hasConfig ? { config } : {}),
-      ...(isLocalAcp && localEnvironment.length > 0 ? { environment: localEnvironment } : {}),
+      ...(environment.length > 0 ? { environment } : {}),
     };
     const brandedId = ProviderInstanceId.make(instanceId);
     setIsSaving(true);
@@ -677,7 +703,7 @@ export function AddProviderInstanceDialog({
                       }
                       size="sm"
                       className="w-full @min-[32rem]/settings-row:w-56"
-                      placeholder={`${driver}_work`}
+                      placeholder={`${instanceIdPrefix}_work`}
                       value={instanceId}
                       onChange={(event) => {
                         setIdentityDraft({ instanceIdOverride: event.target.value });
@@ -691,7 +717,7 @@ export function AddProviderInstanceDialog({
                   description="Optional. Unrecognized model brands use it too."
                   control={
                     <ProviderIconPicker
-                      driverKind={driver}
+                      driverKind={instanceDriver}
                       displayName={label || driverOption.label}
                       value={iconKey || undefined}
                       onCommit={(value) => setIdentityDraft({ iconKey: value })}
@@ -714,6 +740,27 @@ export function AddProviderInstanceDialog({
 
               {!isAcpRegistry && driverSettingsFields.length > 0 ? (
                 <SettingsGroup variant="plain" className={cn(wizardStep !== 2 && "hidden")}>
+                  {isOpenRouter ? (
+                    <SettingsRow
+                      title={
+                        <label htmlFor="add-provider-openrouter-key">OpenRouter API key</label>
+                      }
+                      description="Used by Codex for turns and by T3 Code to load your model catalog."
+                      control={
+                        <Input
+                          id="add-provider-openrouter-key"
+                          type="password"
+                          autoComplete="off"
+                          size="sm"
+                          className="w-full @min-[32rem]/settings-row:w-56"
+                          placeholder="sk-or-v1-..."
+                          spellCheck={false}
+                          value={openRouterApiKey}
+                          onChange={(event) => setOpenRouterApiKey(event.target.value)}
+                        />
+                      }
+                    />
+                  ) : null}
                   <ProviderSettingsForm
                     definition={driverOption}
                     value={configDraft}

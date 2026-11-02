@@ -7,7 +7,11 @@ import {
 } from "@t3tools/contracts";
 import * as Schema from "effect/Schema";
 
-import { providerClients } from "./providerDriverMeta";
+import {
+  OPENROUTER_CODEX_CLIENT,
+  providerClientForInstance,
+  providerClients,
+} from "./providerDriverMeta";
 import {
   deriveProviderSettingsFields,
   nextProviderConfigWithFieldValue,
@@ -16,6 +20,28 @@ import {
 } from "./ProviderSettingsForm";
 
 describe("ProviderSettingsForm helpers", () => {
+  it("gives OpenRouter Codex instances their own form and API key field", () => {
+    const codex = ProviderDriverKind.make("codex");
+
+    expect(providerClientForInstance(codex, { connection: "openrouter" })).toBe(
+      OPENROUTER_CODEX_CLIENT,
+    );
+    expect(
+      providerClientForInstance(codex, { launchArgs: "-c 'model_provider=\"openrouter\"'" }),
+    ).toBe(OPENROUTER_CODEX_CLIENT);
+    expect(providerClientForInstance(codex, undefined)).toBe(providerClients.get(codex));
+    // Managed Codex always talks to OpenAI, whatever the connection says.
+    expect(
+      providerClientForInstance(codex, { setupMode: "managed", connection: "openrouter" }),
+    ).toBe(providerClients.get(codex));
+    expect(deriveProviderSettingsFields(OPENROUTER_CODEX_CLIENT).map((field) => field.key)).toEqual(
+      ["binaryPath", "homePath"],
+    );
+    expect(OPENROUTER_CODEX_CLIENT.environmentFields?.map((field) => field.name)).toEqual([
+      "OPENROUTER_API_KEY",
+    ]);
+  });
+
   it("keeps every masked field as a stored secret and offers a reference only where typed so", () => {
     const settingsSchema = makeProviderSettingsSchema({
       token: TrimmedString.pipe(

@@ -930,6 +930,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
   const confirmThreadDelete = useClientSettings((s) => s.confirmThreadDelete);
   const confirmThreadArchive = useClientSettings((s) => s.confirmThreadArchive);
   const timestampFormat = useClientSettings((s) => s.timestampFormat);
+  const showThreadShortcutHints = useClientSettings((s) => s.showThreadShortcutHints);
   const projectGroupingSettings = useClientSettings(selectProjectGroupingSettings);
   const {
     settleThread,
@@ -2932,10 +2933,9 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     threadByKey,
   ]);
 
-  const shouldShowJumpHintsNow = shouldShowThreadJumpHintsForModifiers(
-    shortcutModifiers,
-    keybindings,
-    {
+  const shouldShowJumpHintsNow =
+    showThreadShortcutHints &&
+    shouldShowThreadJumpHintsForModifiers(shortcutModifiers, keybindings, {
       platform: navigator.platform,
       context: {
         terminalFocus: terminalFocused,
@@ -2944,8 +2944,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
         isWeb: !isElectron,
         isDesktop: isElectron,
       },
-    },
-  );
+    });
   const showJumpHints = useThreadJumpHintsVisible(shouldShowJumpHintsNow);
 
   const handleNewThreadClick = (event?: ReactMouseEvent) => {
@@ -2973,12 +2972,15 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     openCommandPalette({ open: "new-thread-in" });
   };
 
-  const newThreadShortcutLabel =
-    shortcutLabelForCommand(keybindings, "chat.new") ??
-    (shouldCreateNewThreadInCurrentProject(false, scopeGroups.length, projectGroups.length)
-      ? shortcutLabelForCommand(keybindings, "chat.newLocal")
-      : undefined);
-  const newThreadInProjectShortcutLabel = shortcutLabelForCommand(keybindings, "chat.newLocal");
+  const newThreadShortcutLabel = showThreadShortcutHints
+    ? (shortcutLabelForCommand(keybindings, "chat.new") ??
+      (shouldCreateNewThreadInCurrentProject(false, scopeGroups.length, projectGroups.length)
+        ? shortcutLabelForCommand(keybindings, "chat.newLocal")
+        : undefined))
+    : undefined;
+  const newThreadInProjectShortcutLabel = showThreadShortcutHints
+    ? shortcutLabelForCommand(keybindings, "chat.newLocal")
+    : undefined;
   return (
     <>
       <ThreadContextDragGhost />
@@ -3182,6 +3184,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
               newThreadShortcutLabel={newThreadShortcutLabel}
               newThreadInProjectShortcutLabel={newThreadInProjectShortcutLabel}
               showNewThreadInProjectHint={
+                showThreadShortcutHints &&
                 !boringSidebarEnabled &&
                 !shouldCreateNewThreadInCurrentProject(
                   false,

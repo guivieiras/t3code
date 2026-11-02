@@ -25,7 +25,7 @@ import type {
   ProjectSearchContentsResult,
   ProjectSearchEntriesResult,
 } from "@t3tools/contracts";
-import { isProjectFaviconPath } from "@t3tools/shared/projectFavicon";
+import { isProjectFaviconPath, PROJECT_FAVICON_EXTENSIONS } from "@t3tools/shared/projectFavicon";
 
 // fff-node's native library stays external; single-executables require disk packages instead of importing them.
 const requireForFff = NodeModule.createRequire(import.meta.url);
@@ -33,6 +33,10 @@ const { FileFinder } = requireForFff("@ff-labs/fff-node") as typeof import("@ff-
 
 const WORKSPACE_INDEX_MAX_ENTRIES = 25_000;
 const WORKSPACE_INDEX_PAGE_SIZE = WORKSPACE_INDEX_MAX_ENTRIES + 2;
+// fff ORs extension constraints, so image searches page natively instead of scanning everything.
+const IMAGE_SEARCH_CONSTRAINT = PROJECT_FAVICON_EXTENSIONS.map((extension) => `*${extension}`).join(
+  " ",
+);
 const WORKSPACE_INDEX_SCAN_TIMEOUT = "15 seconds";
 const WORKSPACE_INDEX_SCAN_TIMEOUT_MS = 15_000;
 const WORKSPACE_INDEX_IDLE_TTL = "15 minutes";
@@ -452,11 +456,16 @@ export const make = Effect.fn("WorkspaceSearchIndex.make")(function* (
   const search: WorkspaceSearchIndex["Service"]["search"] = Effect.fn(
     "WorkspaceSearchIndex.search",
   )(function* (query, limit, kind, imageOnly) {
-    const pageSize = imageOnly ? WORKSPACE_INDEX_PAGE_SIZE : Math.max(1, limit + 1);
+    const pageSize = Math.max(1, limit + 1);
     const incompleteBeforeQuery = hasIncompleteInitialScan();
     if (kind === "file" || imageOnly) {
+      const fileQuery = imageOnly
+        ? query
+          ? `${IMAGE_SEARCH_CONSTRAINT} ${query}`
+          : IMAGE_SEARCH_CONSTRAINT
+        : query;
       const result = yield* runSearch(query, pageSize, "fileSearch", () =>
-        finder.fileSearch(query, { pageSize }),
+        finder.fileSearch(fileQuery, { pageSize }),
       );
       const mapped = mapFileSearchResult(result, limit, imageOnly);
       return { ...mapped, truncated: incompleteBeforeQuery || mapped.truncated };

@@ -1,6 +1,6 @@
 # Codex
 
-Use your ChatGPT plan or an existing Codex CLI login to code in T3 Code.
+Use your ChatGPT plan, an existing Codex CLI login, or an OpenRouter API key to code in T3 Code.
 
 ## Connect with ChatGPT
 
@@ -32,6 +32,24 @@ Running `codex login` does not change a managed ChatGPT connection. In
 **Settings > Providers**, add a Codex instance, choose **Configure manually**,
 and complete the wizard. Then select that instance from the thread's model
 picker. See [Use multiple accounts](#use-multiple-accounts).
+
+## Use OpenRouter through Codex
+
+In **Settings → Providers**, choose **Add provider**, then **OpenRouter via Codex**.
+Enter an OpenRouter API key on the configuration step, or later under the instance's
+**Setup** section, and add the instance. T3 Code points Codex at OpenRouter, gives the
+instance its own shadow home, and loads OpenRouter's tool-capable model catalog. No
+`config.toml` changes or launch arguments are needed.
+
+The connection uses the Codex CLI installed on the environment's machine. It does not
+use the ChatGPT connection's managed runtime, which always talks to OpenAI. If your
+organization's policy locks Codex launch settings, the OpenRouter connection is not
+available.
+
+OpenRouter and Codex can offer models with the same names. They stay separate choices
+because they use different instances, credentials, and billing. Instances that already
+set `model_provider="openrouter"` in their launch arguments are treated as OpenRouter
+connections.
 
 ## Allow more time for provider checks
 

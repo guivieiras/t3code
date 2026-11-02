@@ -12,6 +12,7 @@ import {
   ClientSettingsPatch,
   ClientServerSettingsPatch,
   ClaudeSettings,
+  CodexSettings,
   DEFAULT_SERVER_SETTINGS,
   globalIdleCompaction,
   idleCompactionPatch,
@@ -29,6 +30,15 @@ const decodeClientSettings = Schema.decodeUnknownSync(ClientSettingsSchema);
 const decodeClientSettingsPatch = Schema.decodeUnknownSync(ClientSettingsPatch);
 const encodeClientSettings = Schema.encodeSync(ClientSettingsSchema);
 const decodeServerSettings = Schema.decodeUnknownSync(ServerSettings);
+const decodeCodexSettings = Schema.decodeUnknownSync(CodexSettings);
+
+describe("CodexSettings connection", () => {
+  it("leaves existing settings on OpenAI and accepts OpenRouter", () => {
+    expect(decodeCodexSettings({}).connection).toBeUndefined();
+    expect(decodeCodexSettings({ connection: "openrouter" }).connection).toBe("openrouter");
+    expect(() => decodeCodexSettings({ connection: "somewhere" })).toThrow();
+  });
+});
 const encodeProviderInstanceEnvironment = Schema.encodeSync(ProviderInstanceEnvironment);
 const decodeProviderInstanceEnvironment = Schema.decodeSync(ProviderInstanceEnvironment);
 // The environment variable shape builds released before secret references decode.

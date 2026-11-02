@@ -6,7 +6,24 @@ import {
   codexAppServerArgs,
   codexExecLaunchArgs,
   codexMcpListLaunchArgs,
+  resolveCodexLaunchArgs,
 } from "./codexLaunchArgs.ts";
+
+describe("resolveCodexLaunchArgs", () => {
+  it("keeps an OpenRouter connection when the env override replaces launch arguments", () => {
+    const resolved = resolveCodexLaunchArgs(
+      { launchArgs: "--yolo", connection: "openrouter" },
+      { T3CODE_CODEX_LAUNCH_ARGS: "--strict-config" },
+    );
+    NodeAssert.ok(resolved.startsWith("--strict-config "));
+    NodeAssert.ok(!resolved.includes("--yolo"));
+    NodeAssert.ok(resolved.includes(`'model_provider="openrouter"'`));
+  });
+
+  it("passes native launch arguments through untouched", () => {
+    NodeAssert.equal(resolveCodexLaunchArgs({ launchArgs: " --yolo " }, {}), "--yolo");
+  });
+});
 
 describe("codexAppServerArgs", () => {
   it.each([

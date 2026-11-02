@@ -33,6 +33,11 @@ import {
   withCodexAppServerClient,
 } from "../CodexProvider.ts";
 import { resolveCodexLaunchArgs } from "../codexLaunchArgs.ts";
+import { applyOpenRouterCodexCatalog } from "../OpenRouterCodex.ts";
+import {
+  isOpenRouterCodexConnection,
+  resolveCodexConnectionSettings,
+} from "@t3tools/shared/codexConnection";
 import { makeManagedServerProvider } from "@t3tools/provider-core/server/managedProvider";
 import * as ModelCatalog from "@t3tools/provider-core/server/ModelCatalog";
 import { applyCodexModelCatalog } from "../codexModelCatalog.ts";
@@ -161,21 +166,24 @@ export const CodexDriver: ProviderDriver<
   usage: codexUsageReader,
   create: Effect.fn("CodexDriver.create")(function* ({
     instanceId,
-    displayName,
+    displayName: configuredDisplayName,
     accentColor,
     environment,
     enabled,
-    config,
+    config: configuredConfig,
   }) {
-    if (config.setupMode === "managed")
+    if (configuredConfig.setupMode === "managed")
       return yield* makeManagedCodexProvider({
         instanceId,
-        displayName,
+        displayName: configuredDisplayName,
         accentColor,
         environment,
         enabled,
-        config,
+        config: configuredConfig,
       });
+    const isOpenRouter = isOpenRouterCodexConnection(configuredConfig);
+    const config = resolveCodexConnectionSettings(configuredConfig, instanceId);
+    const displayName = configuredDisplayName ?? (isOpenRouter ? "OpenRouter" : undefined);
     const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
     const resetCreditCoordinator = yield* ResetCreditCoordinator.ResetCreditCoordinator;
     const fileSystem = yield* FileSystem.FileSystem;
@@ -266,16 +274,33 @@ export const CodexDriver: ProviderDriver<
       ),
     );
 
+    // T3's catalog describes OpenAI's models, which an OpenRouter connection does not serve.
+    const applyConnectionCatalog: typeof applyCodexModelCatalog = (draft, catalog) =>
+      isOpenRouter ? draft : applyCodexModelCatalog(draft, catalog);
+
+    const codexProbe = Effect.zipWith(
+      checkCodexProviderStatus(effectiveConfig, undefined, processEnv),
+      currentCatalog,
+      (draft, catalog) => stampIdentity(applyConnectionCatalog(draft, catalog)),
+      { concurrent: true },
+    );
     // Kick the TTL-gated manifest refresh in the background and classify with the in-memory
     // manifest, so a slow or hung fetch never delays the provider check.
     const checkProvider = modelCatalog.refreshInBackground.pipe(
       Effect.andThen(
-        Effect.zipWith(
-          checkCodexProviderStatus(effectiveConfig, undefined, processEnv),
-          currentCatalog,
-          (draft, catalog) => stampIdentity(applyCodexModelCatalog(draft, catalog)),
-          { concurrent: true },
-        ),
+        isOpenRouter
+          ? // OpenRouter's own catalog replaces the models Codex reports for OpenAI.
+            codexProbe.pipe(
+              Effect.flatMap((snapshot) =>
+                applyOpenRouterCodexCatalog({
+                  snapshot,
+                  settings: effectiveConfig,
+                  environment: processEnv,
+                }),
+              ),
+              Effect.provideService(HttpClient.HttpClient, httpClient),
+            )
+          : codexProbe,
       ),
       Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
       Effect.provideService(FileSystem.FileSystem, fileSystem),
@@ -291,7 +316,7 @@ export const CodexDriver: ProviderDriver<
         Effect.zipWith(
           makePendingCodexProvider(settings.provider),
           currentCatalog,
-          (draft, catalog) => stampIdentity(applyCodexModelCatalog(draft, catalog)),
+          (draft, catalog) => stampIdentity(applyConnectionCatalog(draft, catalog)),
         ),
       checkProvider,
       enrichSnapshot: ({ settings, snapshot, publishSnapshot }) =>
@@ -332,7 +357,7 @@ export const CodexDriver: ProviderDriver<
             probeSkills({
               binaryPath: effectiveConfig.binaryPath,
               homePath: effectiveConfig.homePath,
-              launchArgs: resolveCodexLaunchArgs(effectiveConfig.launchArgs, processEnv),
+              launchArgs: resolveCodexLaunchArgs(effectiveConfig, processEnv),
               cwd,
               environment: processEnv,
             }).pipe(Effect.timeout(resolveProviderProbeTimeoutMs("codex", 20_000, processEnv))),
@@ -360,7 +385,7 @@ export const CodexDriver: ProviderDriver<
             const { client } = yield* withCodexAppServerClient({
               binaryPath: effectiveConfig.binaryPath,
               homePath: effectiveConfig.homePath,
-              launchArgs: resolveCodexLaunchArgs(effectiveConfig.launchArgs, processEnv),
+              launchArgs: resolveCodexLaunchArgs(effectiveConfig, processEnv),
               cwd: process.cwd(),
               environment: processEnv,
             });
@@ -417,6 +442,7 @@ export const CodexDriver: ProviderDriver<
       driverKind: DRIVER_KIND,
       continuationIdentity,
       displayName,
+      ...(isOpenRouter ? { iconKey: "openrouter" } : {}),
       accentColor,
       enabled,
       snapshot,

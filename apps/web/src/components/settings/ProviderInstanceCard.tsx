@@ -65,6 +65,7 @@ import {
 import { ProviderModelsSection } from "./ProviderModelsSection";
 import { ProviderInstanceIcon } from "../chat/ProviderInstanceIcon";
 import { ProviderAccentColorPicker } from "./ProviderAccentColorPicker";
+import { ProviderIconPicker } from "./ProviderIconPicker";
 import { RedactedSensitiveText } from "./RedactedSensitiveText";
 import { SettingResetButton, SettingsRow, SettingsSection } from "./settingsLayout";
 import { AcpSessionManagementSection } from "./AcpSessionManagementSection";
@@ -904,6 +905,12 @@ export function ProviderInstanceCard({
     );
   };
 
+  const updateIconKey = (value: string) => {
+    const iconKey = value.trim();
+    const { iconKey: _omit, ...rest } = instance;
+    onUpdate(iconKey ? { ...rest, iconKey } : rest);
+  };
+
   const updateConfig = (nextConfig: Record<string, unknown> | undefined) => {
     const { config: _omit, ...rest } = instance;
     onUpdate(
@@ -953,6 +960,7 @@ export function ProviderInstanceCard({
     <ProviderInstanceIcon
       driverKind={driverKind ?? instance.driver}
       displayName={displayName}
+      iconKey={instance.iconKey}
       accentColor={accentColor}
       acpRegistryAgentId={
         readConfigString(instance.config, "source") === "local"
@@ -1320,6 +1328,12 @@ export function ProviderInstanceCard({
                 readOnly && "opacity-50 select-none",
               )}
             >
+              <ProviderIconPicker
+                driverKind={driverKind ?? instance.driver}
+                displayName={displayName}
+                value={instance.iconKey}
+                onCommit={updateIconKey}
+              />
               <ProviderAccentColorPicker
                 layout="inline"
                 displayName={displayName}

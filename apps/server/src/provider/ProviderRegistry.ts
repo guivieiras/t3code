@@ -364,7 +364,7 @@ const correlateSnapshotWithSource = (
       ),
     );
   }
-  return Effect.succeed(snapshot);
+  return Effect.succeed(source.iconKey ? { ...snapshot, iconKey: source.iconKey } : snapshot);
 };
 
 const snapshotInstanceKey = (provider: ServerProvider): ProviderInstanceId => {
@@ -375,6 +375,7 @@ const snapshotInstanceKey = (provider: ServerProvider): ProviderInstanceId => {
 const buildSnapshotSource = (instance: ProviderInstance): ProviderSnapshotSource => ({
   instanceId: instance.instanceId,
   driverKind: instance.driverKind,
+  ...(instance.iconKey ? { iconKey: instance.iconKey } : {}),
   getSnapshot: instance.snapshot.getSnapshot,
   refresh: instance.snapshot.refresh,
   streamChanges: instance.snapshot.streamChanges,

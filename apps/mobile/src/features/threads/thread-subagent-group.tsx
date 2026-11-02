@@ -84,6 +84,7 @@ function SubagentAvatar(props: {
         <ProviderInstanceIcon
           provider={provider.driver}
           iconUrl={provider.iconUrl}
+          iconKey={provider.iconKey}
           size={15}
           displayName={resolveProviderInstanceDisplayName(provider)}
           accentColor={provider.accentColor}
@@ -92,7 +93,12 @@ function SubagentAvatar(props: {
       ) : driver === undefined ? (
         <SymbolView name="robot" size={13} tintColorClassName="accent-icon-muted" />
       ) : (
-        <ProviderIcon provider={driver} iconUrl={provider?.iconUrl} size={15} />
+        <ProviderIcon
+          provider={driver}
+          iconUrl={provider?.iconUrl}
+          iconKey={provider?.iconKey}
+          size={15}
+        />
       )}
     </View>
   );

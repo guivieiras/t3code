@@ -193,6 +193,8 @@ function HandoffEndpoint(props: {
         <ProviderInstanceIcon
           provider={provider.driver}
           iconUrl={provider.iconUrl}
+          iconKey={provider.iconKey}
+          modelSlug={props.model}
           size={14}
           displayName={resolveProviderInstanceDisplayName(provider)}
           accentColor={provider.accentColor}
@@ -203,6 +205,8 @@ function HandoffEndpoint(props: {
         <ProviderIcon
           provider={provider?.driver ?? props.instanceId}
           iconUrl={provider?.iconUrl}
+          iconKey={provider?.iconKey}
+          modelSlug={props.model}
           size={12}
         />
       )}

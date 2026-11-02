@@ -1,4 +1,5 @@
 import { formatProviderSkillDisplayName } from "@t3tools/shared/inlineSkills";
+import { resolveModelBrandIconKey } from "@t3tools/shared/modelBrand";
 import type { ComposerPathSearchTarget } from "@t3tools/client-runtime/state/threads";
 import {
   resolveProviderSkillSourceKind,
@@ -99,6 +100,7 @@ export type ComposerCommandItem =
       model: string;
       driverKind: ProviderDriverKind;
       providerDisplayName: string;
+      providerIconKey: string | undefined;
       acpRegistryAgentId: string | undefined;
       acpRegistryIconUrl: string | undefined;
       label: string;
@@ -249,6 +251,7 @@ const ComposerCommandMenuItem = memo(function ComposerCommandMenuItem(props: {
         <ProviderInstanceIcon
           driverKind={props.item.driverKind}
           displayName={props.item.providerDisplayName}
+          iconKey={resolveModelBrandIconKey(props.item.model) ?? props.item.providerIconKey}
           acpRegistryAgentId={props.item.acpRegistryAgentId}
           acpRegistryIconUrl={props.item.acpRegistryIconUrl}
           className="size-4 shrink-0"

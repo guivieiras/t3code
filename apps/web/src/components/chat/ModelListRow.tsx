@@ -1,4 +1,5 @@
 import { type ProviderDriverKind, type ProviderInstanceId } from "@t3tools/contracts";
+import { resolveModelBrandIconKey } from "@t3tools/shared/modelBrand";
 import { memo } from "react";
 import { CheckIcon, StarIcon } from "lucide-react";
 import { getDisplayModelName } from "./providerIconUtils";
@@ -19,6 +20,7 @@ export const ModelListRow = memo(function ModelListRow(props: {
   instanceId: ProviderInstanceId;
   driverKind: ProviderDriverKind;
   providerDisplayName: string;
+  providerIconKey?: string | undefined;
   providerAccentColor?: string | undefined;
   acpRegistryAgentId?: string | undefined;
   acpRegistryIconUrl?: string | undefined;
@@ -28,6 +30,8 @@ export const ModelListRow = memo(function ModelListRow(props: {
   isSelected: boolean;
   /** Marks this instance apart from another of the same provider. */
   showInstanceBadge: boolean;
+  /** Initials only when another instance renders the same icon; otherwise an accent dot. */
+  showInstanceInitials: boolean;
   showNewBadge?: boolean;
   unavailable?: boolean;
   jumpLabel?: string | null;
@@ -53,14 +57,17 @@ export const ModelListRow = memo(function ModelListRow(props: {
           "data-disabled:pointer-events-auto data-disabled:cursor-not-allowed",
       )}
     >
-      {/* One row shape in every tab: the logo names the provider, so Favorites needs no second line. */}
+      {/* One row shape in every tab: the logo names the model's publisher when it is recognized,
+          otherwise the provider; the instance badge and screen-reader label name the provider. */}
       <ProviderInstanceIcon
         driverKind={props.driverKind}
         displayName={props.providerDisplayName}
+        iconKey={resolveModelBrandIconKey(props.slug) ?? props.providerIconKey}
         accentColor={props.providerAccentColor}
         acpRegistryAgentId={props.acpRegistryAgentId}
         acpRegistryIconUrl={props.acpRegistryIconUrl}
         showBadge={props.showInstanceBadge}
+        badgeContent={props.showInstanceInitials ? "initials" : "none"}
         className="size-4"
         iconClassName="size-4"
         indicatorBackground="var(--popover)"

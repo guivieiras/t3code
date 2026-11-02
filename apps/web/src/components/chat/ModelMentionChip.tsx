@@ -1,5 +1,6 @@
 import { useAtomValue } from "@effect/atom-react";
 import type { EnvironmentId, ProviderDriverKind } from "@t3tools/contracts";
+import { resolveModelBrandIconKey } from "@t3tools/shared/modelBrand";
 import * as Option from "effect/Option";
 import { Atom } from "effect/reactivity";
 
@@ -15,6 +16,7 @@ interface ModelMentionPresentation {
   readonly providerLabel: string;
   readonly driverKind: ProviderDriverKind;
   readonly providerDisplayName: string;
+  readonly iconKey: string | undefined;
   readonly acpRegistryAgentId: string | undefined;
   readonly acpRegistryIconUrl: string | undefined;
 }
@@ -25,6 +27,7 @@ function presentationsEqual(left: ModelMentionPresentation, right: ModelMentionP
     left.providerLabel === right.providerLabel &&
     left.driverKind === right.driverKind &&
     left.providerDisplayName === right.providerDisplayName &&
+    left.iconKey === right.iconKey &&
     left.acpRegistryAgentId === right.acpRegistryAgentId &&
     left.acpRegistryIconUrl === right.acpRegistryIconUrl
   );
@@ -49,6 +52,7 @@ const modelMentionPresentationAtom = Atom.family((key: string) =>
       providerLabel: option.subProvider ?? entry.displayName,
       driverKind: entry.driverKind,
       providerDisplayName: entry.displayName,
+      iconKey: resolveModelBrandIconKey(model) ?? entry.iconKey,
       acpRegistryAgentId: entry.acpRegistryAgentId,
       acpRegistryIconUrl: entry.acpRegistryIconUrl,
     };
@@ -105,6 +109,7 @@ export function ModelMentionChip(props: {
         <ProviderInstanceIcon
           driverKind={presentation.driverKind}
           displayName={presentation.providerDisplayName}
+          iconKey={presentation.iconKey}
           acpRegistryAgentId={presentation.acpRegistryAgentId}
           acpRegistryIconUrl={presentation.acpRegistryIconUrl}
           className="z-auto"

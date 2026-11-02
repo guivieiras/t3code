@@ -416,6 +416,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     to: "/settings/appearance",
   },
   {
+    id: "sent-message-position",
+    title: "Pin sent messages to top",
+    to: "/settings/appearance",
+    searchTerms: ["anchor scroll follow bottom prompt timeline"],
+  },
+  {
     id: "project-grouping",
     title: "Project grouping",
     to: "/settings/general",

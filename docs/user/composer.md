@@ -368,3 +368,9 @@ including filenames or folders containing `#` or `?`.
 
 On mobile, select a PDF attachment or link to open it. iOS uses the native viewer;
 Android opens a compatible installed file viewer.
+
+## Sent message position
+
+By default, sending a message moves it to the top of the conversation while the response streams.
+Turn off **Settings → Appearance → Pin sent messages to top** (under **Advanced**) to keep the
+conversation following its bottom instead.

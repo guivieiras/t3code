@@ -1,3 +1,4 @@
+import { useClientSettings } from "../../hooks/useSettings";
 import { useStableCallback } from "../../hooks/useStableCallback";
 import { type MessageId, type RunId } from "@t3tools/contracts";
 import { CHAT_LIST_ANCHOR_OFFSET } from "@t3tools/shared/chatList";
@@ -180,6 +181,8 @@ export function useTimelineFollow(input: TimelineFollowInput) {
     timelineAnchorMessageId,
     setTimelineAnchor,
   } = input;
+  // Off: a sent message keeps following the live end instead of anchoring near the top.
+  const pinSentMessagesToTop = useClientSettings((settings) => settings.pinSentMessagesToTop);
   const [visitState, setVisit] = useState<TimelineFollowVisit>({
     threadKey: activeThreadKey,
     followEnd: true,
@@ -291,7 +294,12 @@ export function useTimelineFollow(input: TimelineFollowInput) {
   if (!sameRunObservation(runObservation.observation, observedRun)) {
     setObservedRun(runObservation.observation);
     const startedRunAnchor = runObservation.anchorMessageId;
-    if (startedRunAnchor !== null && !anchorPending && timelineLiveFollowEnabled) {
+    if (
+      pinSentMessagesToTop &&
+      startedRunAnchor !== null &&
+      !anchorPending &&
+      timelineLiveFollowEnabled
+    ) {
       setShowScrollToBottom(false);
       setTimelineAnchor({ threadKey: activeThreadKey, messageId: startedRunAnchor });
     }
@@ -547,7 +555,7 @@ export function useTimelineFollow(input: TimelineFollowInput) {
     followStore.dispatch(visit, { type: "followEnd" });
     visitScroll().showScrollDebouncer.cancel();
     setShowScrollToBottom(false);
-    setTimelineAnchor({ threadKey, messageId });
+    if (pinSentMessagesToTop) setTimelineAnchor({ threadKey, messageId });
   };
 
   return {

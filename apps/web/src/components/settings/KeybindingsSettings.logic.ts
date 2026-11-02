@@ -466,3 +466,10 @@ export function keybindingFromKeyboardEvent(
   parts.push(keyToken);
   return parts.join("+");
 }
+
+/** Plain and Shift+Tab move focus; Tab with Mod, Ctrl, or Alt is a shortcut worth capturing. */
+export function isFocusTraversalTabEvent(
+  event: Pick<KeyboardEvent, "key" | "metaKey" | "ctrlKey" | "altKey">,
+): boolean {
+  return event.key === "Tab" && !event.metaKey && !event.ctrlKey && !event.altKey;
+}

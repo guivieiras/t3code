@@ -79,6 +79,7 @@ import {
   AcpRegistrySetProviderResult,
 } from "./acpRegistry.ts";
 import { ExternalLauncherError, LaunchEditorInput } from "./editor.ts";
+import { WebPushEndpoint, WebPushError, WebPushStatus, WebPushSubscribeInput } from "./webPush.ts";
 import {
   AuthAccessStreamError,
   AuthAccessStreamEvent,
@@ -519,6 +520,9 @@ export const WS_METHODS = {
   serverGetStorageCleanupReport: "server.getStorageCleanupReport",
   serverGetDatabaseStorage: "server.getDatabaseStorage",
   serverReclaimDatabaseSpace: "server.reclaimDatabaseSpace",
+  webPushStatus: "webPush.status",
+  webPushSubscribe: "webPush.subscribe",
+  webPushUnsubscribe: "webPush.unsubscribe",
   peerLinksList: "peerLinks.list",
   peerLinksLink: "peerLinks.link",
   peerLinksUnlink: "peerLinks.unlink",
@@ -840,6 +844,21 @@ const WsServerGetDatabaseStorageRpc = Rpc.make(WS_METHODS.serverGetDatabaseStora
 const WsServerReclaimDatabaseSpaceRpc = Rpc.make(WS_METHODS.serverReclaimDatabaseSpace, {
   payload: Schema.Struct({}),
   error: Schema.Union([DatabaseReclaimError, EnvironmentAuthorizationError]),
+});
+const WsWebPushStatusRpc = Rpc.make(WS_METHODS.webPushStatus, {
+  payload: Schema.Struct({ endpoint: Schema.NullOr(WebPushEndpoint) }),
+  success: WebPushStatus,
+  error: Schema.Union([WebPushError, EnvironmentAuthorizationError]),
+});
+const WsWebPushSubscribeRpc = Rpc.make(WS_METHODS.webPushSubscribe, {
+  payload: WebPushSubscribeInput,
+  success: Schema.Void,
+  error: Schema.Union([WebPushError, EnvironmentAuthorizationError]),
+});
+const WsWebPushUnsubscribeRpc = Rpc.make(WS_METHODS.webPushUnsubscribe, {
+  payload: Schema.Struct({ endpoint: WebPushEndpoint }),
+  success: Schema.Void,
+  error: Schema.Union([WebPushError, EnvironmentAuthorizationError]),
 });
 
 const WsPeerLinksListRpc = Rpc.make(WS_METHODS.peerLinksList, {
@@ -2142,6 +2161,9 @@ export const WsRpcGroup = RpcGroup.make(
   WsServerGetDatabaseStorageRpc,
   WsServerGetSettingsRpc,
   WsServerReclaimDatabaseSpaceRpc,
+  WsWebPushStatusRpc,
+  WsWebPushSubscribeRpc,
+  WsWebPushUnsubscribeRpc,
   WsServerUpdateSettingsRpc,
   WsPeerLinksListRpc,
   WsPeerLinksLinkRpc,

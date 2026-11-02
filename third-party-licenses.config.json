@@ -254,6 +254,15 @@
       }
     },
     {
+      "name": "http_ece",
+      "version": "1.2.0",
+      "sourceUrl": "https://github.com/martinthomson/encrypted-content-encoding",
+      "generatedNotice": {
+        "licenseId": "MIT",
+        "copyrights": ["Copyright (c) Martin Thomson"]
+      }
+    },
+    {
       "name": "fast-xml-parser",
       "version": "5.7.3",
       "license": "MIT",

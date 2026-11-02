@@ -862,7 +862,7 @@ describe("asking about a change rather than working on it", () => {
   it.each(["", "Please consider "])("preserves PR plan feedback with prose %j", (prose) => {
     const comment = buildPullRequestReferenceContext(base);
     const draftText = prose + formatInlineContextReference(reviewCommentContextReference(comment));
-    const submission = resolvePlanFollowUpSubmission({ draftText, planMarkdown: "# Plan" });
+    const submission = resolvePlanFollowUpSubmission({ draftText });
     const context = buildMessageContext({
       terminalContexts: [],
       previewAnnotations: [],

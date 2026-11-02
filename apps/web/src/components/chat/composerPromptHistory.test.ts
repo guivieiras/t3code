@@ -7,6 +7,7 @@ import {
   stepComposerPromptHistory,
   type ComposerPromptHistoryPosition,
 } from "./composerPromptHistory";
+import { buildFreshContextPlanImplementationPrompt } from "../../proposedPlan";
 
 const entries = buildComposerPromptHistoryEntries([
   { id: "m1", role: "user", text: "first" },
@@ -24,6 +25,13 @@ function forward(position: ComposerPromptHistoryPosition | null, currentPrompt: 
 }
 
 describe("recallableComposerPrompt", () => {
+  it("skips plan implementation handoffs", () => {
+    expect(recallableComposerPrompt("Implement the plan.")).toBe("");
+    expect(recallableComposerPrompt(buildFreshContextPlanImplementationPrompt("## Ship it"))).toBe(
+      "",
+    );
+  });
+
   it.each([
     "Render <preview_annotation>",
     "Render\n<preview_annotation>\nhere",

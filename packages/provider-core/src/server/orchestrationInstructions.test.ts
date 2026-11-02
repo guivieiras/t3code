@@ -4,10 +4,19 @@ import {
   T3_CODE_DEVICE_TOOL_INSTRUCTIONS,
   T3_CODE_DEVICE_TOOL_INSTRUCTIONS_WITH_TOOL_SEARCH,
   T3_CODE_ORCHESTRATION_INSTRUCTIONS,
+  T3_CODE_ORCHESTRATION_SECTIONS,
   t3AcpPromptWithInstructions,
   t3OrchestrationPrompt,
   t3OrchestrationSystemPrompt,
 } from "./orchestrationInstructions.ts";
+
+describe("T3 orchestration sections", () => {
+  it("stay under Codex's 4,000-byte entry limit", () => {
+    for (const section of T3_CODE_ORCHESTRATION_SECTIONS) {
+      assert.isBelow(new TextEncoder().encode(section).byteLength, 4000);
+    }
+  });
+});
 
 describe("T3 device instructions", () => {
   it("route device work through device_open and give Claude the line that loads the tools", () => {

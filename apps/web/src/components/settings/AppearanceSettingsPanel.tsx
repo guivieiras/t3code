@@ -355,6 +355,7 @@ export function AppearanceSettingsPanel() {
             // Environment identification's search result lands on this section.
             "appearance-interface",
             searchableSetting("composer-context").id,
+            searchableSetting("media-link-previews").id,
           ]}
         >
           <SettingsRow
@@ -474,6 +475,32 @@ export function AppearanceSettingsPanel() {
                   updateSettings({ persistComposerContextStrip: Boolean(checked) })
                 }
                 aria-label="Keep composer context visible in active threads"
+              />
+            }
+          />
+          <SettingsRow
+            {...searchableSetting("media-link-previews")}
+            description="Open image and video file links in chat in the expanded preview instead of the file panel. Ctrl+click still opens the file panel."
+            resetAction={
+              settings.openMediaLinksInPreview !==
+              DEFAULT_UNIFIED_SETTINGS.openMediaLinksInPreview ? (
+                <SettingResetButton
+                  label="media link previews"
+                  onClick={() =>
+                    updateSettings({
+                      openMediaLinksInPreview: DEFAULT_UNIFIED_SETTINGS.openMediaLinksInPreview,
+                    })
+                  }
+                />
+              ) : null
+            }
+            control={
+              <Switch
+                checked={settings.openMediaLinksInPreview}
+                onCheckedChange={(checked) =>
+                  updateSettings({ openMediaLinksInPreview: Boolean(checked) })
+                }
+                aria-label="Open media links in preview"
               />
             }
           />

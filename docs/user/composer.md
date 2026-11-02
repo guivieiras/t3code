@@ -343,6 +343,10 @@ save, or add it to chat.
 Select an image or video attachment or link to preview it. Playback support depends
 on your browser or device; save an unsupported video to open it in another app.
 
+On web and desktop, an image or video file link in a message opens in the file panel. Turn on
+**Settings → Appearance → Open media links in preview** (under **Advanced**) to open it in the
+expanded preview instead; Ctrl+click still opens the file panel.
+
 On web and desktop, right-click media to save it or copy its path or URL. On mobile,
 touch and hold an image or video thumbnail and choose **Save or share**. On iOS,
 return to the thumbnail to open this menu after watching a full-screen video.

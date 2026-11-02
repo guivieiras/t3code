@@ -40,6 +40,7 @@ const THEME_UTILITY_ROLES: Readonly<Partial<Record<string, ThemeColorRole>>> = {
   muted: "muted",
   "muted-foreground": "mutedForeground",
   placeholder: "placeholder",
+  "placeholder-2": "placeholder2",
   "secondary-label": "secondaryLabel",
   "icon-muted": "iconMuted",
   accent: "accentSurface",

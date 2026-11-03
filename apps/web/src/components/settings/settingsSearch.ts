@@ -428,6 +428,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     to: "/settings/appearance",
   },
   {
+    id: "pinned-section-headers",
+    title: "Pinned section headers",
+    to: "/settings/appearance",
+    searchTerms: ["sidebar pinned active threads divider labels"],
+  },
+  {
     id: "project-grouping",
     title: msg("Project grouping"),
     to: "/settings/general",

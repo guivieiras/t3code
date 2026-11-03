@@ -916,6 +916,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
   const { isMobile, setOpenMobile } = useSidebar();
   const keybindings = useAtomValue(primaryServerKeybindingsAtom);
   const confirmThreadDelete = useClientSettings((s) => s.confirmThreadDelete);
+  const pinnedSectionHeadersEnabled = useClientSettings((s) => s.sidebarPinnedSectionHeaders);
   const confirmThreadArchive = useClientSettings((s) => s.confirmThreadArchive);
   const timestampFormat = useClientSettings((s) => s.timestampFormat);
   const projectGroupingSettings = useClientSettings(selectProjectGroupingSettings);
@@ -3521,7 +3522,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                                 marker="pinned-header"
                                 label="Pinned"
                                 visible={from !== null}
-                                persistent={pinnedThreads.length > 0}
+                                persistent={pinnedSectionHeadersEnabled && pinnedThreads.length > 0}
                                 isDropTarget={dragTargetSection === "pinned"}
                               />,
                             );
@@ -3533,7 +3534,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                                 marker="pinned-divider"
                                 label="Active"
                                 visible={from !== null}
-                                persistent={pinnedThreads.length > 0}
+                                persistent={pinnedSectionHeadersEnabled && pinnedThreads.length > 0}
                                 isDropTarget={dragTargetSection === "active"}
                               />,
                             );

@@ -308,6 +308,7 @@ export function threadListV2RowAccessibilityLabel(input: {
   readonly snoozeWakeLabel: string | undefined;
   readonly providerNameLabel: string | null;
   readonly hasQueuedMessages: boolean;
+  readonly backgroundWorkLabel: string | null;
   readonly regeneratingTitle: boolean;
 }): string {
   // Mirrors the row's meta line: a card shows Woke, else its status, else the time.
@@ -322,6 +323,7 @@ export function threadListV2RowAccessibilityLabel(input: {
     meta,
     input.providerNameLabel,
     input.hasQueuedMessages ? "messages queued to send" : null,
+    input.backgroundWorkLabel,
     input.regeneratingTitle ? "regenerating title" : null,
   ]
     .filter((part) => part !== null)

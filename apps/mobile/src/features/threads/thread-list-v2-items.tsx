@@ -21,6 +21,7 @@ import type {
   EnvironmentThreadShell,
 } from "@t3tools/client-runtime/state/shell";
 import type { EnvironmentThreadSearchMatch } from "@t3tools/client-runtime/state/thread-search";
+import { presentUnawaitedBackgroundWork } from "@t3tools/client-runtime/state/thread-execution";
 import {
   formatWorkingDurationLabel,
   resolveThreadWorkingStartedAt,
@@ -145,6 +146,20 @@ const STATUS_LABEL_BY_STATUS: Partial<Record<ThreadListV2Status, StatusLabel>> =
     iconTintClassName: "accent-warning-foreground",
   },
 };
+// Commands the agent left running without waiting on them; the row's status stays as is.
+function BackgroundWorkIcon({ selected }: { readonly selected: boolean }) {
+  return (
+    <SymbolView
+      name="terminal"
+      size={12}
+      tintColorClassName={
+        selected ? selectedThreadRowColors.iconTintClassName : "accent-adaptive-sky-600-400"
+      }
+      type="monochrome"
+    />
+  );
+}
+
 const DONE_STATUS_LABEL: StatusLabel = {
   label: "Done",
   icon: "checkmark.circle",
@@ -783,6 +798,7 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
       : workingLabel) ?? (isUnread ? DONE_STATUS_LABEL : undefined);
   const recede = shouldRecedeThreadRow({ status, selected });
   const isRegeneratingTitle = thread.titleRegeneration != null;
+  const backgroundWorkLabel = presentUnawaitedBackgroundWork(thread.pendingBackgroundTasks);
   const timeLabel = props.timeLabel;
   const rowAccessibilityLabel = threadListV2RowAccessibilityLabel({
     title: thread.title,
@@ -795,6 +811,7 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
     snoozeWakeLabel: snoozedRow ? props.snoozeWakeLabelText : undefined,
     providerNameLabel,
     hasQueuedMessages: props.hasQueuedMessages === true,
+    backgroundWorkLabel,
     regeneratingTitle: isRegeneratingTitle,
   });
 
@@ -1214,6 +1231,7 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
         </Text>
         <View className="flex-row items-center gap-1.5" style={{ minHeight: titleLineHeight }}>
           {props.hasQueuedMessages ? <QueuedMessageIcon selected={selected} /> : null}
+          {backgroundWorkLabel ? <BackgroundWorkIcon selected={selected} /> : null}
           {pinnedRow ? (
             <SymbolView
               name="pin"
@@ -1546,6 +1564,7 @@ export const ThreadListV2Row = memo(function ThreadListV2Row(props: {
             ) : null}
           </View>
           {props.hasQueuedMessages ? <QueuedMessageIcon selected={selected} /> : null}
+          {backgroundWorkLabel ? <BackgroundWorkIcon selected={selected} /> : null}
           <Text
             className={cn(
               "text-sm tabular-nums",

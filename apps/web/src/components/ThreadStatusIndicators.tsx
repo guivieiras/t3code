@@ -17,7 +17,8 @@ import {
   type ThreadPullRequestLink,
   type VcsStatusResult,
 } from "@t3tools/contracts";
-import { FolderGit2Icon, TerminalIcon } from "lucide-react";
+import { FolderGit2Icon, SquareTerminalIcon, TerminalIcon } from "lucide-react";
+import { presentUnawaitedBackgroundWork } from "@t3tools/client-runtime/state/thread-execution";
 import { useEnvironment, usePrimaryEnvironmentId } from "../state/environments";
 import { EnvironmentMachineIcon } from "./EnvironmentMachineIcon";
 import { useProject } from "../state/entities";
@@ -600,6 +601,32 @@ export function ThreadTerminalStatusButton({
   );
 }
 
+export const BACKGROUND_WORK_STATUS_COLOR_CLASS = "text-info-foreground";
+
+// Static on purpose: a dev server can sit in this state for hours.
+export function ThreadBackgroundWorkIndicator({ label }: { label: string | null }) {
+  if (label === null) return null;
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <span
+            role="img"
+            aria-label={label}
+            className={cn(
+              "inline-flex shrink-0 items-center justify-center",
+              BACKGROUND_WORK_STATUS_COLOR_CLASS,
+            )}
+          />
+        }
+      >
+        <SquareTerminalIcon className="size-3.5" />
+      </TooltipTrigger>
+      <TooltipPopup side="top">{label}</TooltipPopup>
+    </Tooltip>
+  );
+}
+
 export function ThreadWorktreeIndicator({
   thread,
 }: {
@@ -794,13 +821,15 @@ export function ThreadRowTrailingStatus({ thread }: { thread: SidebarThreadSumma
   const threadEnvironmentLabel = isRemoteThread ? (remoteEnvLabel ?? "Remote") : null;
   const remoteMachine = resolveEnvironmentMachineKind(environment?.serverConfig ?? null);
   const terminalStatus = terminalStatusFromRunningIds(runningTerminalIds);
+  const backgroundWorkLabel = presentUnawaitedBackgroundWork(thread.pendingBackgroundTasks);
 
-  if (!terminalStatus && !isRemoteThread) {
+  if (!terminalStatus && backgroundWorkLabel === null && !isRemoteThread) {
     return null;
   }
 
   return (
     <span className="inline-flex shrink-0 items-center gap-1.5">
+      <ThreadBackgroundWorkIndicator label={backgroundWorkLabel} />
       {terminalStatus ? (
         <Tooltip>
           <TooltipTrigger

@@ -34,6 +34,7 @@ import {
   formatModelSelectionEffort,
   isBackgroundWorkStopPending,
   presentPendingBackgroundWork,
+  presentUnawaitedBackgroundWork,
   presentProviderGoal,
   presentRunStop,
   threadRuntimeHasInterruptibleRun,
@@ -755,5 +756,16 @@ describe("presentPendingBackgroundWork", () => {
       },
     ]);
     expect(presentation?.items[0]?.label).toBe("mv a.ts b.ts\ncat > b.ts <<'EOF'\nexport {};\nEOF");
+  });
+
+  it("labels only work the thread is not already shown waiting on", () => {
+    const command = {
+      taskId: "bg-1",
+      kind: "command" as const,
+      description: "Wait for both image builds",
+    };
+    expect(presentUnawaitedBackgroundWork([command])).toBe("Running · Wait for both image builds");
+    expect(presentUnawaitedBackgroundWork([{ ...command, awaited: true }])).toBeNull();
+    expect(presentUnawaitedBackgroundWork([])).toBeNull();
   });
 });

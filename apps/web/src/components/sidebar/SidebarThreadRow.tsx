@@ -20,6 +20,7 @@ import {
   resolveSettledThreadTimestamp,
   resolveThreadActivityTimestamp,
 } from "@t3tools/client-runtime/state/thread-sort";
+import { presentUnawaitedBackgroundWork } from "@t3tools/client-runtime/state/thread-execution";
 import { type EnvironmentThreadSearchMatch } from "@t3tools/client-runtime/state/thread-search";
 import {
   formatWorkingDurationLabel,
@@ -51,6 +52,7 @@ import {
   PinOffIcon,
   ShieldQuestionIcon,
   SquarePenIcon,
+  SquareTerminalIcon,
   TerminalIcon,
   Undo2Icon,
   UserRoundIcon,
@@ -97,6 +99,8 @@ import {
 } from "../Sidebar.logic";
 import { resolveLocalCheckoutBranchMismatch } from "../BranchToolbar.logic";
 import {
+  BACKGROUND_WORK_STATUS_COLOR_CLASS,
+  ThreadBackgroundWorkIndicator,
   ThreadPullRequestBadgeControl,
   ThreadPullRequestsMiniList,
   ThreadWorktreeIndicator,
@@ -270,6 +274,7 @@ function SidebarThreadTooltip({
     .filter((instanceId) => instanceId !== modelInstanceId)
     .map((instanceId) => providerEntryByInstanceId.get(instanceId)?.displayName ?? instanceId);
   const supportsMultiplePullRequests = useSupportsMultiplePullRequests(thread.environmentId);
+  const backgroundWorkLabel = presentUnawaitedBackgroundWork(thread.pendingBackgroundTasks);
   return (
     <ThreadHoverCardPopup side="right" align="start" sideOffset={4}>
       <ThreadHoverCard
@@ -350,6 +355,15 @@ function SidebarThreadTooltip({
             <div className="min-w-0 truncate text-foreground/75">
               {terminalProcessLabel(terminalProcessCount)}
             </div>
+          </div>
+        ) : null}
+        {backgroundWorkLabel ? (
+          <div className="flex min-w-0 items-center gap-2">
+            <SquareTerminalIcon
+              aria-hidden
+              className={cn("size-3 shrink-0", BACKGROUND_WORK_STATUS_COLOR_CLASS)}
+            />
+            <div className="min-w-0 truncate text-foreground/75">{backgroundWorkLabel}</div>
           </div>
         ) : null}
         {thread.runtime?.lastError ? (
@@ -1093,12 +1107,16 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
         onOpenPullRequest={handlePrClick}
       />
     ) : null;
+  const backgroundWorkLabel = presentUnawaitedBackgroundWork(thread.pendingBackgroundTasks);
   const terminalStatusIcon = (
-    <ThreadTerminalStatusButton
-      threadRef={threadRef}
-      terminalIds={runningTerminalIds}
-      onThreadActivate={onThreadActivate}
-    />
+    <>
+      <ThreadBackgroundWorkIndicator label={backgroundWorkLabel} />
+      <ThreadTerminalStatusButton
+        threadRef={threadRef}
+        terminalIds={runningTerminalIds}
+        onThreadActivate={onThreadActivate}
+      />
+    </>
   );
   const draftIndicator = hasUnsentDraft ? (
     <Tooltip>
@@ -1165,7 +1183,8 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
     !showsScratchMachine &&
     prBadge === null &&
     diff === null &&
-    runningTerminalIds.length === 0;
+    runningTerminalIds.length === 0 &&
+    backgroundWorkLabel === null;
   const metaLine = metaLineEmpty ? null : (
     <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-secondary-label text-xs">
       {checkoutThread.branch ? (

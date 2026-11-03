@@ -46,7 +46,7 @@ interface MarkdownFileLinkProps {
   openInEditorMenuLabel: string;
   onOpenInBrowser?: (() => Promise<AtomCommandResult<unknown, unknown>>) | undefined;
   onOpenMedia?: (() => void) | undefined;
-  /** Primary clicks open media in the expanded preview; Ctrl+click keeps the file panel. */
+  /** Primary clicks open media in the expanded preview instead of the file panel. */
   preferMediaPreview?: boolean | undefined;
   onReveal?: (() => Promise<AtomCommandResult<unknown, unknown>>) | undefined;
   revealLabel?: string | undefined;
@@ -343,10 +343,6 @@ export const MarkdownFileLink = memo(function MarkdownFileLink({
               onClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
-                if (preferMediaPreview && onOpenMedia && event.ctrlKey && threadRef && panelPath) {
-                  onOpenInPanel(panelPath, line);
-                  return;
-                }
                 if (onOpen && shouldOpenMarkdownFileLinkInEditor(event)) {
                   handleOpenInEditor();
                   return;

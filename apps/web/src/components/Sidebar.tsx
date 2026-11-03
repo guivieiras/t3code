@@ -35,6 +35,7 @@ import {
   isThreadWorking,
 } from "@t3tools/client-runtime/state/thread-inbox";
 import { sortSettledThreads } from "@t3tools/client-runtime/state/thread-sort";
+import type { SidebarThreadSortOrder } from "@t3tools/contracts/settings";
 import {
   nextShownOrder,
   threadSearchMatchKey,
@@ -199,10 +200,12 @@ import {
   shouldNavigateAfterThreadPark,
   sidebarListItemId,
   sidebarThreadKeyAtY,
-  sortInboxThreadsByReturn,
-  sortPinnedThreadsForSidebar,
-  sortThreadsForSidebar,
+  isSidebarActiveTimeOrdered,
+  resolveSidebarActiveOrder,
+  sortSidebarActiveThreads,
+  sortSidebarPinnedThreads,
   sortWorkingThreadsBySend,
+  type SidebarActiveOrder,
   useSnoozeWakeClock,
   threadShortcutContext,
   useThreadJumpHintsVisible,
@@ -356,8 +359,8 @@ interface SidebarThreadPartitionInput {
   readonly connectedEnvironmentIds: readonly EnvironmentId[];
   readonly optimisticDrop: SidebarOptimisticDrop | null;
   readonly workingShelfEnabled: boolean;
-  /** Boring mode: folders list active threads by the user's latest message. */
-  readonly sortActiveBySend: boolean;
+  readonly activeOrder: SidebarActiveOrder;
+  readonly threadSortOrder: SidebarThreadSortOrder;
   // Snooze wakes, the queued-turn grace and the Working shelf's exit grace depend
   // on the clock, so the minute tick, the precise snooze-wake tick and the inbox
   // tracker's expiry version are inputs: a new key repartitions.
@@ -376,16 +379,19 @@ const NO_DRAGGED_ORDER: readonly string[] = [];
 const NO_DRAGGED_ORDERS: {
   readonly settledOrder: readonly string[];
   readonly activeOrder: readonly string[] | undefined;
-} = { settledOrder: NO_DRAGGED_ORDER, activeOrder: undefined };
+  readonly pinnedOrder: readonly string[] | undefined;
+} = { settledOrder: NO_DRAGGED_ORDER, activeOrder: undefined, pinnedOrder: undefined };
 
 function resolveDraggedOrders(input: {
   readonly drag: { readonly activeKey: string; readonly occurredAt: string };
   readonly threadByKey: ReadonlyMap<string, EnvironmentThreadShell>;
   readonly settledThreads: readonly EnvironmentThreadShell[];
   readonly activeThreads: readonly EnvironmentThreadShell[];
-  readonly workingShelfEnabled: boolean;
+  readonly pinnedThreads: readonly EnvironmentThreadShell[];
+  readonly activeOrder: SidebarActiveOrder;
+  readonly threadSortOrder: SidebarThreadSortOrder;
 }): typeof NO_DRAGGED_ORDERS {
-  const { drag, threadByKey, settledThreads, activeThreads, workingShelfEnabled } = input;
+  const { drag, threadByKey, settledThreads, activeThreads, pinnedThreads, activeOrder } = input;
   const thread = threadByKey.get(drag.activeKey);
   if (thread === undefined) return NO_DRAGGED_ORDERS;
   const others = (list: readonly EnvironmentThreadShell[]) =>
@@ -395,12 +401,20 @@ function resolveDraggedOrders(input: {
       ...others(settledThreads),
       applySidebarThreadDrop(thread, "settled", drag.occurredAt),
     ]).map(threadShellKey),
-    activeOrder: workingShelfEnabled
-      ? sortInboxThreadsByReturn(
+    activeOrder: isSidebarActiveTimeOrdered(activeOrder)
+      ? sortSidebarActiveThreads(
           [...others(activeThreads), applySidebarThreadDrop(thread, "active", drag.occurredAt)],
+          activeOrder,
           inboxReturns.returnedAt,
         ).map(threadShellKey)
       : undefined,
+    pinnedOrder:
+      input.threadSortOrder === "manual"
+        ? undefined
+        : sortSidebarPinnedThreads(
+            [...others(pinnedThreads), applySidebarThreadDrop(thread, "pinned", drag.occurredAt)],
+            input.threadSortOrder,
+          ).map(threadShellKey),
   };
 }
 
@@ -443,6 +457,12 @@ function useSidebarThreads(input: {
   // Folders already separate the work, so boring mode has no Working shelf.
   const workingShelfEnabled =
     useClientSettings((s) => s.sidebarWorkingShelfEnabled) && folderGroups === null;
+  const threadSortOrder = useClientSettings((s) => s.sidebarThreadSortOrder);
+  const activeOrder = resolveSidebarActiveOrder({
+    boring: folderGroups !== null,
+    workingShelfEnabled,
+    threadSortOrder,
+  });
   const inboxReturnsVersion = useSyncExternalStore(
     inboxReturns.subscribe,
     inboxReturns.getSnapshot,
@@ -486,7 +506,8 @@ function useSidebarThreads(input: {
     connectedEnvironmentIds,
     optimisticDrop,
     workingShelfEnabled,
-    sortActiveBySend: folderGroups !== null,
+    activeOrder,
+    threadSortOrder,
     clockKey: `${nowMinute}:${snoozeWakeClock}:${inboxReturnsVersion}`,
   });
 
@@ -566,7 +587,8 @@ function useSidebarThreads(input: {
   return {
     ...partition,
     threads,
-    workingShelfEnabled,
+    activeOrder,
+    threadSortOrder,
     searchableThreads: [
       ...pinnedThreads,
       ...activeThreads,
@@ -621,7 +643,8 @@ function partitionSidebarThreads(input: SidebarThreadPartitionInput) {
     serverConfigs,
     optimisticDrop,
     workingShelfEnabled,
-    sortActiveBySend,
+    activeOrder,
+    threadSortOrder,
   } = input;
   const preciseNow = new Date().toISOString();
   const visible = filterSidebarV2VisibleThreads(threads, scopedProjectKeys, delegatedUnderParent);
@@ -678,12 +701,8 @@ function partitionSidebarThreads(input: SidebarThreadPartitionInput) {
     }
   }
   // Availability gates dragging only; sorting must stay consistent across clients.
-  const sortedPinned = sortPinnedThreadsForSidebar(pinned);
-  const sortedActive = sortActiveBySend
-    ? sortWorkingThreadsBySend(active)
-    : workingShelfEnabled
-      ? sortInboxThreadsByReturn(active, inboxObservation.returnedAt)
-      : sortThreadsForSidebar(active);
+  const sortedPinned = sortSidebarPinnedThreads(pinned, threadSortOrder);
+  const sortedActive = sortSidebarActiveThreads(active, activeOrder, inboxObservation.returnedAt);
   return {
     pinnedThreads:
       optimisticDrop?.section !== "pinned" || optimisticDrop.order === null
@@ -1295,7 +1314,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
   );
 
   const {
-    workingShelfEnabled,
+    activeOrder,
+    threadSortOrder,
     pinnedThreads,
     draggableThreadKeys,
     activeReorderableThreadKeys,
@@ -2033,22 +2053,28 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
   };
   const sortableIds = sidebarListItems.map(sidebarListItemId);
   // Keep non-drag orders constant to preserve sorting strategy and row identity during streaming.
-  const { settledOrder: draggedSettledOrder, activeOrder: draggedActiveOrder } =
-    dragState === null
-      ? NO_DRAGGED_ORDERS
-      : resolveDraggedOrders({
-          drag: dragState,
-          threadByKey,
-          settledThreads,
-          activeThreads,
-          workingShelfEnabled,
-        });
+  const {
+    settledOrder: draggedSettledOrder,
+    activeOrder: draggedActiveOrder,
+    pinnedOrder: draggedPinnedOrder,
+  } = dragState === null
+    ? NO_DRAGGED_ORDERS
+    : resolveDraggedOrders({
+        drag: dragState,
+        threadByKey,
+        settledThreads,
+        activeThreads,
+        pinnedThreads,
+        activeOrder,
+        threadSortOrder,
+      });
   const sidebarSortingStrategy = createSidebarSortingStrategy({
     items: sidebarListItems,
     enabled: !isContextDrag,
     boundaryLabelHeight: SIDEBAR_DRAG_LABEL_HEIGHT,
     settledOrder: draggedSettledOrder,
     ...(draggedActiveOrder === undefined ? {} : { activeOrder: draggedActiveOrder }),
+    ...(draggedPinnedOrder === undefined ? {} : { pinnedOrder: draggedPinnedOrder }),
     settledExpanded: settledShelfExpanded,
     settledVisibleCount,
     routeThreadKey: routeRowThreadKey,
@@ -2080,7 +2106,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
             activeOrder: activeKeys,
             activeKeysById,
             activeReorderableKeys: activeReorderableThreadKeys,
-            activeTimeOrdered: workingShelfEnabled,
+            activeTimeOrdered: isSidebarActiveTimeOrdered(activeOrder),
+            pinnedTimeOrdered: threadSortOrder !== "manual",
           }).kind !== "none"
         );
       },
@@ -2114,7 +2141,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
       activeOrder: activeKeys,
       activeKeysById,
       activeReorderableKeys: activeReorderableThreadKeys,
-      activeTimeOrdered: workingShelfEnabled,
+      activeTimeOrdered: isSidebarActiveTimeOrdered(activeOrder),
+      pinnedTimeOrdered: threadSortOrder !== "manual",
     });
     if (plan.kind === "none") return;
     if (plan.kind === "settle" && settlingThreadKeysRef.current.has(activeKey)) return;

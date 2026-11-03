@@ -81,8 +81,19 @@ export function createThreadMovePlanner(input: {
   readonly allThreads?: readonly OrderRow[];
   readonly section: PendingThreadOrder["section"];
   readonly reorderableEnvironmentIds: ReadonlySet<EnvironmentId>;
+  /** The section sorts by time: threads can only enter it, at no saved position. */
+  readonly timeOrdered?: boolean;
 }) {
   const orderedIds = input.ordered.map(rowId);
+  if (input.timeOrdered === true) {
+    return (movedId: string, direction: ThreadMoveDestination) =>
+      typeof direction === "object" &&
+      direction.section !== undefined &&
+      direction.section !== "settled" &&
+      !orderedIds.includes(movedId)
+        ? []
+        : null;
+  }
   const keysById = new Map(
     (input.allThreads ?? input.ordered).map((row) => [
       rowId(row),

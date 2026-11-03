@@ -1,5 +1,5 @@
 import type { OlderSettledScope } from "@t3tools/client-runtime/state/threads";
-import type { EnvironmentId } from "@t3tools/contracts";
+import type { EnvironmentId, SidebarThreadSortOrder } from "@t3tools/contracts";
 import { useMemo, useSyncExternalStore } from "react";
 
 import { scopedProjectKey } from "../../lib/scopedEntities";
@@ -12,7 +12,7 @@ import {
   threadListInboxReturns,
   threadListV2LayoutTime,
 } from "./threadListV2";
-import { computeThreadMoveAvailability } from "./threadOrder";
+import { computeThreadMoveAvailability, type ThreadMoveAvailability } from "./threadOrder";
 
 /**
  * Screens' select handlers read the content-only key set; a fresh one per list rebuild gave
@@ -61,12 +61,13 @@ export function useThreadListV2(input: {
   readonly pendingOrder: LayoutInput["pendingOrder"];
   readonly shelfPreferencesLoaded: boolean;
   readonly workingShelfEnabled: boolean;
+  readonly threadSortOrder: SidebarThreadSortOrder;
   readonly workingShelfExpanded: boolean;
   readonly snoozedShelfExpanded: boolean;
   readonly settledShelfExpanded: boolean;
   readonly selectedThreadKey: string | null;
 }) {
-  const { threads, workingShelfEnabled } = input;
+  const { threads, workingShelfEnabled, threadSortOrder } = input;
   const layoutTime = useMemo(
     () => threadListV2LayoutTime({ threads, now: input.now, searchQuery: input.searchQuery }),
     [threads, input.now, input.searchQuery],
@@ -99,6 +100,8 @@ export function useThreadListV2(input: {
           queuedThreadKeys: input.queuedThreadKeys,
         }),
       });
+    // Only a manual order can move a thread within its section.
+    if (threadSortOrder !== "manual") return new Map<string, ThreadMoveAvailability>();
     return new Map([
       ...sectionAvailability("pinned"),
       ...(workingShelfEnabled ? [] : sectionAvailability("active")),
@@ -113,6 +116,7 @@ export function useThreadListV2(input: {
     input.snoozeEnvironmentIds,
     input.queuedThreadKeys,
     workingShelfEnabled,
+    threadSortOrder,
   ]);
   // Older settled threads load in pages; the shelf lists them only as far as they are loaded.
   const scopes = useMemo(
@@ -146,6 +150,7 @@ export function useThreadListV2(input: {
         settledLimit: input.settledLimit,
         now: layoutTime,
         workingShelfEnabled,
+        threadSortOrder,
         workingShelfExpanded: input.workingShelfExpanded,
         inboxReturnAt: inbox.returnedAt,
         isWorking: inbox.isWorking,
@@ -178,6 +183,7 @@ export function useThreadListV2(input: {
       input.settledLimit,
       layoutTime,
       workingShelfEnabled,
+      threadSortOrder,
       input.workingShelfExpanded,
       inbox.returnedAt,
       inbox.isWorking,

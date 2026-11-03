@@ -41,9 +41,8 @@ import {
 import {
   getThreadSortTimestamp,
   planPinnedReorder,
-  sortActiveThreadsByOrderKey,
-  sortPinnedThreadsByOrderKey,
   sortThreads,
+  sortThreadsByThreadOrder,
   toSortableTimestamp,
   type ThreadSortInput,
 } from "@t3tools/client-runtime/state/thread-sort";
@@ -1138,13 +1137,6 @@ export function resolveSidebarActiveOrder(input: {
   return input.workingShelfEnabled ? "inbox" : input.threadSortOrder;
 }
 
-export function sortSidebarPinnedThreads<T extends EnvironmentThreadShell>(
-  threads: readonly T[],
-  order: SidebarThreadSortOrder,
-): T[] {
-  return order === "manual" ? sortPinnedThreadsByOrderKey(threads) : sortThreads(threads, order);
-}
-
 /** Whether Active follows time, so dragging within it cannot reorder. Boring mode keeps its drops. */
 export function isSidebarActiveTimeOrdered(order: SidebarActiveOrder): boolean {
   return order !== "send" && order !== "manual";
@@ -1160,10 +1152,8 @@ export function sortSidebarActiveThreads(
       return sortWorkingThreadsBySend(threads);
     case "inbox":
       return sortInboxThreadsByReturn(threads, returnedAt);
-    case "manual":
-      return sortActiveThreadsByOrderKey(threads);
     default:
-      return sortThreads(threads, order);
+      return sortThreadsByThreadOrder(threads, "active", order);
   }
 }
 

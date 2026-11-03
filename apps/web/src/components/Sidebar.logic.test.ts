@@ -26,7 +26,6 @@ import {
   isSidebarActiveTimeOrdered,
   resolveSidebarActiveOrder,
   sortSidebarActiveThreads,
-  sortSidebarPinnedThreads,
   resolveSidebarDropTarget,
   planSidebarThreadDrop,
   resolveSidebarReorderableThreadKeys,
@@ -46,6 +45,7 @@ import { scopeThreadRef, scopedThreadKey } from "@t3tools/client-runtime/environ
 import {
   sortActiveThreadsByOrderKey,
   sortPinnedThreadsByOrderKey,
+  sortThreadsByThreadOrder,
 } from "@t3tools/client-runtime/state/thread-sort";
 import { resolveProjectExpanded } from "../uiStateStore";
 import { threadSearchMatchKey } from "@t3tools/client-runtime/state/thread-search";
@@ -1177,7 +1177,7 @@ describe("Working shelf (beta)", () => {
     );
 
     it("orders Pinned by a timed thread order and only lets drags pin or unpin there", () => {
-      expect(sortSidebarPinnedThreads(threads, "updated_at").map((t) => t.id)).toEqual([
+      expect(sortThreadsByThreadOrder(threads, "pinned", "updated_at").map((t) => t.id)).toEqual([
         "old-busy",
         "new-quiet",
         "dragged",

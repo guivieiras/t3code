@@ -96,10 +96,11 @@ thread is over takes the accent color. Section labels also
 identify empty sections and a collapsed settled shelf.
 
 Drag within the pinned or active section to change its order. Other rows slide aside to show the
-spot where the thread will land. Drops into either section keep the position you choose. On web
-and desktop, this needs **Settings → General → Thread order** set to **Manual**, the default.
-**Last user message** or **Created at** sorts pinned threads, and active threads while the Working
-section is off, by that time instead; dragging then only pins, unpins, or settles a thread. On
+spot where the thread will land. Drops into either section keep the position you choose. This
+needs **Thread order** set to **Manual**, the default, in **Settings → General** on web, desktop,
+iOS, and Android. Each device keeps its own choice. **Last user message** or **Created at** sorts
+pinned threads, and active threads while the Working section is off, by that time instead; moving
+a thread then only pins, unpins, or settles it. On
 mobile, open a thread's menu and choose **Arrange threads**. Drag a handle within or between
 **Pinned** and **Active** to reorder, pin, or unpin. Drop onto the **Settled** divider to
 settle a thread. The dragged card shows the action before you release it. Expand **Snoozed**

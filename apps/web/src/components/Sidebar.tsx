@@ -34,7 +34,10 @@ import {
   createInboxReturnTracker,
   isThreadWorking,
 } from "@t3tools/client-runtime/state/thread-inbox";
-import { sortSettledThreads } from "@t3tools/client-runtime/state/thread-sort";
+import {
+  sortSettledThreads,
+  sortThreadsByThreadOrder,
+} from "@t3tools/client-runtime/state/thread-sort";
 import type { SidebarThreadSortOrder } from "@t3tools/contracts/settings";
 import {
   nextShownOrder,
@@ -203,7 +206,6 @@ import {
   isSidebarActiveTimeOrdered,
   resolveSidebarActiveOrder,
   sortSidebarActiveThreads,
-  sortSidebarPinnedThreads,
   sortWorkingThreadsBySend,
   type SidebarActiveOrder,
   useSnoozeWakeClock,
@@ -411,8 +413,9 @@ function resolveDraggedOrders(input: {
     pinnedOrder:
       input.threadSortOrder === "manual"
         ? undefined
-        : sortSidebarPinnedThreads(
+        : sortThreadsByThreadOrder(
             [...others(pinnedThreads), applySidebarThreadDrop(thread, "pinned", drag.occurredAt)],
+            "pinned",
             input.threadSortOrder,
           ).map(threadShellKey),
   };
@@ -701,7 +704,7 @@ function partitionSidebarThreads(input: SidebarThreadPartitionInput) {
     }
   }
   // Availability gates dragging only; sorting must stay consistent across clients.
-  const sortedPinned = sortSidebarPinnedThreads(pinned, threadSortOrder);
+  const sortedPinned = sortThreadsByThreadOrder(pinned, "pinned", threadSortOrder);
   const sortedActive = sortSidebarActiveThreads(active, activeOrder, inboxObservation.returnedAt);
   return {
     pinnedThreads:

@@ -5,6 +5,7 @@ import { showThreadUndoNotice } from "./thread-undo-notice";
 import { canSnooze } from "@t3tools/client-runtime/state/thread-settled";
 import { AuthOrchestrationOperateScope } from "@t3tools/contracts";
 import * as Cause from "effect/Cause";
+import { AsyncResult } from "effect/reactivity";
 import * as Haptics from "expo-haptics";
 import { useRef } from "react";
 
@@ -15,6 +16,7 @@ import { refreshArchivedThreadsForEnvironment } from "../archive/useArchivedThre
 import { pinOrderKeyBetween } from "@t3tools/client-runtime/state/thread-sort";
 import { appAtomRegistry } from "../../state/atom-registry";
 import { environmentServerConfigsAtom } from "../../state/server";
+import { mobilePreferencesAtom } from "../../state/preferences";
 import { connectedEnvironmentIdsAtom } from "../../state/presentation";
 import { readEnvironmentScope } from "../../state/session";
 import { clearComposerDraft } from "../../state/use-composer-drafts";
@@ -651,9 +653,13 @@ export function useThreadListActions(): {
       );
       return false;
     }
+    const preferences = appAtomRegistry.get(mobilePreferencesAtom);
+    const threadSortOrder =
+      (AsyncResult.isSuccess(preferences) && preferences.value.threadSortOrder) || "manual";
     const ordered = getThreadListV2OrderedSection({
       threads: shells,
       section,
+      threadSortOrder,
       now: new Date().toISOString(),
       queuedThreadKeys: appAtomRegistry.get(queuedThreadKeysAtom),
       settlementEnvironmentIds: new Set(configs.keys()),
@@ -666,6 +672,7 @@ export function useThreadListActions(): {
       reorderableEnvironmentIds: new Set(
         [...configs.keys()].filter((environmentId) => connectedEnvironmentIds.has(environmentId)),
       ),
+      timeOrdered: threadSortOrder !== "manual",
     })(scopedThreadKey(thread.environmentId, thread.id), direction);
     if (assignments === null) return false;
     const lifecycle = threadDropLifecycle(thread, section, new Date().toISOString());

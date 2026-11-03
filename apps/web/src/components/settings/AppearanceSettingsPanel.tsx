@@ -480,7 +480,7 @@ export function AppearanceSettingsPanel() {
           />
           <SettingsRow
             {...searchableSetting("media-link-previews")}
-            description="Open image and video file links in chat in the expanded preview instead of the file panel. Ctrl+click still opens the file in your editor."
+            description="Open image and video file links in chat in the expanded preview instead of the file panel. Right-click to open it in the side panel; Ctrl+click still opens it in your editor."
             resetAction={
               settings.openMediaLinksInPreview !==
               DEFAULT_UNIFIED_SETTINGS.openMediaLinksInPreview ? (

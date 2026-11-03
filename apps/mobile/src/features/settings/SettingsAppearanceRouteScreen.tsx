@@ -8,6 +8,7 @@ import { CodeAppearanceSection } from "./appearance/sections/CodeAppearanceSecti
 import { TerminalAppearanceSection } from "./appearance/sections/TerminalAppearanceSection";
 import { TextAppearanceSection } from "./appearance/sections/TextAppearanceSection";
 import { ThemeAppearanceSection } from "./appearance/sections/ThemeAppearanceSection";
+import { ThreadListAppearanceSection } from "./appearance/sections/ThreadListAppearanceSection";
 import { ToolCallsAppearanceSection } from "./appearance/sections/ToolCallsAppearanceSection";
 
 export function SettingsAppearanceRouteScreen() {
@@ -27,6 +28,7 @@ export function SettingsAppearanceRouteScreen() {
         <ThemeAppearanceSection />
         {Platform.OS === "android" ? <AndroidNavigationAppearanceSection /> : null}
         <TextAppearanceSection />
+        <ThreadListAppearanceSection />
         <TerminalAppearanceSection />
         <CodeAppearanceSection />
         <ToolCallsAppearanceSection />

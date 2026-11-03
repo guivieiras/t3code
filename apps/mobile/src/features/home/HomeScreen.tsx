@@ -72,6 +72,7 @@ import { useQueuedThreadKeys } from "../../state/use-thread-outbox";
 import {
   ThreadListV2PendingRow,
   ThreadListV2Row,
+  ThreadListV2SectionLabel,
   ThreadListV2SettledShelfHeader,
   ThreadListV2ShowMoreRow,
   ThreadListV2SnoozedShelfHeader,
@@ -384,6 +385,7 @@ export function HomeScreen(props: HomeScreenProps) {
     snoozedShelfExpanded,
     workingShelfEnabled,
     workingShelfExpanded,
+    pinnedSectionHeadersEnabled,
     toggleSettledShelf,
     toggleSnoozedShelf,
     toggleWorkingShelf,
@@ -429,6 +431,7 @@ export function HomeScreen(props: HomeScreenProps) {
     workingShelfExpanded,
     snoozedShelfExpanded,
     settledShelfExpanded,
+    pinnedSectionHeadersEnabled,
     selectedThreadKey,
   });
   // Called as `props.onSelectThread(...)`, the compiler would cache this handler on the whole
@@ -486,6 +489,11 @@ export function HomeScreen(props: HomeScreenProps) {
           simultaneousSwipeGesture={homeScrollGesture}
           activationKey={item.key}
         />
+      );
+    }
+    if (item.type === "v2-section-label") {
+      return (
+        <ThreadListV2SectionLabel label={item.label} pane={primaryColumn ? "sidebar" : "screen"} />
       );
     }
     if (item.type === "v2-working-shelf") {

@@ -61,8 +61,8 @@ and worktree while you stay in the new thread composer. This requires a Git proj
 ## Pin and reorder threads
 
 Pin a thread from its menu to keep it above your active work. While any thread is pinned,
-**Pinned** and **Active** labels separate the two sections on web and desktop. To hide them, turn
-off **Settings → Appearance → Pinned section headers**.
+**Pinned** and **Active** labels separate the two sections. To hide them, turn off
+**Settings → Appearance → Pinned section headers** (on mobile, under **Thread list**).
 
 On web and desktop, unpinning, settling, snoozing, and archiving a thread each show
 a notification with **Undo** for five seconds. Undo restores the thread's previous

@@ -315,19 +315,32 @@ describe("resolveChangesTotals", () => {
     );
   });
 
-  it("keeps non-zero branchChanges over the working tree", () => {
+  it("keeps non-zero branchChanges over the working tree unless Uncommitted is selected", () => {
+    const gitStatus = status({
+      branchChanges: { baseRef: "origin/master", insertions: 20, deletions: 3 },
+      workingTree: {
+        files: [{ path: "a.ts", insertions: 1, deletions: 0 }],
+        insertions: 1,
+        deletions: 0,
+      },
+    });
+    assert.deepEqual(resolveChangesTotals(gitStatus), {
+      insertions: 20,
+      deletions: 3,
+      baseRef: "origin/master",
+    });
+    assert.deepEqual(resolveChangesTotals(gitStatus, null, "unstaged"), {
+      insertions: 1,
+      deletions: 0,
+      baseRef: null,
+    });
     assert.deepEqual(
       resolveChangesTotals(
-        status({
-          branchChanges: { baseRef: "origin/master", insertions: 20, deletions: 3 },
-          workingTree: {
-            files: [{ path: "a.ts", insertions: 1, deletions: 0 }],
-            insertions: 1,
-            deletions: 0,
-          },
-        }),
+        { ...gitStatus, workingTree: { files: [], insertions: 0, deletions: 0 } },
+        null,
+        "unstaged",
       ),
-      { insertions: 20, deletions: 3, baseRef: "origin/master" },
+      { insertions: 0, deletions: 0, baseRef: null },
     );
   });
 

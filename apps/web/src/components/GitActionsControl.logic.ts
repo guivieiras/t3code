@@ -519,7 +519,13 @@ export type ChangesLineTotals = {
 export function resolveChangesTotals(
   status: VcsStatusResult | null | undefined,
   branchPreview?: ReviewDiffPreviewSource | null,
+  scope: "branch" | "unstaged" = "branch",
 ): ChangesLineTotals | null {
+  if (scope === "unstaged") {
+    if (!status) return null;
+    const tree = status.workingTree;
+    return { insertions: tree.insertions, deletions: tree.deletions, baseRef: null };
+  }
   if (branchPreview?.files) {
     let insertions = 0;
     let deletions = 0;

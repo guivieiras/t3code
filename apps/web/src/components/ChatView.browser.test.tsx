@@ -663,7 +663,7 @@ it("selecting a side-chat tab focuses that side chat's composer", async () => {
   await expect.element(mainEditor).toHaveTextContent("main draft");
 });
 
-it("keeps the saved Uncommitted view on mount and when reopened from thread details", async () => {
+it("defaults to Uncommitted and retains a changed scope when reopened from thread details", async () => {
   const thread = threadWithHistory("saved-diff", 1);
   using _environment = installFakeEnvironment([thread]);
   const threadRef = scopeThreadRef(ENVIRONMENT_ID, thread.id);
@@ -671,7 +671,6 @@ it("keeps the saved Uncommitted view on mount and when reopened from thread deta
     ...DEFAULT_CLIENT_SETTINGS,
     onboardingCompletedAt: "2026-01-01T00:00:00.000Z",
   });
-  useDiffPanelStore.getState().selectGitScope(threadRef, "unstaged");
   useRightPanelStore.getState().open(threadRef, "diff");
   useRightPanelStore.getState().setThreadPanelOpen(threadRef, "popover", true);
   await page.viewport(1400, 900);
@@ -688,4 +687,14 @@ it("keeps the saved Uncommitted view on mount and when reopened from thread deta
   await act(() => useRightPanelStore.getState().close(threadRef));
   await userEvent.click(page.getByRole("button", { name: /^Changes/ }));
   await expect.element(page.getByRole("button", { name: "Diff scope: Uncommitted" })).toBeVisible();
+
+  await userEvent.click(page.getByRole("button", { name: "Diff scope: Uncommitted" }));
+  await userEvent.click(page.getByRole("menuitemradio", { name: "Changes", exact: true }));
+  await expect.element(page.getByRole("button", { name: "Diff scope: Changes" })).toBeVisible();
+  await act(() => {
+    useRightPanelStore.getState().close(threadRef);
+    useRightPanelStore.getState().setThreadPanelOpen(threadRef, "popover", true);
+  });
+  await userEvent.click(page.getByRole("button", { name: /^Changes/ }));
+  await expect.element(page.getByRole("button", { name: "Diff scope: Changes" })).toBeVisible();
 });

@@ -273,6 +273,7 @@ export interface ThreadComposerProps {
     stillSendable?: () => boolean,
   ) => Promise<MessageId | null>;
   readonly onShowUsageLimits: (report: UsageLimitsReport | null) => void;
+  readonly onShowContextWindow: () => void;
   readonly canSwitchProvider: boolean;
   readonly onHeightChange?: (height: number) => void;
   readonly onEditorFocusChange?: (focused: boolean) => void;
@@ -1150,6 +1151,7 @@ export const ThreadComposer = function ThreadComposer(props: ThreadComposerProps
                 <ComposerContextWindowMeter
                   threadRef={props.threadDetailRef}
                   size={usesLargeControls ? "large" : "regular"}
+                  onPress={props.onShowContextWindow}
                 />
                 {compactControl}
                 {modelControl}

@@ -869,6 +869,38 @@ export function useThreadComposerState(input: {
     return null;
   })();
 
+  // Sent beside the draft, like web's standalone /compact, so typed text stays put.
+  const onCompactContext = () => {
+    if (!selectedThreadShell || selectedThreadCreation !== null) return;
+    if (
+      selectedEnvironmentRuntime?.connectionState === "connected" &&
+      !readEnvironmentScope(selectedThreadShell.environmentId, AuthOrchestrationOperateScope)
+    )
+      return;
+    const thread = selectedThreadShell;
+    const threadKey = scopedThreadKey(thread.environmentId, thread.id);
+    const draft = getComposerDraftSnapshot(threadKey);
+    const metadata = makeQueuedMessageMetadata();
+    clearThreadComposerError(threadKey);
+    enqueueThreadOutboxMessage({
+      environmentId: thread.environmentId,
+      threadId: thread.id,
+      messageId: MessageId.make(metadata.messageId),
+      commandId: CommandId.make(metadata.commandId),
+      text: "/compact",
+      attachments: [],
+      modelSelection: draft.modelSelection ?? thread.modelSelection,
+      runtimeMode: draft.runtimeMode ?? thread.runtimeMode,
+      interactionMode: DEFAULT_PROVIDER_INTERACTION_MODE,
+      createdAt: metadata.createdAt,
+    }).catch((error: unknown) => {
+      setThreadComposerError(
+        threadKey,
+        error instanceof Error ? error.message : "Failed to compact context.",
+      );
+    });
+  };
+
   const onChangeDraftMessage = (value: string) => {
     if (!selectedThreadShell) {
       return;
@@ -942,6 +974,7 @@ export function useThreadComposerState(input: {
     onNativePasteText,
     onRemoveDraftImage,
     onSendMessage,
+    onCompactContext,
     sideChatUnavailableReason,
   };
 }

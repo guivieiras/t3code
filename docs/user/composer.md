@@ -302,7 +302,7 @@ composer to keep the current session instead.
 On web and desktop, turn on **Context window** in **Settings → Appearance →
 Thread details** to see context usage in the thread details card. It appears
 once the provider reports usage. On mobile, a ring beside the model control fills
-as context is used; tap it for the details.
+as context is used; tap it for the details and **Compact context**.
 
 Claude instances can also compact idle threads for you. See
 [compact long conversations](./providers-claude.md#compact-long-conversations).

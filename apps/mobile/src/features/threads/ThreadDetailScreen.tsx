@@ -182,6 +182,7 @@ import { ManagedRuntimeModeNotice } from "./ManagedRuntimeModeNotice";
 import { FreshSessionNotice } from "./FreshSessionNotice";
 import { ComposerFeedback } from "./ComposerFeedback";
 import { ComposerUsageLimits } from "./ComposerUsageLimits";
+import { ComposerContextWindowPanel } from "./ComposerContextWindowMeter";
 import { PendingUserInputCard } from "./PendingUserInputCard";
 import { ProviderSubagentBar } from "./ProviderSubagentBar";
 import { ThreadCreationFailedCard } from "./ThreadCreationFailedCard";
@@ -307,6 +308,8 @@ export interface ThreadDetailScreenProps {
     ) => Promise<boolean | "responded">,
     onWillEnqueue?: () => void,
   ) => Promise<MessageId | null>;
+  /** Absent where a thread cannot be compacted yet, such as a draft. */
+  readonly onCompactContext?: () => void;
   readonly onReconnectEnvironment: () => void;
   readonly canSwitchThreadProvider: boolean;
   readonly onRespondToApproval: ApprovalResponder;
@@ -986,7 +989,30 @@ function ThreadDetailBody(
           usageLimitsPanel.now,
         )
       : null;
-  const showUsageLimits = (report: UsageLimitsReport | null) =>
+  const [contextWindowThreadKey, setContextWindowThreadKey] = useState<string | null>(null);
+  const contextWindowPanelOpen =
+    contextWindowThreadKey === selectedThreadKey && activeUserInputRequestId === null;
+  const showContextWindow = () => {
+    setUsageLimitsPanel(null);
+    setContextWindowThreadKey(contextWindowPanelOpen ? null : selectedThreadKey);
+  };
+  const compactSupported =
+    props.onCompactContext !== undefined &&
+    (props.serverConfig?.providers
+      .find((provider) => provider.instanceId === props.selectedThread.modelSelection.instanceId)
+      ?.slashCommands.some((command) => command.name === "compact") ??
+      false);
+  const compactDisabledReason = !props.canOperateThread
+    ? "This connection cannot change threads."
+    : props.activeThreadBusy || props.isCompacting
+      ? "Available when the agent finishes."
+      : props.activePendingApprovals.length > 0 || props.activePendingUserInput !== null
+        ? "Answer the open request first."
+        : !hasCompactableConversation
+          ? "Nothing to compact yet."
+          : null;
+  const showUsageLimits = (report: UsageLimitsReport | null) => {
+    if (report !== null) setContextWindowThreadKey(null);
     setUsageLimitsPanel(
       report === null
         ? null
@@ -996,6 +1022,7 @@ function ThreadDetailBody(
             now: Date.parse(report.createdAt),
           },
     );
+  };
   const dismissUsageLimits = () => setUsageLimitsPanel(null);
   // Late sends clear only their originating thread's limits panel.
   const clearUsageLimitsFor = (threadKey: string) =>
@@ -1727,6 +1754,28 @@ function ThreadDetailBody(
                         />
                       </Animated.View>
                     ) : null}
+                    {contextWindowPanelOpen ? (
+                      <Animated.View
+                        className="shrink-0 px-4"
+                        style={{ paddingBottom: USAGE_LIMITS_PANEL_GAP }}
+                        entering={FadeInDown.duration(220)}
+                        exiting={FadeOut.duration(140)}
+                      >
+                        <ComposerContextWindowPanel
+                          threadRef={props.selectedThreadDetailRef}
+                          onCompact={
+                            compactSupported && props.onCompactContext
+                              ? () => {
+                                  setContextWindowThreadKey(null);
+                                  props.onCompactContext?.();
+                                }
+                              : null
+                          }
+                          compactDisabledReason={compactDisabledReason}
+                          onClose={() => setContextWindowThreadKey(null)}
+                        />
+                      </Animated.View>
+                    ) : null}
                     {props.creationState?.kind === "failed" ? (
                       <Animated.View
                         className="shrink-0 px-4"
@@ -1921,6 +1970,7 @@ function ThreadDetailBody(
                         onResumeQueue={props.onResumeQueue}
                         onSendMessage={handleSendMessage}
                         onShowUsageLimits={showUsageLimits}
+                        onShowContextWindow={showContextWindow}
                         canSwitchProvider={props.canSwitchThreadProvider}
                         onHeightChange={handleComposerHeightChange}
                         onEditorFocusChange={handleOwnedInputFocusChange}

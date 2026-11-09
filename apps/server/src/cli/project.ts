@@ -390,7 +390,7 @@ const tryResolveLiveProjectExecutionMode = Effect.fn("tryResolveLiveProjectExecu
   },
 );
 
-const runProjectMutation = Effect.fn("runProjectMutation")(function* (
+const runProjectCommand = Effect.fn("runProjectCommand")(function* (
   flags: CliAuthLocationFlags,
   run: (input: {
     readonly snapshot: ProjectSnapshot;
@@ -467,6 +467,30 @@ const runProjectMutation = Effect.fn("runProjectMutation")(function* (
   );
 });
 
+const projectListCommand = Command.make("list", {
+  ...projectLocationFlags,
+  json: Flag.Boolean("json").pipe(
+    Flag.withDescription("Print JSON instead of text."),
+    Flag.withDefault(false),
+  ),
+}).pipe(
+  Command.withDescription("List projects."),
+  Command.withHandler((flags) =>
+    runProjectCommand(flags, ({ snapshot }) => {
+      const projects = snapshot.projects
+        .filter((project) => project.deletedAt === null)
+        .map(({ id, title, workspaceRoot }) => ({ id, title, workspaceRoot }));
+      if (flags.json) return Effect.succeed(JSON.stringify(projects, null, 2));
+      if (projects.length === 0) return Effect.succeed("No projects.");
+      return Effect.succeed(
+        projects
+          .map((project) => `${project.id}  ${project.title}  ${project.workspaceRoot}`)
+          .join("\n"),
+      );
+    }),
+  ),
+);
+
 const projectAddCommand = Command.make("add", {
   ...projectLocationFlags,
   workspaceRoot: Argument.String("path").pipe(
@@ -476,7 +500,7 @@ const projectAddCommand = Command.make("add", {
 }).pipe(
   Command.withDescription("Add a project."),
   Command.withHandler((flags) =>
-    runProjectMutation(
+    runProjectCommand(
       flags,
       Effect.fn("projectAddMutation")(function* ({
         snapshot,
@@ -540,7 +564,7 @@ const projectRemoveCommand = Command.make("remove", {
 }).pipe(
   Command.withDescription("Remove a project."),
   Command.withHandler((flags) =>
-    runProjectMutation(
+    runProjectCommand(
       flags,
       Effect.fn("projectRemoveMutation")(function* ({
         snapshot,
@@ -576,7 +600,7 @@ const projectRenameCommand = Command.make("rename", {
 }).pipe(
   Command.withDescription("Rename a project."),
   Command.withHandler((flags) =>
-    runProjectMutation(
+    runProjectCommand(
       flags,
       Effect.fn("projectRenameMutation")(function* ({
         snapshot,
@@ -610,5 +634,10 @@ const projectRenameCommand = Command.make("rename", {
 
 export const projectCommand = Command.make("project").pipe(
   Command.withDescription("Manage projects."),
-  Command.withSubcommands([projectAddCommand, projectRemoveCommand, projectRenameCommand]),
+  Command.withSubcommands([
+    projectListCommand,
+    projectAddCommand,
+    projectRemoveCommand,
+    projectRenameCommand,
+  ]),
 );

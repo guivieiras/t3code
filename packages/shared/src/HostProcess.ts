@@ -20,13 +20,21 @@ export const LinuxLibc = Context.Reference<"gnu" | "musl">(
   "@t3tools/shared/HostProcess/LinuxLibc",
   {
     defaultValue: () => {
+      const report = process.report as
+        | (NodeJS.ProcessReport & { excludeNetwork?: boolean })
+        | undefined;
+      const excludeNetwork = report?.excludeNetwork;
       try {
-        const report = process.report?.getReport() as
+        // The network section reverse-resolves socket addresses; 0.0.0.0 can wait out a 20s DNS timeout.
+        if (report) report.excludeNetwork = true;
+        const contents = report?.getReport() as
           | { header?: { glibcVersionRuntime?: unknown } }
           | undefined;
-        return typeof report?.header?.glibcVersionRuntime === "string" ? "gnu" : "musl";
+        return typeof contents?.header?.glibcVersionRuntime === "string" ? "gnu" : "musl";
       } catch {
         return "musl";
+      } finally {
+        if (report && excludeNetwork !== undefined) report.excludeNetwork = excludeNetwork;
       }
     },
   },

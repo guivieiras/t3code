@@ -1,11 +1,20 @@
 import { tokenizeCliArgs } from "@t3tools/shared/cliArgs";
+import { withCodexConnectionLaunchArgs } from "@t3tools/shared/codexConnection";
 
 const T3CODE_CODEX_LAUNCH_ARGS_ENV = "T3CODE_CODEX_LAUNCH_ARGS";
 
+/**
+ * The env override replaces the instance's launch arguments; an OpenRouter connection's overrides
+ * are appended either way, so the override cannot silently send OpenRouter slugs to OpenAI.
+ */
 export const resolveCodexLaunchArgs = (
-  launchArgs?: string,
+  settings: Parameters<typeof withCodexConnectionLaunchArgs>[1],
   environment: NodeJS.ProcessEnv = process.env,
-) => environment[T3CODE_CODEX_LAUNCH_ARGS_ENV]?.trim() || launchArgs?.trim() || "";
+) =>
+  withCodexConnectionLaunchArgs(
+    environment[T3CODE_CODEX_LAUNCH_ARGS_ENV]?.trim() || settings.launchArgs.trim(),
+    settings,
+  );
 
 const codexLaunchArgv = (launchArgs?: string): ReadonlyArray<string> => tokenizeCliArgs(launchArgs);
 

@@ -643,6 +643,15 @@ export function presentPendingBackgroundWork(
   return { title: `${waiting ? "Waiting on" : "Running"} ${joinWithAnd(groups)}`, items, waiting };
 }
 
+// Work the agent waits on already shows Waiting. Commands it left running unawaited, such
+// as a build it will check later or a dev server, get an icon instead of holding the status.
+export function presentUnawaitedBackgroundWork(
+  tasks: ReadonlyArray<OrchestrationV2PendingBackgroundTask>,
+): string | null {
+  if (backgroundWorkHoldsCompletion(tasks)) return null;
+  return presentPendingBackgroundWork(tasks)?.title ?? null;
+}
+
 export interface ProviderGoalPresentation {
   readonly title: string;
   readonly objective: string;

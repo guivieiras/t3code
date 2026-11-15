@@ -238,6 +238,7 @@ describe("threadListV2RowAccessibilityLabel", () => {
     snoozeWakeLabel: undefined,
     providerNameLabel: "Codex",
     hasQueuedMessages: false,
+    backgroundWorkLabel: null,
     regeneratingTitle: false,
   } as const;
 
@@ -257,6 +258,9 @@ describe("threadListV2RowAccessibilityLabel", () => {
         snoozeWakeLabel: "in 2h",
       }),
     ).toBe("Fix login, in 2h, Codex");
+    expect(
+      threadListV2RowAccessibilityLabel({ ...row, backgroundWorkLabel: "Running · vp run dev" }),
+    ).toBe("Fix login, 5m, Codex, Running · vp run dev");
   });
 });
 

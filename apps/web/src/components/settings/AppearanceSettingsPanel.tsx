@@ -355,6 +355,7 @@ export function AppearanceSettingsPanel() {
             // Environment identification's search result lands on this section.
             "appearance-interface",
             searchableSetting("composer-context").id,
+            searchableSetting("sent-message-position").id,
           ]}
         >
           <SettingsRow
@@ -474,6 +475,31 @@ export function AppearanceSettingsPanel() {
                   updateSettings({ persistComposerContextStrip: Boolean(checked) })
                 }
                 aria-label="Keep composer context visible in active threads"
+              />
+            }
+          />
+          <SettingsRow
+            {...searchableSetting("sent-message-position")}
+            description="Move each sent message to the top of the conversation while its response streams. Turn off to keep following the bottom instead."
+            resetAction={
+              settings.pinSentMessagesToTop !== DEFAULT_UNIFIED_SETTINGS.pinSentMessagesToTop ? (
+                <SettingResetButton
+                  label="sent message position"
+                  onClick={() =>
+                    updateSettings({
+                      pinSentMessagesToTop: DEFAULT_UNIFIED_SETTINGS.pinSentMessagesToTop,
+                    })
+                  }
+                />
+              ) : null
+            }
+            control={
+              <Switch
+                checked={settings.pinSentMessagesToTop}
+                onCheckedChange={(checked) =>
+                  updateSettings({ pinSentMessagesToTop: Boolean(checked) })
+                }
+                aria-label="Pin sent messages to top"
               />
             }
           />

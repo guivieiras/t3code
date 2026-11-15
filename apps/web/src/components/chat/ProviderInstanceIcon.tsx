@@ -5,6 +5,7 @@ import {
   providerAccentForegroundColor,
   providerInstanceInitials,
 } from "@t3tools/client-runtime/state/provider-instance-display";
+import { resolveModelBrandIcon } from "@t3tools/client-runtime/model-brand-icons";
 
 import { ProviderDriverKind } from "@t3tools/contracts";
 import {
@@ -89,6 +90,8 @@ export function resolveProviderInstanceAcpRegistryIconUrl(input: {
 export const ProviderInstanceIcon = memo(function ProviderInstanceIcon(props: {
   driverKind: ProviderDriverKind;
   displayName: string;
+  /** A bundled brand icon replaces the driver icon; unknown keys keep the driver icon. */
+  iconKey?: string | undefined;
   accentColor?: string | undefined;
   acpRegistryAgentId?: string | undefined;
   acpRegistryIconUrl?: string | undefined;
@@ -101,7 +104,8 @@ export const ProviderInstanceIcon = memo(function ProviderInstanceIcon(props: {
   indicatorBackground?: string;
 }) {
   const Icon = PROVIDER_ICON_BY_PROVIDER[props.driverKind] ?? null;
-  const packageIcon = providerClients.get(props.driverKind)?.icon;
+  const brandIcon = resolveModelBrandIcon(props.iconKey);
+  const packageIcon = brandIcon ?? providerClients.get(props.driverKind)?.icon;
   const indicatorBackground = props.indicatorBackground ?? "var(--card)";
   const accentColor = normalizeProviderAccentColor(props.accentColor);
   const accentStyle = accentColor
@@ -112,9 +116,9 @@ export const ProviderInstanceIcon = memo(function ProviderInstanceIcon(props: {
     : undefined;
   const badgeContent = props.badgeContent ?? "initials";
   const iconClassName = cn(props.size === "compact" && "size-3.5", props.iconClassName);
-  const isAcpRegistry = props.driverKind === "acpRegistry";
+  const isAcpRegistry = props.driverKind === "acpRegistry" && brandIcon === undefined;
   // A custom OpenAI-compatible endpoint has no brand: show its name, marked with the protocol.
-  const isCustomEndpoint = props.driverKind === "openaiCompatible";
+  const isCustomEndpoint = props.driverKind === "openaiCompatible" && brandIcon === undefined;
   const acpRegistryIconUrl = resolveProviderInstanceAcpRegistryIconUrl({
     driverKind: props.driverKind,
     agentId: props.acpRegistryAgentId,

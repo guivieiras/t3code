@@ -63,6 +63,7 @@ import {
   isProviderInstancePickerReady,
   isProviderInstancePickerVisible,
   shouldShowInstanceBadge,
+  shouldShowInstanceInitials,
   type ProviderInstanceEntry,
 } from "../../providerInstances";
 import { providerModelKey, sortProviderModelItems } from "../../modelOrdering";
@@ -76,6 +77,7 @@ type ModelPickerItem = {
   instanceId: ProviderInstanceId;
   driverKind: ProviderDriverKind;
   instanceDisplayName: string;
+  instanceIconKey?: string | undefined;
   instanceAccentColor?: string | undefined;
   acpRegistryAgentId?: string | undefined;
   acpRegistryIconUrl?: string | undefined;
@@ -576,6 +578,7 @@ export const ModelPickerContent = memo(function ModelPickerContent(props: {
           instanceId,
           driverKind: entry.driverKind,
           instanceDisplayName: entry.displayName,
+          ...(entry.iconKey ? { instanceIconKey: entry.iconKey } : {}),
           ...(entry.accentColor ? { instanceAccentColor: entry.accentColor } : {}),
           ...(entry.acpRegistryAgentId ? { acpRegistryAgentId: entry.acpRegistryAgentId } : {}),
           ...(entry.acpRegistryIconUrl ? { acpRegistryIconUrl: entry.acpRegistryIconUrl } : {}),
@@ -774,8 +777,14 @@ export const ModelPickerContent = memo(function ModelPickerContent(props: {
       .filter((entry) => shouldShowInstanceBadge(entry, instanceEntries))
       .map((entry) => entry.instanceId),
   );
+  const initialedInstanceIds = new Set(
+    instanceEntries
+      .filter((entry) => shouldShowInstanceInitials(entry, instanceEntries))
+      .map((entry) => entry.instanceId),
+  );
   const modelListExtraData = {
     badgedInstanceIds,
+    initialedInstanceIds,
     favoritesSet,
     modelJumpLabelByKey,
     activeModelKey,
@@ -1049,6 +1058,7 @@ export const ModelPickerContent = memo(function ModelPickerContent(props: {
                     instanceId={model.instanceId}
                     driverKind={model.driverKind}
                     providerDisplayName={model.instanceDisplayName}
+                    providerIconKey={model.instanceIconKey}
                     providerAccentColor={model.instanceAccentColor}
                     acpRegistryAgentId={model.acpRegistryAgentId}
                     acpRegistryIconUrl={model.acpRegistryIconUrl}
@@ -1060,6 +1070,7 @@ export const ModelPickerContent = memo(function ModelPickerContent(props: {
                     }
                     favoriteStarOnHover={selectedInstanceId === "favorites" && !isSearching}
                     showInstanceBadge={badgedInstanceIds.has(model.instanceId)}
+                    showInstanceInitials={initialedInstanceIds.has(model.instanceId)}
                     showNewBadge={model.badge === "new"}
                     unavailable={model.isUnavailable === true}
                     jumpLabel={modelJumpLabelByKey.get(modelKey) ?? null}

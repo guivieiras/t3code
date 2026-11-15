@@ -193,6 +193,8 @@ const CommandRow = memo(function CommandRow(props: {
       ) : props.item.type === "model" ? (
         <ProviderIcon
           iconUrl={props.item.option.providerIconUrl}
+          iconKey={props.item.option.providerIconKey}
+          modelSlug={props.item.option.selection.model}
           provider={props.item.option.providerDriver}
           size={16}
         />

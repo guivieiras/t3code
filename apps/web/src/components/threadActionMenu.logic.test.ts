@@ -65,6 +65,15 @@ describe("buildThreadActionMenuItems", () => {
     },
   );
 
+  it("offers a new thread for threads without a branch", () => {
+    const label = (branch: string | null) =>
+      buildThreadActionMenuItems({ ...baseState, branch }).find(
+        (item) => item.id === "new-thread-on-branch",
+      )?.label;
+    expect(label("feat/menu")).toBe("New thread on feat/menu");
+    expect(label(null)).toBe("New thread");
+  });
+
   it("disables archive and turning into a project while the thread is running", () => {
     const items = buildThreadActionMenuItems({
       ...baseState,

@@ -251,6 +251,22 @@ export function sortPinnedThreadsByOrderKey<
   return [...keyed, ...keyless];
 }
 
+/** Only a manual thread order keeps dragged positions; the others sort both sections by time. */
+export function sortThreadsByThreadOrder<
+  T extends ThreadSortInput & {
+    readonly id: string;
+    readonly unsettledAt?: string | null | undefined;
+    readonly pinOrderKey?: string | null | undefined;
+    readonly activeOrderKey?: string | null | undefined;
+    readonly environmentId?: string | undefined;
+  },
+>(threads: readonly T[], section: "pinned" | "active", order: SidebarThreadSortOrder): T[] {
+  if (order !== "manual") return sortThreads(threads, order);
+  return section === "pinned"
+    ? sortPinnedThreadsByOrderKey(threads)
+    : sortActiveThreadsByOrderKey(threads);
+}
+
 export function sortActiveThreadsByOrderKey<
   T extends {
     readonly id: string;

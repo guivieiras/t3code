@@ -1164,6 +1164,25 @@ describe("mobile move availability", () => {
   );
 
   it.each(["active", "pinned"] as const)(
+    "only lets threads enter a time-ordered %s section, without a saved position",
+    (section) => {
+      const plan = createThreadMovePlanner({
+        ordered: rows(section, ["bb", "dd", "ff"]),
+        section,
+        reorderableEnvironmentIds: new Set([environmentId]),
+        timeOrdered: true,
+      });
+      expect(plan(`${environmentId}:move-0`, "down")).toBeNull();
+      expect(
+        plan(`${environmentId}:move-2`, { section, targetId: null, placement: "before" }),
+      ).toBeNull();
+      expect(
+        plan(`${environmentId}:elsewhere`, { section, targetId: null, placement: "before" }),
+      ).toEqual([]);
+    },
+  );
+
+  it.each(["active", "pinned"] as const)(
     "reserves snoozed %s keys when moving visible rows",
     (section) => {
       const ordered = rows(section, ["bb", "dd", "ff"]);

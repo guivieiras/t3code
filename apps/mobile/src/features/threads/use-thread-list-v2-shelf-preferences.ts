@@ -14,6 +14,7 @@ export function useThreadListV2ShelfPreferences() {
   const workingShelfEnabled = loaded && preferencesResult.value.workingShelfEnabled !== false;
   const pinnedSectionHeadersEnabled =
     loaded && preferencesResult.value.pinnedSectionHeadersEnabled !== false;
+  const threadSortOrder = (loaded && preferencesResult.value.threadSortOrder) || "manual";
   const workingShelfExpanded =
     loaded && preferencesResult.value.threadListWorkingShelfExpanded === true;
 
@@ -50,6 +51,7 @@ export function useThreadListV2ShelfPreferences() {
     workingShelfEnabled,
     workingShelfExpanded,
     pinnedSectionHeadersEnabled,
+    threadSortOrder,
     toggleSettledShelf,
     toggleSnoozedShelf,
     toggleWorkingShelf,

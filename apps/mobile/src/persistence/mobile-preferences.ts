@@ -13,6 +13,7 @@ import {
   type ProviderInstanceId,
   PullRequestMergeMethod,
   type SidebarProjectGroupingMode,
+  SidebarThreadSortOrder,
 } from "@t3tools/contracts";
 import { ToolCallVisibility } from "@t3tools/contracts/settings";
 import type { AndroidNavigationStyle } from "../lib/androidNavigationStyle";
@@ -23,6 +24,8 @@ import { MOBILE_THEME_IDS, type MobileThemeId, type MobileThemeMode } from "../l
 import * as MobileDatabase from "./mobile-database";
 import * as MobileSecureStorage from "./mobile-secure-storage";
 import { MobileStorageDecodeError, MobileStorageEncodeError } from "./mobile-storage";
+
+const isSidebarThreadSortOrder = Schema.is(SidebarThreadSortOrder);
 
 const PREFERENCES_KEY = "t3code.preferences";
 const PREFERENCES_FALLBACK_KEY = "t3code.preferences.fallback";
@@ -131,6 +134,7 @@ export interface Preferences {
   readonly workingShelfEnabled?: boolean;
   /** Unset means on. */
   readonly pinnedSectionHeadersEnabled?: boolean;
+  readonly threadSortOrder?: SidebarThreadSortOrder;
   readonly useLastProjectForNewThreads?: boolean;
   readonly lastThreadProject?: typeof ThreadProject.Type;
   readonly modelFavorites?: ReadonlyArray<{
@@ -219,6 +223,7 @@ function sanitizePreferences(parsed: Preferences): Preferences {
     toolCallVisibility?: ToolCallVisibility;
     workingShelfEnabled?: boolean;
     pinnedSectionHeadersEnabled?: boolean;
+    threadSortOrder?: SidebarThreadSortOrder;
     useLastProjectForNewThreads?: boolean;
     lastThreadProject?: typeof ThreadProject.Type;
     modelFavorites?: Preferences["modelFavorites"];
@@ -350,6 +355,9 @@ function sanitizePreferences(parsed: Preferences): Preferences {
   }
   if (typeof parsed.pinnedSectionHeadersEnabled === "boolean") {
     preferences.pinnedSectionHeadersEnabled = parsed.pinnedSectionHeadersEnabled;
+  }
+  if (isSidebarThreadSortOrder(parsed.threadSortOrder)) {
+    preferences.threadSortOrder = parsed.threadSortOrder;
   }
   if (typeof parsed.useLastProjectForNewThreads === "boolean") {
     preferences.useLastProjectForNewThreads = parsed.useLastProjectForNewThreads;

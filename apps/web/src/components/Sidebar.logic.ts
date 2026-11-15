@@ -1,6 +1,9 @@
 import type { EnvironmentServerConfig } from "@t3tools/client-runtime/connection";
 import { scopeThreadRef, scopedThreadKey } from "@t3tools/client-runtime/environment";
-import { resolveThreadWorkingStartedAt } from "@t3tools/client-runtime/state/models";
+import {
+  resolveThreadWorkingStartedAt,
+  type EnvironmentThreadShell,
+} from "@t3tools/client-runtime/state/models";
 import { isShownUnderParent } from "@t3tools/client-runtime/state/threads";
 import { backgroundWorkHoldsCompletion } from "@t3tools/shared/orchestrationV2PendingBackgroundWork";
 import { threadPullRequestSearchTerms } from "@t3tools/shared/threadPullRequests";
@@ -36,9 +39,14 @@ import {
   type ThreadSnoozeShell,
 } from "@t3tools/client-runtime/state/thread-settled";
 import {
+  sortInboxThreadsByReturn,
+  sortWorkingThreadsBySend,
+} from "@t3tools/client-runtime/state/thread-inbox";
+import {
   getThreadSortTimestamp,
   planPinnedReorder,
   sortThreads,
+  sortThreadsByThreadOrder,
   toSortableTimestamp,
   type ThreadSortInput,
 } from "@t3tools/client-runtime/state/thread-sort";
@@ -311,7 +319,7 @@ type SidebarThreadDropPlan =
     }
   | {
       readonly kind: "pin";
-      readonly order: readonly string[];
+      readonly order: readonly string[] | null;
       readonly orderKey: string | undefined;
       readonly extraAssignments: ReadonlyArray<{ readonly id: string; readonly orderKey: string }>;
     }
@@ -402,6 +410,7 @@ export function planSidebarThreadDrop(input: {
   readonly activeKeysById: ReadonlyMap<string, string | null | undefined>;
   readonly activeReorderableKeys?: ReadonlySet<string>;
   readonly activeTimeOrdered?: boolean;
+  readonly pinnedTimeOrdered?: boolean;
 }): SidebarThreadDropPlan {
   const {
     activeKey,
@@ -491,6 +500,11 @@ export function planSidebarThreadDrop(input: {
     case "settled":
       return activeSection === "settled" ? { kind: "none" } : { kind: "settle" };
     case "pinned": {
+      if (input.pinnedTimeOrdered) {
+        return activeSection === "pinned"
+          ? { kind: "none" }
+          : { kind: "pin", order: null, orderKey: undefined, extraAssignments: [] };
+      }
       const order = target.pinnedOrder;
       if (
         activeSection === "pinned" &&
@@ -1136,11 +1150,39 @@ export function firstValidTimestampMs(
   return 0;
 }
 
-export { sortActiveThreadsByOrderKey as sortThreadsForSidebar } from "@t3tools/client-runtime/state/thread-sort";
-export {
-  sortInboxThreadsByReturn,
-  sortWorkingThreadsBySend,
-} from "@t3tools/client-runtime/state/thread-inbox";
+export { sortInboxThreadsByReturn, sortWorkingThreadsBySend };
+
+/** Boring-mode folders list by send, the Working shelf by return, else the user's thread order. */
+export type SidebarActiveOrder = "send" | "inbox" | SidebarThreadSortOrder;
+
+export function resolveSidebarActiveOrder(input: {
+  readonly boring: boolean;
+  readonly workingShelfEnabled: boolean;
+  readonly threadSortOrder: SidebarThreadSortOrder;
+}): SidebarActiveOrder {
+  if (input.boring) return "send";
+  return input.workingShelfEnabled ? "inbox" : input.threadSortOrder;
+}
+
+/** Whether Active follows time, so dragging within it cannot reorder. Boring mode keeps its drops. */
+export function isSidebarActiveTimeOrdered(order: SidebarActiveOrder): boolean {
+  return order !== "send" && order !== "manual";
+}
+
+export function sortSidebarActiveThreads(
+  threads: readonly EnvironmentThreadShell[],
+  order: SidebarActiveOrder,
+  returnedAt: (thread: EnvironmentThreadShell) => number | undefined,
+): EnvironmentThreadShell[] {
+  switch (order) {
+    case "send":
+      return sortWorkingThreadsBySend(threads);
+    case "inbox":
+      return sortInboxThreadsByReturn(threads, returnedAt);
+    default:
+      return sortThreadsByThreadOrder(threads, "active", order);
+  }
+}
 
 export { pinOrderKeyBetween } from "@t3tools/client-runtime/state/thread-sort";
 export { sortPinnedThreadsByOrderKey as sortPinnedThreadsForSidebar } from "@t3tools/client-runtime/state/thread-sort";

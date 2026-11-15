@@ -479,6 +479,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["usage quota rate limit reset recover continue"],
   },
   {
+    id: "thread-order",
+    title: msg("Thread order"),
+    to: "/settings/general",
+    searchTerms: ["sort threads sidebar active manual drag created recent latest message"],
+  },
+  {
     id: "sidebar-density",
     title: msg("Sidebar density"),
     to: "/settings/general",

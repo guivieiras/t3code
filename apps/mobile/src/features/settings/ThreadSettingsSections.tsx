@@ -22,6 +22,8 @@ import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { SettingsSection } from "./components/SettingsSection";
 import { SettingsSwitchRow } from "./components/SettingsSwitchRow";
+import { ListChoiceRow } from "../../components/ui/ListChoiceRow";
+import type { SidebarThreadSortOrder } from "@t3tools/contracts";
 import { SettingsScreen } from "./components/SettingsScreen";
 import { planAutoSettleSettingsSync, type AutoSettleSettings } from "./autoSettleSettingsSync";
 import { useSettingsEnvironmentFilter } from "./settings-environment-filter";
@@ -61,6 +63,15 @@ export function SettingsLabsRouteScreen() {
     </SettingsScreen>
   );
 }
+
+const THREAD_ORDER_OPTIONS: ReadonlyArray<{
+  readonly order: SidebarThreadSortOrder;
+  readonly label: string;
+}> = [
+  { order: "manual", label: "Manual" },
+  { order: "updated_at", label: "Last user message" },
+  { order: "created_at", label: "Created at" },
+];
 
 const AUTO_SETTLE_DEFAULT_DAYS = DEFAULT_SERVER_SETTINGS.sidebarAutoSettleAfterDays ?? 7;
 
@@ -199,6 +210,9 @@ export function WorkingSectionSettings() {
   const preferences = useAtomValue(mobilePreferencesAtom);
   const workingShelfEnabled =
     AsyncResult.isSuccess(preferences) && preferences.value.workingShelfEnabled !== false;
+  const threadSortOrder = AsyncResult.isSuccess(preferences)
+    ? (preferences.value.threadSortOrder ?? "manual")
+    : null;
 
   return (
     <View className="gap-3">
@@ -214,6 +228,22 @@ export function WorkingSectionSettings() {
         Fold working and monitoring threads into a Working section. They return to the top of the
         list when they need you. While this is on, active threads are ordered by time and cannot be
         moved.
+      </Text>
+      <SettingsSection title="Thread order">
+        {THREAD_ORDER_OPTIONS.map((option, index) => (
+          <ListChoiceRow
+            key={option.order}
+            label={option.label}
+            selected={threadSortOrder === option.order}
+            separated={index > 0}
+            disabled={threadSortOrder === null}
+            onPress={() => savePreferences({ threadSortOrder: option.order })}
+          />
+        ))}
+      </SettingsSection>
+      <Text className="px-2 text-sm text-foreground-muted">
+        Orders pinned threads, and active threads while the Working section is off. Only Manual lets
+        you move threads within a section.
       </Text>
     </View>
   );

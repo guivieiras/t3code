@@ -178,7 +178,7 @@ function ThreadArrangementSheet(props: { onClose: () => void }) {
   const dropBusy = useAtomValue(threadDropBusyAtom);
   const holdingRows = useAtomValue(steadyShellsHoldingAtom);
   const { moveThread } = useThreadListActions();
-  const { workingShelfEnabled } = useThreadListV2ShelfPreferences();
+  const { workingShelfEnabled, threadSortOrder } = useThreadListV2ShelfPreferences();
   const now = useThreadListNow(threads);
   const [expanded, setExpanded] = useState({ snoozed: false, settled: false });
   const [settledVisibleCount, setSettledVisibleCount] = useState(
@@ -198,6 +198,7 @@ function ThreadArrangementSheet(props: { onClose: () => void }) {
       pendingOrder,
       settlementEnvironmentIds: new Set(configs.keys()),
       snoozeEnvironmentIds: new Set(configs.keys()),
+      threadSortOrder,
     };
     const pinned = getThreadListV2OrderedSection({ ...shared, section: "pinned" });
     const active = getThreadListV2OrderedSection({ ...shared, section: "active" });
@@ -213,7 +214,7 @@ function ThreadArrangementSheet(props: { onClose: () => void }) {
       snoozed: parked.filter((thread) => effectiveSnoozed(thread, { now })),
       settled: sortSettledThreads(parked.filter((thread) => !effectiveSnoozed(thread, { now }))),
     };
-  }, [threads, configs, now, queuedThreadKeys, pendingOrder, workingShelfEnabled]);
+  }, [threads, configs, now, queuedThreadKeys, pendingOrder, workingShelfEnabled, threadSortOrder]);
   const listedSettled = sections.settled.filter(olderSettledShelf.isListed);
   useOlderSettledShelfGrowth(olderSettledShelf, listedSettled);
   const visibleSettled = listedSettled.slice(0, settledVisibleCount);
@@ -230,9 +231,10 @@ function ThreadArrangementSheet(props: { onClose: () => void }) {
             : workingShelfEnabled
               ? new Set()
               : listEnvironments.activeReorderEnvironmentIds,
+        timeOrdered: threadSortOrder !== "manual",
       });
     return { pinned: planner("pinned"), active: planner("active") };
-  }, [sections, threads, listEnvironments, workingShelfEnabled]);
+  }, [sections, threads, listEnvironments, workingShelfEnabled, threadSortOrder]);
   const rows = useMemo(() => {
     const result: Row[] = [];
     let offset = 0;
@@ -401,7 +403,9 @@ function ThreadArrangementSheet(props: { onClose: () => void }) {
                 accessibilityLabel="Close arrange threads"
               />
               <Text className="px-5 pb-3 text-sm text-foreground-muted">
-                Drag to reorder, pin, or settle. Changes save when you drop.
+                {threadSortOrder === "manual"
+                  ? "Drag to reorder, pin, or settle. Changes save when you drop."
+                  : "Drag to pin, unpin, or settle. Your thread order setting sorts each section."}
               </Text>
               <View
                 onLayout={(event) => {

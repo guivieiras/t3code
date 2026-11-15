@@ -73,6 +73,7 @@ vi.mock("../../state/presentation", () => ({
 vi.mock("../../state/server", () => ({
   environmentServerConfigsAtom: "server-configs",
 }));
+vi.mock("../../state/preferences", () => ({ mobilePreferencesAtom: "mobile-preferences" }));
 vi.mock("../../state/atom-registry", async () => {
   const registry = (await import("effect/reactivity")).AtomRegistry.make();
   const stub = {

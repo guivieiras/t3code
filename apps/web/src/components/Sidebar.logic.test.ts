@@ -24,6 +24,9 @@ import {
   searchSidebarThreads,
   shouldRecedeSidebarThread,
   sortInboxThreadsByReturn,
+  isSidebarActiveTimeOrdered,
+  resolveSidebarActiveOrder,
+  sortSidebarActiveThreads,
   resolveSidebarDropTarget,
   planSidebarThreadDrop,
   resolveSidebarReorderableThreadKeys,
@@ -43,6 +46,7 @@ import { scopeThreadRef, scopedThreadKey } from "@t3tools/client-runtime/environ
 import {
   sortActiveThreadsByOrderKey,
   sortPinnedThreadsByOrderKey,
+  sortThreadsByThreadOrder,
 } from "@t3tools/client-runtime/state/thread-sort";
 import { resolveProjectExpanded } from "../uiStateStore";
 import { threadSearchMatchKey } from "@t3tools/client-runtime/state/thread-search";
@@ -1171,6 +1175,74 @@ describe("Working shelf (beta)", () => {
           entry === waiting ? Date.parse("2026-03-09T11:05:00.000Z") : undefined,
         ).map((entry) => entry.id),
       ).toEqual(["asks-approval", "finished"]);
+    });
+  });
+
+  describe("active order", () => {
+    const shell = (id: string, createdAt: string, sentAt: string, activeOrderKey?: string) =>
+      presentThreadShell(localEnvironmentId, {
+        ...makeThreadFixture().source,
+        id: ThreadId.make(id),
+        createdAt: DateTime.makeUnsafe(createdAt),
+        latestUserMessageAt: DateTime.makeUnsafe(sentAt),
+        ...(activeOrderKey === undefined ? {} : { activeOrderKey }),
+      });
+    const threads = [
+      shell("dragged", "2026-03-08T09:00:00.000Z", "2026-03-09T09:00:00.000Z", "m"),
+      shell("old-busy", "2026-03-01T09:00:00.000Z", "2026-03-09T12:00:00.000Z"),
+      shell("new-quiet", "2026-03-09T10:00:00.000Z", "2026-03-09T10:00:00.000Z"),
+    ];
+
+    it.each([
+      ["updated_at", ["old-busy", "new-quiet", "dragged"], true],
+      ["created_at", ["new-quiet", "dragged", "old-busy"], true],
+      ["manual", ["new-quiet", "old-busy", "dragged"], false],
+    ] as const)(
+      "with the Working section off, %s orders Active and only manual takes drags",
+      (threadSortOrder, ids, timeOrdered) => {
+        const order = resolveSidebarActiveOrder({
+          boring: false,
+          workingShelfEnabled: false,
+          threadSortOrder,
+        });
+        expect(sortSidebarActiveThreads(threads, order, () => undefined).map((t) => t.id)).toEqual(
+          ids,
+        );
+        expect(isSidebarActiveTimeOrdered(order)).toBe(timeOrdered);
+      },
+    );
+
+    it("orders Pinned by a timed thread order and only lets drags pin or unpin there", () => {
+      expect(sortThreadsByThreadOrder(threads, "pinned", "updated_at").map((t) => t.id)).toEqual([
+        "old-busy",
+        "new-quiet",
+        "dragged",
+      ]);
+      const plan = (activeSection: "pinned" | "active") =>
+        planSidebarThreadDrop({
+          activeKey: "a",
+          activeSection,
+          target: { section: "pinned", pinnedOrder: ["a", "p"], activeOrder: [] },
+          pinnedOrder: activeSection === "pinned" ? ["p", "a"] : ["p"],
+          pinnedKeysById: new Map([["p", "m"]]),
+          activeOrder: [],
+          activeKeysById: new Map(),
+          pinnedTimeOrdered: true,
+        });
+      expect(plan("pinned")).toEqual({ kind: "none" });
+      expect(plan("active")).toEqual({
+        kind: "pin",
+        order: null,
+        orderKey: undefined,
+        extraAssignments: [],
+      });
+    });
+
+    it("lets the Working section and boring folders override the thread order", () => {
+      const resolve = (boring: boolean, workingShelfEnabled: boolean) =>
+        resolveSidebarActiveOrder({ boring, workingShelfEnabled, threadSortOrder: "manual" });
+      expect(resolve(false, true)).toBe("inbox");
+      expect(resolve(true, false)).toBe("send");
     });
   });
 

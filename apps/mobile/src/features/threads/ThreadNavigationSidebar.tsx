@@ -247,6 +247,7 @@ function ThreadNavigationSidebarPane(props: ThreadNavigationSidebarProps) {
     workingShelfEnabled,
     workingShelfExpanded,
     pinnedSectionHeadersEnabled,
+    threadSortOrder,
     toggleSettledShelf,
     toggleSnoozedShelf,
     toggleWorkingShelf,
@@ -289,6 +290,7 @@ function ThreadNavigationSidebarPane(props: ThreadNavigationSidebarProps) {
     pendingOrder,
     shelfPreferencesLoaded,
     workingShelfEnabled,
+    threadSortOrder,
     workingShelfExpanded,
     snoozedShelfExpanded,
     settledShelfExpanded,
@@ -363,6 +365,7 @@ function ThreadNavigationSidebarPane(props: ThreadNavigationSidebarProps) {
     listEnvironments,
     threadSearchMatchByKey,
     workingShelfEnabled,
+    threadSortOrder,
   };
   useThreadJumpShortcuts(listItems, handleSelectThread);
   const sidebarItemsAreEqual = (previous: SidebarListItem, item: SidebarListItem): boolean => {
@@ -468,9 +471,10 @@ function ThreadNavigationSidebarPane(props: ThreadNavigationSidebarProps) {
             pinningSupported={pinningEnvironmentIds.has(thread.environmentId)}
             autoSettleOptOutSupported={autoSettleOptOutEnvironmentIds.has(thread.environmentId)}
             reorderSupported={
-              item.item.pinned
+              threadSortOrder === "manual" &&
+              (item.item.pinned
                 ? pinReorderEnvironmentIds.has(thread.environmentId)
-                : !workingShelfEnabled && activeReorderEnvironmentIds.has(thread.environmentId)
+                : !workingShelfEnabled && activeReorderEnvironmentIds.has(thread.environmentId))
             }
             canMoveUp={item.canMoveUp}
             canMoveDown={item.canMoveDown}

@@ -25,6 +25,7 @@ import {
   type QuitConfirmationMode,
   SidebarDensity,
   SidebarProjectSortOrder,
+  SidebarThreadSortOrder,
   ScreenReaderAnnouncements,
   ToolCallVisibility,
 } from "@t3tools/contracts/settings";
@@ -146,6 +147,12 @@ const SIDEBAR_PROJECT_SORT_ORDER_LABELS: Record<SidebarProjectSortOrder, string>
 };
 const isSidebarProjectSortOrder = Schema.is(SidebarProjectSortOrder);
 
+const SIDEBAR_THREAD_SORT_ORDER_LABELS: Record<SidebarThreadSortOrder, string> = {
+  updated_at: msg("Last user message"),
+  created_at: msg("Created at"),
+  manual: msg("Manual"),
+};
+const isSidebarThreadSortOrder = Schema.is(SidebarThreadSortOrder);
 const SIDEBAR_DENSITY_LABELS: Record<SidebarDensity, string> = {
   comfortable: msg("Comfortable"),
   mixed: msg("Mixed"),
@@ -502,6 +509,9 @@ export function useSettingsRestore(onRestored?: () => void) {
     ...(settings.sidebarProjectSortOrder !== DEFAULT_UNIFIED_SETTINGS.sidebarProjectSortOrder
       ? ["Project order"]
       : []),
+    ...(settings.sidebarThreadSortOrder !== DEFAULT_UNIFIED_SETTINGS.sidebarThreadSortOrder
+      ? ["Thread order"]
+      : []),
     ...(settings.sidebarDensity !== DEFAULT_UNIFIED_SETTINGS.sidebarDensity
       ? ["Sidebar density"]
       : []),
@@ -704,6 +714,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       panelAnimationDurationMs: DEFAULT_UNIFIED_SETTINGS.panelAnimationDurationMs,
       sidebarProjectGroupingMode: DEFAULT_UNIFIED_SETTINGS.sidebarProjectGroupingMode,
       sidebarProjectSortOrder: DEFAULT_UNIFIED_SETTINGS.sidebarProjectSortOrder,
+      sidebarThreadSortOrder: DEFAULT_UNIFIED_SETTINGS.sidebarThreadSortOrder,
       sidebarDensity: DEFAULT_UNIFIED_SETTINGS.sidebarDensity,
       sidebarWorkingShelfEnabled: DEFAULT_UNIFIED_SETTINGS.sidebarWorkingShelfEnabled,
       showThreadShortcutHints: DEFAULT_UNIFIED_SETTINGS.showThreadShortcutHints,
@@ -924,6 +935,50 @@ export function GeneralSettingsPanel() {
                 {SidebarProjectSortOrder.literals.map((sortOrder) => (
                   <SelectItem hideIndicator key={sortOrder} value={sortOrder}>
                     {m(SIDEBAR_PROJECT_SORT_ORDER_LABELS[sortOrder])}
+                  </SelectItem>
+                ))}
+              </SelectPopup>
+            </Select>
+          }
+        />
+        <SettingsRow
+          {...setting("thread-order")}
+          description={
+            <T>
+              Order of pinned threads, and of active threads while the Working section is off.
+              Choose Manual to drag them into place.
+            </T>
+          }
+          resetAction={
+            settings.sidebarThreadSortOrder !== DEFAULT_UNIFIED_SETTINGS.sidebarThreadSortOrder ? (
+              <SettingResetButton
+                label="thread order"
+                onClick={() =>
+                  updateSettings({
+                    sidebarThreadSortOrder: DEFAULT_UNIFIED_SETTINGS.sidebarThreadSortOrder,
+                  })
+                }
+              />
+            ) : null
+          }
+          control={
+            <Select
+              value={settings.sidebarThreadSortOrder}
+              onValueChange={(value) => {
+                if (isSidebarThreadSortOrder(value)) {
+                  updateSettings({ sidebarThreadSortOrder: value });
+                }
+              }}
+            >
+              <SelectTrigger size="sm" className="w-full sm:w-44" aria-label={gt("Thread order")}>
+                <SelectValue>
+                  {m(SIDEBAR_THREAD_SORT_ORDER_LABELS[settings.sidebarThreadSortOrder])}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectPopup align="end" alignItemWithTrigger={false}>
+                {SidebarThreadSortOrder.literals.map((sortOrder) => (
+                  <SelectItem hideIndicator key={sortOrder} value={sortOrder}>
+                    {m(SIDEBAR_THREAD_SORT_ORDER_LABELS[sortOrder])}
                   </SelectItem>
                 ))}
               </SelectPopup>

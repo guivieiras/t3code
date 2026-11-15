@@ -46,6 +46,8 @@ interface MarkdownFileLinkProps {
   openInEditorMenuLabel: string;
   onOpenInBrowser?: (() => Promise<AtomCommandResult<unknown, unknown>>) | undefined;
   onOpenMedia?: (() => void) | undefined;
+  /** Primary clicks open media in the expanded preview instead of the file panel. */
+  preferMediaPreview?: boolean | undefined;
   onReveal?: (() => Promise<AtomCommandResult<unknown, unknown>>) | undefined;
   revealLabel?: string | undefined;
 }
@@ -70,6 +72,7 @@ export const MarkdownFileLink = memo(function MarkdownFileLink({
   openInEditorMenuLabel,
   onOpenInBrowser,
   onOpenMedia,
+  preferMediaPreview = false,
   onReveal,
   revealLabel,
   resolveCopyPaths,
@@ -113,6 +116,10 @@ export const MarkdownFileLink = memo(function MarkdownFileLink({
   };
 
   const handleOpenInFilePreview = () => {
+    if (preferMediaPreview && onOpenMedia) {
+      onOpenMedia();
+      return;
+    }
     if (threadRef && panelPath) {
       onOpenInPanel(panelPath, line);
       return;
@@ -249,6 +256,9 @@ export const MarkdownFileLink = memo(function MarkdownFileLink({
       const clicked = await api.contextMenu.show(
         [
           ...(onOpenMedia ? ([{ id: "preview-media", label: "Preview media" }] as const) : []),
+          ...(preferMediaPreview && onOpenMedia && threadRef && panelPath
+            ? ([{ id: "open-in-panel", label: "Open in side panel" }] as const)
+            : []),
           ...(onOpen ? ([{ id: "open", label: openInEditorMenuLabel }] as const) : []),
           ...(onOpenInBrowser
             ? ([{ id: "open-in-browser", label: "Open in integrated browser" }] as const)
@@ -262,6 +272,10 @@ export const MarkdownFileLink = memo(function MarkdownFileLink({
 
       if (clicked === "preview-media") {
         onOpenMedia?.();
+        return;
+      }
+      if (clicked === "open-in-panel") {
+        if (threadRef && panelPath) onOpenInPanel(panelPath, line);
         return;
       }
       if (clicked === "open") {
@@ -416,6 +430,7 @@ function areMarkdownFileLinkPropsEqual(
     previous.openInEditorMenuLabel === next.openInEditorMenuLabel &&
     previous.onOpenInBrowser === next.onOpenInBrowser &&
     previous.onOpenMedia === next.onOpenMedia &&
+    previous.preferMediaPreview === next.preferMediaPreview &&
     previous.onReveal === next.onReveal &&
     previous.resolveCopyPaths === next.resolveCopyPaths &&
     previous.revealLabel === next.revealLabel

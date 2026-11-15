@@ -25,7 +25,10 @@ import {
   keybindingValueForCommand,
   decodeProjectScriptKeybindingRule,
 } from "~/lib/projectScriptKeybindings";
-import { keybindingFromKeyboardEvent } from "~/components/settings/KeybindingsSettings.logic";
+import {
+  isFocusTraversalTabEvent,
+  keybindingFromKeyboardEvent,
+} from "~/components/settings/KeybindingsSettings.logic";
 import { commandForProjectScript, nextProjectScriptId } from "~/projectScripts";
 import { readEnvironmentScope, useEnvironmentScope } from "~/state/session";
 import { useComposerMenuState } from "./chat/useComposerMenuState";
@@ -306,7 +309,7 @@ function ProjectScriptEditorForm({
   const captureKeybinding = (event: KeyboardEvent<HTMLInputElement>) => {
     if (!readEnvironmentScope(environmentId, editScope)) return;
     if (!readEnvironmentScope(environmentId, AuthSettingsWriteScope)) return;
-    if (event.key === "Tab") return;
+    if (isFocusTraversalTabEvent(event)) return;
     event.preventDefault();
     if (event.key === "Backspace" || event.key === "Delete") {
       setKeybinding("");

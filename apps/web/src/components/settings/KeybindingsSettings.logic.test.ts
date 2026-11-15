@@ -10,6 +10,7 @@ import { resolveShortcutCommand } from "../../keybindings";
 import {
   buildKeybindingRows,
   buildWhenVariableOptions,
+  isFocusTraversalTabEvent,
   keybindingConflictLabels,
   keybindingFromKeyboardEvent,
   parseWhenExpressionDraft,
@@ -74,6 +75,15 @@ describe("KeybindingsSettings.logic", () => {
         "Win32",
       ),
     ).toBe("mod+shift+k");
+  });
+
+  it("reserves plain and Shift+Tab for focus traversal and captures modified Tab", () => {
+    const tab = { key: "Tab", code: "Tab", metaKey: false, ctrlKey: false, altKey: false };
+    expect(isFocusTraversalTabEvent(tab)).toBe(true);
+    expect(isFocusTraversalTabEvent({ ...tab, ctrlKey: true })).toBe(false);
+    expect(keybindingFromKeyboardEvent({ ...tab, ctrlKey: true, shiftKey: true }, "Win32")).toBe(
+      "mod+shift+tab",
+    );
   });
 
   it("waits for a key when only a modifier is pressed", () => {

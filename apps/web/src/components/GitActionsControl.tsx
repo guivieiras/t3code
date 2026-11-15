@@ -101,6 +101,7 @@ import { reviewEnvironment } from "~/state/review";
 import { revisionedQuery } from "~/state/revisionedQuery";
 import {
   selectThreadBranchBaseRef,
+  selectThreadDiffPanelSelection,
   useDiffPanelSessionStore,
   useDiffPanelStore,
 } from "~/diffPanelStore";
@@ -1043,6 +1044,11 @@ export default function GitActionsControl({
   const changesBaseRef = useDiffPanelStore((state) =>
     selectThreadBranchBaseRef(state, activeThreadRef),
   );
+  const changesScope = useDiffPanelStore((state) =>
+    selectThreadDiffPanelSelection(state.byThreadKey, activeThreadRef).kind === "unstaged"
+      ? "unstaged"
+      : "branch",
+  );
   const ignoreWhitespaceSetting = useClientSettings((settings) => settings.diffIgnoreWhitespace);
   const ignoreWhitespace =
     useDiffPanelSessionStore((state) => state.ignoreWhitespace) ?? ignoreWhitespaceSetting;
@@ -1065,6 +1071,7 @@ export default function GitActionsControl({
     showChanges &&
       isRepo &&
       canReadFiles &&
+      changesScope === "branch" &&
       changesRevision !== null &&
       activeEnvironmentId !== null &&
       gitCwd !== null
@@ -1086,6 +1093,7 @@ export default function GitActionsControl({
   const resolvedChangesTotals = resolveChangesTotals(
     gitStatusForActions,
     changesPreview.data?.sources.find((source) => source.kind === "branch-range"),
+    changesScope,
   );
   const changesTotals = resolvedChangesTotals ?? { insertions: 0, deletions: 0 };
   const changesBaseLabel = resolvedChangesTotals

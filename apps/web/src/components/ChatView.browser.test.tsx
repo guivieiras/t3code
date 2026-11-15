@@ -662,3 +662,30 @@ it("selecting a side-chat tab focuses that side chat's composer", async () => {
   await expect.element(sideEditor).toHaveFocus();
   await expect.element(mainEditor).toHaveTextContent("main draft");
 });
+
+it("keeps the saved Uncommitted view on mount and when reopened from thread details", async () => {
+  const thread = threadWithHistory("saved-diff", 1);
+  using _environment = installFakeEnvironment([thread]);
+  const threadRef = scopeThreadRef(ENVIRONMENT_ID, thread.id);
+  __setClientSettingsForTests({
+    ...DEFAULT_CLIENT_SETTINGS,
+    onboardingCompletedAt: "2026-01-01T00:00:00.000Z",
+  });
+  useDiffPanelStore.getState().selectGitScope(threadRef, "unstaged");
+  useRightPanelStore.getState().open(threadRef, "diff");
+  useRightPanelStore.getState().setThreadPanelOpen(threadRef, "popover", true);
+  await page.viewport(1400, 900);
+  const router = getRouter(
+    createMemoryHistory({ initialEntries: [`/${ENVIRONMENT_ID}/${thread.id}`] }),
+  );
+  await router.load();
+  await using _app = await render(<AppRoot router={router} />, {
+    // AppRoot brings its own router.
+    router: false,
+  });
+  await expect.element(page.getByRole("button", { name: "Diff scope: Uncommitted" })).toBeVisible();
+
+  await act(() => useRightPanelStore.getState().close(threadRef));
+  await userEvent.click(page.getByRole("button", { name: /^Changes/ }));
+  await expect.element(page.getByRole("button", { name: "Diff scope: Uncommitted" })).toBeVisible();
+});

@@ -321,6 +321,7 @@ export function parseVsCodeThemeFile(value: unknown): ThemeDefinition {
       solidOver(canvas, "panel.border", "editorGroup.border", "contrastBorder") ?? derived.border,
     input: inputHex,
     placeholder: readableOn(surfaceRaisedHex, derived.placeholder, "input.placeholderForeground"),
+    placeholder2: readableOn(surfaceRaisedHex, derived.placeholder2, "input.placeholderForeground"),
     error: readableStatusColor(derived.error, "editorError.foreground", "errorForeground"),
     warning: readableStatusColor(derived.warning, "editorWarning.foreground"),
     accentSurface:

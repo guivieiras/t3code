@@ -22,6 +22,7 @@ import {
   MIN_SIDEBAR_AUTO_SETTLE_AFTER_DAYS,
   type ResponseStreamingMode,
   type QuitConfirmationMode,
+  SidebarDensity,
   SidebarProjectSortOrder,
   ScreenReaderAnnouncements,
   ToolCallVisibility,
@@ -143,6 +144,13 @@ const SIDEBAR_PROJECT_SORT_ORDER_LABELS: Record<SidebarProjectSortOrder, string>
   manual: msg("Manual"),
 };
 const isSidebarProjectSortOrder = Schema.is(SidebarProjectSortOrder);
+
+const SIDEBAR_DENSITY_LABELS: Record<SidebarDensity, string> = {
+  comfortable: msg("Comfortable"),
+  mixed: msg("Mixed"),
+  compact: msg("Compact"),
+};
+const isSidebarDensity = Schema.is(SidebarDensity);
 
 const TIMESTAMP_FORMAT_LABELS = {
   locale: msg("System default"),
@@ -493,6 +501,9 @@ export function useSettingsRestore(onRestored?: () => void) {
     ...(settings.sidebarProjectSortOrder !== DEFAULT_UNIFIED_SETTINGS.sidebarProjectSortOrder
       ? ["Project order"]
       : []),
+    ...(settings.sidebarDensity !== DEFAULT_UNIFIED_SETTINGS.sidebarDensity
+      ? ["Sidebar density"]
+      : []),
     ...(settings.sidebarWorkingShelfEnabled !== DEFAULT_UNIFIED_SETTINGS.sidebarWorkingShelfEnabled
       ? ["Working section"]
       : []),
@@ -687,6 +698,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       panelAnimationDurationMs: DEFAULT_UNIFIED_SETTINGS.panelAnimationDurationMs,
       sidebarProjectGroupingMode: DEFAULT_UNIFIED_SETTINGS.sidebarProjectGroupingMode,
       sidebarProjectSortOrder: DEFAULT_UNIFIED_SETTINGS.sidebarProjectSortOrder,
+      sidebarDensity: DEFAULT_UNIFIED_SETTINGS.sidebarDensity,
       sidebarWorkingShelfEnabled: DEFAULT_UNIFIED_SETTINGS.sidebarWorkingShelfEnabled,
       showThreadShortcutHints: DEFAULT_UNIFIED_SETTINGS.showThreadShortcutHints,
       sidebarAutoSettleAfterDays: DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleAfterDays,
@@ -905,6 +917,50 @@ export function GeneralSettingsPanel() {
                 {SidebarProjectSortOrder.literals.map((sortOrder) => (
                   <SelectItem hideIndicator key={sortOrder} value={sortOrder}>
                     {m(SIDEBAR_PROJECT_SORT_ORDER_LABELS[sortOrder])}
+                  </SelectItem>
+                ))}
+              </SelectPopup>
+            </Select>
+          }
+        />
+        <SettingsRow
+          {...setting("sidebar-density")}
+          description={
+            <T>
+              How much detail active, pinned, and working threads show. Rows inside boring sidebar
+              project folders keep their own layout.
+            </T>
+          }
+          resetAction={
+            settings.sidebarDensity !== DEFAULT_UNIFIED_SETTINGS.sidebarDensity ? (
+              <SettingResetButton
+                label="sidebar density"
+                onClick={() =>
+                  updateSettings({ sidebarDensity: DEFAULT_UNIFIED_SETTINGS.sidebarDensity })
+                }
+              />
+            ) : null
+          }
+          control={
+            <Select
+              value={settings.sidebarDensity}
+              onValueChange={(value) => {
+                if (isSidebarDensity(value)) {
+                  updateSettings({ sidebarDensity: value });
+                }
+              }}
+            >
+              <SelectTrigger
+                size="sm"
+                className="w-full sm:w-44"
+                aria-label={gt("Sidebar density")}
+              >
+                <SelectValue>{m(SIDEBAR_DENSITY_LABELS[settings.sidebarDensity])}</SelectValue>
+              </SelectTrigger>
+              <SelectPopup align="end" alignItemWithTrigger={false}>
+                {SidebarDensity.literals.map((density) => (
+                  <SelectItem hideIndicator key={density} value={density}>
+                    {m(SIDEBAR_DENSITY_LABELS[density])}
                   </SelectItem>
                 ))}
               </SelectPopup>

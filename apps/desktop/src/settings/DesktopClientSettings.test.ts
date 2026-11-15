@@ -69,6 +69,7 @@ const clientSettings: ClientSettings = {
   threadDetailsItems: {},
   showThreadShortcutHints: false,
   sidebarWorkingShelfEnabled: false,
+  sidebarDensity: "mixed",
   loadBalancingEnabled: false,
   loadBalancingWeights: { "environment-1": 75, "environment-2": 0 },
   pullRequestMergeMethodOverrides: {},

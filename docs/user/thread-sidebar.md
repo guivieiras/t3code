@@ -344,3 +344,10 @@ A snoozed thread keeps working and stays hidden until its wake time, even while
 its agent wakes itself for background work. It comes back early for an approval,
 a new question, a failed run, or a message or answer you send. You can snooze an existing
 question and answer when the thread wakes; the question stays unanswered.
+
+## Completion notifications
+
+On web and desktop, when a thread finishes while T3 Code is in the background, its desktop
+notification shows the thread title, the start of the agent's final reply, and the project,
+branch, and how long the run took. The environment's name is added when you are connected to
+more than one. Choose what notifies you in **Settings → General → Notifications**.

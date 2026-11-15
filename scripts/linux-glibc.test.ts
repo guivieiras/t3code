@@ -3,7 +3,7 @@ import * as HostProcess from "@t3tools/shared/HostProcess";
 import * as NodeFSP from "node:fs/promises";
 import * as NodeOS from "node:os";
 import * as NodePath from "node:path";
-import { describe, expect, it } from "vite-plus/test";
+import { describe, expect, it, vi } from "vite-plus/test";
 
 import afterPack from "./linux-after-pack.ts";
 import { parseGlibcNeeds, scanGlibcNeeds } from "./linux-glibc.ts";
@@ -112,12 +112,16 @@ describe.skipIf(HostProcess.Platform.defaultValue() !== "linux")("packaged ELF s
         }
         expect(deb.options.depends).toEqual(["libnss3", "libc6 (>= 2.34)"]);
         await NodeFSP.writeFile(NodePath.join(native, "helper"), elfFixture(machine, "2.40"));
+        vi.stubEnv("CI", "");
+        expect(await scanGlibcNeeds(app)).toEqual({ minimum: "2.40", elfCount: 3 });
+        vi.stubEnv("CI", "true");
         await expect(
           afterPack({ appOutDir: app, electronPlatformName: "linux", targets: [deb] }),
         ).rejects.toThrow(/helper.*GLIBC_2\.40.*2\.39/s);
         await NodeFSP.writeFile(NodePath.join(native, "helper"), Buffer.from("\x7fELFbroken"));
         await expect(scanGlibcNeeds(app)).rejects.toThrow(/helper/);
       } finally {
+        vi.unstubAllEnvs();
         await NodeFSP.rm(root, { recursive: true, force: true });
       }
     },

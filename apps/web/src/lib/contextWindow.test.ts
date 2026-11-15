@@ -2,7 +2,6 @@ import { describe, expect, it } from "vite-plus/test";
 import type { ThreadStructureTurnItem } from "@t3tools/client-runtime/state/shell";
 import { OrchestrationV2ProviderTurnTokenUsage } from "@t3tools/contracts";
 import * as Schema from "effect/Schema";
-import { formatContextWindowCompactionMessage } from "../components/chat/compaction.logic";
 import * as DateTime from "effect/DateTime";
 import {
   ContextTransferId,
@@ -15,6 +14,7 @@ import {
 import { makeThreadProjectionFixture } from "../test-fixtures";
 import {
   deriveLatestContextWindowSnapshot,
+  formatContextWindowCompactionMessage,
   latestProviderTurnTokenUsage,
   shouldOfferResumeCompaction,
 } from "@t3tools/client-runtime/state/context-window";

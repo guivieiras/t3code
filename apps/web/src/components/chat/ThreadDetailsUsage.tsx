@@ -16,12 +16,14 @@ import type { ReactNode } from "react";
 
 import { usePrimarySettings } from "../../hooks/useSettings";
 import { useNowMinute } from "../../hooks/useNowMinute";
-import type { ContextWindowSnapshot } from "@t3tools/client-runtime/state/context-window";
+import {
+  type ContextWindowSnapshot,
+  formatContextWindowCompactionMessage,
+} from "@t3tools/client-runtime/state/context-window";
 import { formatContextWindowTokens } from "../../lib/contextWindow";
 import { cn } from "../../lib/utils";
 import { formatUpcomingTimestamp } from "../../timestampFormat";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
-import { formatContextWindowCompactionMessage } from "./compaction.logic";
 import { ThreadDetailsSection } from "./ThreadDetailsSection";
 
 const PACE_LABEL: Record<LimitPace, string> = {

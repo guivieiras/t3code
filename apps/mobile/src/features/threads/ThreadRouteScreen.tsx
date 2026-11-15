@@ -1097,6 +1097,7 @@ function ThreadRouteContent(
           onResumeQueue={composer.canResume ? handleResumeQueue : null}
           onSendMessage={composer.onSendMessage}
           offersSideChat={composer.sideChatUnavailableReason === null}
+          onCompactContext={composer.onCompactContext}
           onReconnectEnvironment={handleReconnectEnvironment}
           canSwitchThreadProvider={composer.canSwitchThreadProvider}
           onRespondToApproval={requests.onRespondToApproval}

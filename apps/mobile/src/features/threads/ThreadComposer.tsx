@@ -22,6 +22,7 @@ import {
   type EnvironmentId,
   type MessageId,
   type ModelSelection,
+  type ScopedThreadRef,
   type ServerConfig as T3ServerConfig,
   type UsageLimitsReport,
 } from "@t3tools/contracts";
@@ -87,6 +88,7 @@ import {
   ComposerToolbarRow,
 } from "../../components/ComposerToolbar";
 import { formatTokens } from "@t3tools/shared/usageFormat";
+import { ComposerContextWindowMeter } from "./ComposerContextWindowMeter";
 import { ComposerModelControl } from "../../components/ComposerModelControl";
 import {
   composerStripAttachments,
@@ -223,6 +225,8 @@ export interface ThreadComposerProps {
   readonly connectionState: RemoteClientConnectionState;
   readonly environmentLabel: string | null;
   readonly selectedThread: EnvironmentThreadShell;
+  /** Null for drafts, which have no context usage yet. */
+  readonly threadDetailRef: ScopedThreadRef | null;
   readonly reportedModelSelection?: ModelSelection | null;
   readonly hasCompactableConversation: boolean;
   /** Set while the next send compacts the thread first. */
@@ -269,6 +273,7 @@ export interface ThreadComposerProps {
     stillSendable?: () => boolean,
   ) => Promise<MessageId | null>;
   readonly onShowUsageLimits: (report: UsageLimitsReport | null) => void;
+  readonly onShowContextWindow: () => void;
   readonly canSwitchProvider: boolean;
   readonly onHeightChange?: (height: number) => void;
   readonly onEditorFocusChange?: (focused: boolean) => void;
@@ -1143,6 +1148,11 @@ export const ThreadComposer = function ThreadComposer(props: ThreadComposerProps
                   compactEditor.isExpanded ? { flex: 1, justifyContent: "flex-end" } : undefined
                 }
               >
+                <ComposerContextWindowMeter
+                  threadRef={props.threadDetailRef}
+                  size={usesLargeControls ? "large" : "regular"}
+                  onPress={props.onShowContextWindow}
+                />
                 {compactControl}
                 {modelControl}
                 <ComposerDictationStartAction

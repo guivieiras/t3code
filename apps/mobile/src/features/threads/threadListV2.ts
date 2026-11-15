@@ -467,9 +467,16 @@ export interface ThreadListV2SettledShelfListItem {
   readonly disabled: boolean;
 }
 
+export interface ThreadListV2SectionLabelListItem {
+  readonly type: "v2-section-label";
+  readonly key: "v2-section-label:pinned" | "v2-section-label:active";
+  readonly label: "Pinned" | "Active";
+}
+
 export type ThreadListV2ListItem =
   | ThreadListV2ThreadListItem
   | ThreadListV2PendingListItem
+  | ThreadListV2SectionLabelListItem
   | ThreadListV2WorkingShelfListItem
   | ThreadListV2SnoozedShelfListItem
   | ThreadListV2SettledShelfListItem;
@@ -480,6 +487,7 @@ export function isThreadListV2ListItem(value: {
   return (
     value.type === "v2-thread" ||
     value.type === "v2-pending" ||
+    value.type === "v2-section-label" ||
     value.type === "v2-working-shelf" ||
     value.type === "v2-snoozed-shelf" ||
     value.type === "v2-settled-shelf"
@@ -517,6 +525,8 @@ export function threadListV2ListItemsAreEqual(
         previous.showPendingDivider === item.showPendingDivider &&
         previous.showTrailingDivider === item.showTrailingDivider
       );
+    case "v2-section-label":
+      return previous.type === "v2-section-label" && previous.key === item.key;
     case "v2-working-shelf":
       return (
         previous.type === "v2-working-shelf" &&
@@ -573,6 +583,8 @@ export function buildThreadListV2ListItems(input: {
   readonly settledCount?: number;
   readonly settledShelfExpanded?: boolean;
   readonly settledShelfHeaderIndex?: number | null;
+  /** Label the Pinned and Active rows while any thread is pinned. */
+  readonly pinnedSectionHeaders?: boolean;
   readonly snoozeLabelNow?: string;
   readonly snoozeEnvironmentIds?: ReadonlySet<EnvironmentId>;
   readonly queuedThreadKeys?: ReadonlySet<string>;
@@ -627,7 +639,17 @@ export function buildThreadListV2ListItems(input: {
   const snoozedEnd = settledShelfHeaderIndex ?? threadItems.length;
   const workingEnd = snoozedShelfHeaderIndex ?? snoozedEnd;
   const activeEnd = workingShelfHeaderIndex ?? workingEnd;
-  const result: ThreadListV2ListItem[] = [...pendingItems, ...threadItems.slice(0, activeEnd)];
+  const result: ThreadListV2ListItem[] = [...pendingItems];
+  const pinnedEnd = input.items.findIndex((item, index) => index >= activeEnd || !item.pinned);
+  const pinnedCount = pinnedEnd < 0 ? activeEnd : pinnedEnd;
+  if (input.pinnedSectionHeaders === true && pinnedCount > 0) {
+    result.push({ type: "v2-section-label", key: "v2-section-label:pinned", label: "Pinned" });
+    result.push(...threadItems.slice(0, pinnedCount));
+    result.push({ type: "v2-section-label", key: "v2-section-label:active", label: "Active" });
+    result.push(...threadItems.slice(pinnedCount, activeEnd));
+  } else {
+    result.push(...threadItems.slice(0, activeEnd));
+  }
   const shelfDisabled = input.shelfPreferencesLoading === true;
   if (workingShelfHeaderIndex !== null && workingCount > 0) {
     result.push({

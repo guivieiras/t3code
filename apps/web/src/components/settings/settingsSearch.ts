@@ -441,6 +441,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["image video path modal lightbox expanded file panel drawer"],
   },
   {
+    id: "pinned-section-headers",
+    title: "Pinned section headers",
+    to: "/settings/appearance",
+    searchTerms: ["sidebar pinned active threads divider labels"],
+  },
+  {
     id: "project-grouping",
     title: msg("Project grouping"),
     to: "/settings/general",

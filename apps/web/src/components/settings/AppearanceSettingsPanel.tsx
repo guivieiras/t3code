@@ -348,6 +348,33 @@ export function AppearanceSettingsPanel() {
             />
           }
         />
+        <SettingsRow
+          {...searchableSetting("pinned-section-headers")}
+          description="Label the Pinned and Active threads in the sidebar while any thread is pinned."
+          resetAction={
+            settings.sidebarPinnedSectionHeaders !==
+            DEFAULT_UNIFIED_SETTINGS.sidebarPinnedSectionHeaders ? (
+              <SettingResetButton
+                label="pinned section headers"
+                onClick={() =>
+                  updateSettings({
+                    sidebarPinnedSectionHeaders:
+                      DEFAULT_UNIFIED_SETTINGS.sidebarPinnedSectionHeaders,
+                  })
+                }
+              />
+            ) : null
+          }
+          control={
+            <Switch
+              checked={settings.sidebarPinnedSectionHeaders}
+              onCheckedChange={(checked) =>
+                updateSettings({ sidebarPinnedSectionHeaders: Boolean(checked) })
+              }
+              aria-label="Show Pinned and Active headers"
+            />
+          }
+        />
         <AdvancedSettings
           targetIds={[
             searchableSetting("panel-animations").id,

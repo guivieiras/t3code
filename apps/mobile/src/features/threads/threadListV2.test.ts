@@ -880,6 +880,65 @@ describe("buildThreadListV2ListItems", () => {
     ).toEqual([true, true, true, false, null, false]);
   });
 
+  it("labels pinned and active rows only while a thread is pinned and labels are on", () => {
+    const pinnedLayout = buildThreadListV2Items({
+      threads: [
+        makeThread({ id: ThreadId.make("active"), title: "active" }),
+        makeThread({
+          id: ThreadId.make("pinned"),
+          title: "pinned",
+          pinnedAt: NOW,
+          pinOrderKey: "a",
+        }),
+        makeThread({
+          id: ThreadId.make("settled"),
+          title: "settled",
+          settledOverride: "settled",
+          settledAt: NOW,
+        }),
+      ],
+      environmentId: null,
+      searchQuery: "",
+      now: NOW,
+    });
+    const keys = (input: { items: typeof layout.items; pinnedSectionHeaders: boolean }) =>
+      buildThreadListV2ListItems({
+        ...input,
+        pendingTasks: [makePendingTask("queued")],
+        settledCount: 1,
+        settledShelfHeaderIndex: input.items.length - 1,
+      }).map((item) =>
+        item.type === "v2-thread"
+          ? item.item.thread.id
+          : item.type === "v2-pending"
+            ? "queued"
+            : item.key,
+      );
+
+    expect(keys({ items: pinnedLayout.items, pinnedSectionHeaders: true })).toEqual([
+      "queued",
+      "v2-section-label:pinned",
+      "pinned",
+      "v2-section-label:active",
+      "active",
+      "v2-settled-shelf",
+      "settled",
+    ]);
+    expect(keys({ items: pinnedLayout.items, pinnedSectionHeaders: false })).toEqual([
+      "queued",
+      "pinned",
+      "active",
+      "v2-settled-shelf",
+      "settled",
+    ]);
+    expect(keys({ items: layout.items, pinnedSectionHeaders: true })).toEqual([
+      "queued",
+      "active",
+      "v2-settled-shelf",
+      "settled",
+    ]);
+  });
+
   it("places queued tasks above active rows and a collapsed snoozed shelf", () => {
     const snoozedLayout = buildThreadListV2Items({
       threads: [

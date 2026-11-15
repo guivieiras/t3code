@@ -556,6 +556,9 @@ export const ClientSettingsSchema = Schema.Struct({
   sidebarDensity: SidebarDensity.pipe(
     Schema.withDecodingDefault(Effect.succeed(DEFAULT_SIDEBAR_DENSITY)),
   ),
+  sidebarPinnedSectionHeaders: Schema.Boolean.pipe(
+    Schema.withDecodingDefault(Effect.succeed(true)),
+  ),
   sidebarProjectGroupingMode: SidebarProjectGroupingMode.pipe(
     Schema.withDecodingDefault(Effect.succeed(DEFAULT_SIDEBAR_PROJECT_GROUPING_MODE)),
   ),
@@ -2111,6 +2114,7 @@ export const ClientSettingsPatch = Schema.Struct({
   showThreadShortcutHints: Schema.optionalKey(Schema.Boolean),
   sidebarWorkingShelfEnabled: Schema.optionalKey(Schema.Boolean),
   sidebarDensity: Schema.optionalKey(SidebarDensity),
+  sidebarPinnedSectionHeaders: Schema.optionalKey(Schema.Boolean),
   sidebarProjectGroupingMode: Schema.optionalKey(SidebarProjectGroupingMode),
   sidebarProjectGroupingOverrides: Schema.optionalKey(
     Schema.Record(TrimmedNonEmptyString, SidebarProjectGroupingMode),

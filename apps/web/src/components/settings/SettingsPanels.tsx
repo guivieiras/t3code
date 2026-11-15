@@ -541,6 +541,10 @@ export function useSettingsRestore(onRestored?: () => void) {
     ...(settings.openMediaLinksInPreview !== DEFAULT_UNIFIED_SETTINGS.openMediaLinksInPreview
       ? ["Open media links in preview"]
       : []),
+    ...(settings.sidebarPinnedSectionHeaders !==
+    DEFAULT_UNIFIED_SETTINGS.sidebarPinnedSectionHeaders
+      ? ["Pinned section headers"]
+      : []),
     ...getChangedTypographySettingLabels(settings),
     ...(settings.diffFilesCollapsed !== DEFAULT_UNIFIED_SETTINGS.diffFilesCollapsed
       ? ["Default diff file state"]
@@ -683,6 +687,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       persistComposerContextStrip: DEFAULT_UNIFIED_SETTINGS.persistComposerContextStrip,
       pinSentMessagesToTop: DEFAULT_UNIFIED_SETTINGS.pinSentMessagesToTop,
       openMediaLinksInPreview: DEFAULT_UNIFIED_SETTINGS.openMediaLinksInPreview,
+      sidebarPinnedSectionHeaders: DEFAULT_UNIFIED_SETTINGS.sidebarPinnedSectionHeaders,
       diffFilesCollapsed: DEFAULT_UNIFIED_SETTINGS.diffFilesCollapsed,
       diffIgnoreWhitespace: DEFAULT_UNIFIED_SETTINGS.diffIgnoreWhitespace,
       diffLayout: DEFAULT_UNIFIED_SETTINGS.diffLayout,

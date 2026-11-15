@@ -41,6 +41,9 @@ export async function scanGlibcNeeds(appOutDir: string): Promise<{
 }> {
   let minimum: string | undefined;
   let elfCount = 0;
+  // Native addons rebuilt on a newer host exceed the ceiling; only release builds must hold it.
+  const enforceCeiling = Boolean(process.env.CI);
+  const aboveCeiling: string[] = [];
   async function walk(directory: string): Promise<void> {
     for (const entry of await NodeFSP.readdir(directory, { withFileTypes: true })) {
       const file = NodePath.join(directory, entry.name);
@@ -69,9 +72,12 @@ export async function scanGlibcNeeds(appOutDir: string): Promise<{
         if (stderr.trim()) throw new Error(stderr.trim());
         const required = parseGlibcNeeds(stdout);
         if (required && compareVersions(required, GLIBC_BUILD_CEILING) > 0) {
-          throw new Error(
-            `requires GLIBC_${required}, exceeding build ceiling ${GLIBC_BUILD_CEILING}`,
-          );
+          if (enforceCeiling) {
+            throw new Error(
+              `requires GLIBC_${required}, exceeding build ceiling ${GLIBC_BUILD_CEILING}`,
+            );
+          }
+          aboveCeiling.push(`${NodePath.relative(appOutDir, file)} (GLIBC_${required})`);
         }
         if (required && (!minimum || compareVersions(required, minimum) > 0)) minimum = required;
       } catch (cause) {
@@ -84,6 +90,11 @@ export async function scanGlibcNeeds(appOutDir: string): Promise<{
   }
   await walk(appOutDir);
   if (elfCount === 0 || !minimum) throw new Error(`No glibc requirements found in ${appOutDir}`);
+  if (aboveCeiling.length > 0) {
+    console.warn(
+      `[linux-glibc] local build exceeds release ceiling ${GLIBC_BUILD_CEILING} and only runs on glibc >= ${minimum}: ${aboveCeiling.join(", ")}`,
+    );
+  }
   console.log(
     `[linux-glibc] ${elfCount} ELF files; requires glibc >= ${minimum}; build ceiling ${GLIBC_BUILD_CEILING}`,
   );

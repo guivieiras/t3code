@@ -306,6 +306,11 @@ Thread details** to see context usage in the thread details card. It appears
 once the provider reports usage. On mobile, a ring beside the model control fills
 as context is used; tap it for the details and **Compact context**.
 
+The thread details card also shows **Tokens**: what the thread's finished turns used, as
+reported by Codex and Claude. Expand it for input, cache, and output tokens. Turn it off
+under **Token usage** in the same settings. On mobile, the totals are in the context window
+details.
+
 Claude instances can also compact idle threads for you. See
 [compact long conversations](./providers-claude.md#compact-long-conversations).
 

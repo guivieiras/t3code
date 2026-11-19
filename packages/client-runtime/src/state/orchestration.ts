@@ -42,6 +42,11 @@ export function createOrchestrationEnvironmentAtoms<R, E>(
     readonly shellState?: (
       environmentId: EnvironmentId,
     ) => Atom.Atom<Pick<EnvironmentShellState, "removedAt">>;
+    /** Changes when one of the thread's provider turns finishes; refreshes its token usage. */
+    readonly threadTokenUsageRevision?: (target: {
+      readonly environmentId: EnvironmentId;
+      readonly threadId: ThreadId;
+    }) => Atom.Atom<unknown>;
     /** Runs on each turn-range and full-thread diff the server answers. */
     readonly onCheckpointDiffAnswer?: QueryAnswerHandler<
       { readonly ignoreWhitespace?: boolean },
@@ -190,6 +195,12 @@ export function createOrchestrationEnvironmentAtoms<R, E>(
       tag: ORCHESTRATION_V2_WS_METHODS.getWorkflowScript,
       staleTimeMs: 300_000,
       idleTtlMs: 300_000,
+    }),
+    threadTokenUsage: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:orchestration:thread-token-usage",
+      tag: ORCHESTRATION_V2_WS_METHODS.getThreadTokenUsage,
+      refreshTrigger: ({ environmentId, input }) =>
+        options.threadTokenUsageRevision?.({ environmentId, threadId: input.threadId }),
     }),
     // Mounted only while a subagent inspector is open; running children change between opens.
     nativeChildWork: createEnvironmentRpcQueryAtomFamily(runtime, {

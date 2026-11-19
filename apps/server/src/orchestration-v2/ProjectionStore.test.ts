@@ -29,6 +29,7 @@ import {
   RunId,
   ThreadId,
   TurnItemId,
+  type TurnTokenUsage,
   type ThreadPullRequestLink,
   isLiveSubagentShell,
   isListedThreadLineage,
@@ -3880,6 +3881,95 @@ it.layer(layerTest)("ProjectionStoreV2", (it) => {
 
       const replaced = yield* projectionStore.getThreadProjection(threadId);
       assert.deepEqual(replaced.providerTurns[0]?.tokenUsage, replacementUsage);
+    }),
+  );
+
+  it.effect("sums a thread's reported turn token usage by type", () =>
+    Effect.gen(function* () {
+      const projectionStore = yield* ProjectionStore.ProjectionStoreV2;
+      const now = yield* DateTime.now;
+      const threadId = ThreadId.make("thread:token-usage");
+      const nodeId = NodeId.make("node:token-usage");
+      const providerThreadId = ProviderThreadId.make("provider-thread:token-usage");
+      const turn = (
+        key: string,
+        ordinal: number,
+        owner: ThreadId,
+        turnTokenUsage?: TurnTokenUsage,
+      ) =>
+        projectionStore.apply({
+          id: EventId.make(`event:token-usage:${key}`),
+          type: "provider-turn.updated",
+          threadId: owner,
+          nodeId,
+          driver,
+          occurredAt: now,
+          payload: {
+            id: ProviderTurnId.make(`provider-turn:token-usage:${key}`),
+            providerThreadId,
+            nodeId,
+            runAttemptId: null,
+            nativeTurnRef: null,
+            ordinal,
+            status: "completed",
+            startedAt: now,
+            completedAt: now,
+            ...(turnTokenUsage === undefined ? {} : { turnTokenUsage }),
+          },
+        });
+      const common = { usageScope: "main_agent", hasSubagents: false } as const;
+
+      assert.deepEqual(yield* projectionStore.getThreadTokenUsage(threadId), {
+        turns: 0,
+        inputTokens: 0,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        outputTokens: 0,
+        reasoningTokens: 0,
+        partial: false,
+      });
+
+      // Input counts include cache reads and writes.
+      yield* turn("claude", 1, threadId, {
+        ...common,
+        usageStatus: "complete",
+        inputTokens: 1_000,
+        cachedInputTokens: 700,
+        cacheCreationTokens: 200,
+        outputTokens: 50,
+        reasoningTokens: 20,
+        // Process-wide ledger counts beyond this turn are not added.
+        otherUsage: { inputTokens: 9_999_999, outputTokens: 9_999 },
+      });
+      yield* turn("partial", 2, threadId, {
+        ...common,
+        usageStatus: "partial",
+        outputTokens: 5,
+      });
+      yield* turn("local-command", 3, threadId, {
+        ...common,
+        usageStatus: "complete",
+        inputTokens: 400,
+        outputTokens: 40,
+        localCommand: true,
+      });
+      yield* turn("running", 4, threadId);
+      yield* turn("other-thread", 5, ThreadId.make("thread:token-usage:other"), {
+        ...common,
+        usageStatus: "complete",
+        inputTokens: 300,
+        outputTokens: 30,
+      });
+
+      assert.deepEqual(yield* projectionStore.getThreadTokenUsage(threadId), {
+        turns: 2,
+        inputTokens: 100,
+        cacheReadTokens: 700,
+        cacheWriteTokens: 200,
+        outputTokens: 55,
+        reasoningTokens: 20,
+        partial: true,
+      });
     }),
   );
 

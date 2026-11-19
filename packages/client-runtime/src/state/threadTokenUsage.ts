@@ -18,6 +18,8 @@ export function threadTokenUsageRevision(
 export interface ThreadTokenUsageRow {
   readonly label: string;
   readonly tokens: number;
+  /** Null when no model in the thread had a rate. */
+  readonly costUsd: number | null;
   /** Already counted in another row, so it is not part of the total. */
   readonly subset?: boolean;
 }
@@ -26,19 +28,32 @@ export function threadTokenUsageTotal(usage: OrchestrationV2ThreadTokenUsage): n
   return usage.inputTokens + usage.cacheReadTokens + usage.cacheWriteTokens + usage.outputTokens;
 }
 
+/** Null when no model in the thread had a rate. */
+export function threadTokenUsageCost(usage: OrchestrationV2ThreadTokenUsage): number | null {
+  const cost = usage.cost;
+  return cost == null ? null : cost.input + cost.cacheRead + cost.cacheWrite + cost.output;
+}
+
 /** One row per token type; cache writes and reasoning appear only for providers that report them. */
 export function threadTokenUsageRows(
   usage: OrchestrationV2ThreadTokenUsage,
 ): ReadonlyArray<ThreadTokenUsageRow> {
+  const cost = usage.cost ?? null;
   return [
-    { label: "Input", tokens: usage.inputTokens },
-    { label: "Cache read", tokens: usage.cacheReadTokens },
+    { label: "Input", tokens: usage.inputTokens, costUsd: cost?.input ?? null },
+    { label: "Cache read", tokens: usage.cacheReadTokens, costUsd: cost?.cacheRead ?? null },
     ...(usage.cacheWriteTokens > 0
-      ? [{ label: "Cache write", tokens: usage.cacheWriteTokens }]
+      ? [
+          {
+            label: "Cache write",
+            tokens: usage.cacheWriteTokens,
+            costUsd: cost?.cacheWrite ?? null,
+          },
+        ]
       : []),
-    { label: "Output", tokens: usage.outputTokens },
+    { label: "Output", tokens: usage.outputTokens, costUsd: cost?.output ?? null },
     ...(usage.reasoningTokens > 0
-      ? [{ label: "Reasoning", tokens: usage.reasoningTokens, subset: true }]
+      ? [{ label: "Reasoning", tokens: usage.reasoningTokens, costUsd: null, subset: true }]
       : []),
   ];
 }

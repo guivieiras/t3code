@@ -57,6 +57,7 @@ import {
   OrchestrationGetTurnDiffResult,
 } from "./checkpointDiff.ts";
 import { ModelSelection } from "./modelSelection.ts";
+import { UsageCategoryCost } from "./usage.ts";
 import {
   ThreadLinkedPullRequest,
   ThreadPullRequestLink,
@@ -3995,6 +3996,10 @@ export const OrchestrationV2ThreadTokenUsage = Schema.Struct({
   reasoningTokens: NonNegativeInt,
   /** Some counted turns reported only part of their usage. */
   partial: Schema.Boolean,
+  /** Estimated cost at API list rates, as on the Usage page; null when no model had a rate. */
+  cost: Schema.optional(Schema.NullOr(UsageCategoryCost)),
+  /** Tokens from turns whose model has no known rate, left out of `cost`. */
+  unpricedTokens: Schema.optional(NonNegativeInt),
 });
 export type OrchestrationV2ThreadTokenUsage = typeof OrchestrationV2ThreadTokenUsage.Type;
 

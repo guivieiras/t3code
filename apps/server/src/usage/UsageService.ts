@@ -43,7 +43,10 @@ import { canonicalModelFilter, resolveModelAliases, UsageAggregator } from "./us
 import {
   createOverrideRateTable,
   isUnlistedModel,
+  type ModelTokenRow,
   parseRateTable,
+  type PricedTokenRows,
+  priceTokenRows,
   type RateTable,
 } from "./usagePricing.ts";
 import {
@@ -162,6 +165,10 @@ export class UsageService extends Context.Service<
   {
     readonly readSummary: (input: UsageSummaryInput) => Effect.Effect<UsageSummary, UsageReadError>;
     readonly refreshRates: Effect.Effect<UsagePricing>;
+    /** Prices token rows with the Usage page's rates, custom prices, and model mappings. */
+    readonly priceTokenRows: (
+      rows: ReadonlyArray<ModelTokenRow>,
+    ) => Effect.Effect<PricedTokenRows, UsageReadError>;
   }
 >()("t3/usage/UsageService") {}
 
@@ -1238,7 +1245,18 @@ export const make = Effect.gen(function* () {
     return yield* Deferred.await(deferred);
   });
 
-  return { readSummary, refreshRates, awaitPersisted } as const;
+  const priceRows = Effect.fn("UsageService.priceTokenRows")(function* (
+    rows: ReadonlyArray<ModelTokenRow>,
+  ) {
+    const [settings] = yield* Effect.all([readSettings, ensureRates(false)], { concurrency: 2 });
+    return priceTokenRows(rows, {
+      rates,
+      priceOverrides: createOverrideRateTable(settings.usagePriceOverrides),
+      modelAliases: resolveModelAliases(settings.usageModelAliases),
+    });
+  });
+
+  return { readSummary, refreshRates, priceTokenRows: priceRows, awaitPersisted } as const;
 });
 
 export const layer = Layer.effect(UsageService, make);

@@ -413,3 +413,89 @@ export function cacheSavingsUsd(
   const rates = ratesAt(rate, record.speed, record.totals);
   return record.totals.cachedInputTokens * (rates.inputCostPerToken - rates.cacheReadCostPerToken);
 }
+
+export interface ModelTokenRow {
+  readonly model: string | null;
+  readonly oneHourCache: boolean;
+  readonly turns: number;
+  readonly inputTokens: number;
+  readonly cacheReadTokens: number;
+  readonly cacheWriteTokens: number;
+  readonly outputTokens: number;
+  readonly reasoningTokens: number;
+  readonly partial: boolean;
+}
+
+export interface PricedTokenRows {
+  readonly turns: number;
+  readonly inputTokens: number;
+  readonly cacheReadTokens: number;
+  readonly cacheWriteTokens: number;
+  readonly outputTokens: number;
+  readonly reasoningTokens: number;
+  readonly partial: boolean;
+  readonly cost: UsageCategoryCost | null;
+  readonly unpricedTokens: number;
+}
+
+/**
+ * Sums per-model token rows and prices them like the Usage page: overrides first, then the
+ * table, after aliases. A sum over many requests has no single prompt size, so it uses base rates.
+ */
+export function priceTokenRows(
+  rows: ReadonlyArray<ModelTokenRow>,
+  options: {
+    readonly rates: RateTable;
+    readonly priceOverrides: RateTable;
+    readonly modelAliases: ReadonlyMap<string, string>;
+  },
+): PricedTokenRows {
+  let turns = 0;
+  let inputTokens = 0;
+  let cacheReadTokens = 0;
+  let cacheWriteTokens = 0;
+  let outputTokens = 0;
+  let reasoningTokens = 0;
+  let partial = false;
+  let unpricedTokens = 0;
+  let priced = false;
+  const cost = { input: 0, cacheRead: 0, cacheWrite: 0, output: 0 };
+  for (const row of rows) {
+    turns += row.turns;
+    inputTokens += row.inputTokens;
+    cacheReadTokens += row.cacheReadTokens;
+    cacheWriteTokens += row.cacheWriteTokens;
+    outputTokens += row.outputTokens;
+    reasoningTokens += row.reasoningTokens;
+    partial ||= row.partial;
+    const model =
+      row.model === null ? null : (options.modelAliases.get(row.model) ?? row.model).trim();
+    const rate =
+      model === null
+        ? null
+        : (options.priceOverrides.get(model) ?? lookupRate(options.rates, model));
+    if (rate === null) {
+      unpricedTokens +=
+        row.inputTokens + row.cacheReadTokens + row.cacheWriteTokens + row.outputTokens;
+      continue;
+    }
+    priced = true;
+    cost.input += row.inputTokens * rate.inputCostPerToken;
+    cost.cacheRead += row.cacheReadTokens * rate.cacheReadCostPerToken;
+    cost.cacheWrite +=
+      row.cacheWriteTokens *
+      (row.oneHourCache ? rate.cacheCreation1hCostPerToken : rate.cacheCreationCostPerToken);
+    cost.output += row.outputTokens * rate.outputCostPerToken;
+  }
+  return {
+    turns,
+    inputTokens,
+    cacheReadTokens,
+    cacheWriteTokens,
+    outputTokens,
+    reasoningTokens,
+    partial,
+    cost: priced ? cost : null,
+    unpricedTokens,
+  };
+}

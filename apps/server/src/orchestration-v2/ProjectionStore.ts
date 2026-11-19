@@ -8,7 +8,6 @@ import { makeThreadFind } from "./ThreadFind.ts";
 import { unsentManualContinuationSource } from "./manualContinuation.ts";
 import type {
   OrchestrationV2ThreadLinkMetadata,
-  OrchestrationV2ThreadTokenUsage,
   OrchestrationV2SearchThreadInput,
   OrchestrationV2SearchThreadResult,
   OrchestrationV2ThreadHistoryPage,
@@ -507,6 +506,20 @@ export interface OlderSettledThreadsListing {
   readonly counts: ReadonlyArray<OrchestrationV2OlderSettledCount>;
 }
 
+export interface ThreadTokenUsageRow {
+  /** Null when the provider did not report which model ran the turn. */
+  readonly model: string | null;
+  /** Cache writes in these turns kept the 1-hour prompt-cache lifetime. */
+  readonly oneHourCache: boolean;
+  readonly turns: number;
+  readonly inputTokens: number;
+  readonly cacheReadTokens: number;
+  readonly cacheWriteTokens: number;
+  readonly outputTokens: number;
+  readonly reasoningTokens: number;
+  readonly partial: boolean;
+}
+
 export interface ProjectionStoreV2Shape {
   readonly searchThreadStream: (
     input: OrchestrationV2SearchThreadInput,
@@ -648,9 +661,10 @@ export interface ProjectionStoreV2Shape {
   readonly getThreadTitles: (
     threadIds: ReadonlyArray<ThreadId>,
   ) => Effect.Effect<Record<ThreadId, string>, ProjectionStoreV2Error>;
+  /** The thread's reported turn tokens, one row per model and prompt-cache lifetime. */
   readonly getThreadTokenUsage: (
     threadId: ThreadId,
-  ) => Effect.Effect<OrchestrationV2ThreadTokenUsage, ProjectionStoreV2Error>;
+  ) => Effect.Effect<ReadonlyArray<ThreadTokenUsageRow>, ProjectionStoreV2Error>;
   readonly getThreadWorktreePaths: (options?: {
     readonly includeArchived?: boolean;
   }) => Effect.Effect<
@@ -9134,6 +9148,8 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
     ) {
       // Provider input counts include cache reads and writes; a local command's counters are not model work.
       const rows = yield* sql<{
+        readonly model: string | null;
+        readonly one_hour_cache: number;
         readonly turns: number;
         readonly input_tokens: number;
         readonly cache_read_tokens: number;
@@ -9143,15 +9159,22 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
         readonly partial: number;
       }>`
         SELECT
+          u.model AS model,
+          u.one_hour_cache AS one_hour_cache,
           COUNT(*) AS turns,
-          COALESCE(SUM(MAX(0, COALESCE(u.input, 0) - COALESCE(u.cache_read, 0) - COALESCE(u.cache_write, 0))), 0) AS input_tokens,
-          COALESCE(SUM(COALESCE(u.cache_read, 0)), 0) AS cache_read_tokens,
-          COALESCE(SUM(COALESCE(u.cache_write, 0)), 0) AS cache_write_tokens,
-          COALESCE(SUM(COALESCE(u.output, 0)), 0) AS output_tokens,
-          COALESCE(SUM(COALESCE(u.reasoning, 0)), 0) AS reasoning_tokens,
-          COALESCE(MAX(u.status IS NOT 'complete'), 0) AS partial
+          SUM(MAX(0, COALESCE(u.input, 0) - COALESCE(u.cache_read, 0) - COALESCE(u.cache_write, 0))) AS input_tokens,
+          SUM(COALESCE(u.cache_read, 0)) AS cache_read_tokens,
+          SUM(COALESCE(u.cache_write, 0)) AS cache_write_tokens,
+          SUM(COALESCE(u.output, 0)) AS output_tokens,
+          SUM(COALESCE(u.reasoning, 0)) AS reasoning_tokens,
+          MAX(u.status IS NOT 'complete') AS partial
         FROM (
           SELECT
+            COALESCE(
+              json_extract(payload_json, '$.model'),
+              json_extract(payload_json, '$.turnTokenUsage.models[0]')
+            ) AS model,
+            COALESCE(json_extract(payload_json, '$.tokenUsage.promptCacheTtlMs'), 0) >= 3600000 AS one_hour_cache,
             json_extract(payload_json, '$.turnTokenUsage.inputTokens') AS input,
             json_extract(payload_json, '$.turnTokenUsage.cachedInputTokens') AS cache_read,
             json_extract(payload_json, '$.turnTokenUsage.cacheCreationTokens') AS cache_write,
@@ -9163,17 +9186,20 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
             AND json_extract(payload_json, '$.turnTokenUsage') IS NOT NULL
             AND COALESCE(json_extract(payload_json, '$.turnTokenUsage.localCommand'), 0) = 0
         ) AS u
+        GROUP BY u.model, u.one_hour_cache
+        ORDER BY u.model, u.one_hour_cache
       `;
-      const row = rows[0];
-      return {
-        turns: row?.turns ?? 0,
-        inputTokens: row?.input_tokens ?? 0,
-        cacheReadTokens: row?.cache_read_tokens ?? 0,
-        cacheWriteTokens: row?.cache_write_tokens ?? 0,
-        outputTokens: row?.output_tokens ?? 0,
-        reasoningTokens: row?.reasoning_tokens ?? 0,
-        partial: (row?.partial ?? 0) !== 0,
-      } satisfies OrchestrationV2ThreadTokenUsage;
+      return rows.map((row): ThreadTokenUsageRow => ({
+        model: row.model,
+        oneHourCache: row.one_hour_cache !== 0,
+        turns: row.turns,
+        inputTokens: row.input_tokens,
+        cacheReadTokens: row.cache_read_tokens,
+        cacheWriteTokens: row.cache_write_tokens,
+        outputTokens: row.output_tokens,
+        reasoningTokens: row.reasoning_tokens,
+        partial: row.partial !== 0,
+      }));
     }, Effect.mapError(shellSnapshotReadError));
 
     const findGuestShareThreadId = Effect.fn("ProjectionStore.findGuestShareThreadId")(function* (

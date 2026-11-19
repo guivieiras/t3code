@@ -2,6 +2,7 @@ import type {
   OrchestrationV2ProviderTurn,
   OrchestrationV2ThreadTokenUsage,
 } from "@t3tools/contracts";
+import { formatUsd } from "@t3tools/shared/usageFormat";
 import * as DateTime from "effect/DateTime";
 
 /** Changes when another provider turn finishes, which is when the thread's totals can change. */
@@ -56,4 +57,9 @@ export function threadTokenUsageRows(
       ? [{ label: "Reasoning", tokens: usage.reasoningTokens, costUsd: null, subset: true }]
       : []),
   ];
+}
+
+/** Cents, with a nonzero amount below one cent shown as such rather than as $0.00. */
+export function formatThreadTokenCost(costUsd: number): string {
+  return costUsd > 0 && costUsd < 0.005 ? "<$0.01" : formatUsd(costUsd);
 }

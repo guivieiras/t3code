@@ -307,8 +307,9 @@ once the provider reports usage. On mobile, a ring beside the model control fill
 as context is used; tap it for the details and **Compact context**.
 
 The thread details card also shows **Tokens**: what the thread's finished turns used, as
-reported by Codex and Claude, with an estimated cost at API prices. Expand it for input, cache,
-and output tokens. Prices and model mappings come from [Usage](./usage.md#set-custom-model-prices),
+reported by Codex and Claude, with an estimated cost at API prices. Claude totals include
+compaction, subagents, and interrupted turns once a later turn finishes. Expand it for input,
+cache, and output tokens. Prices and model mappings come from [Usage](./usage.md#set-custom-model-prices),
 and like there, the estimate is not your subscription bill. Turn it off under **Token usage** in
 the same settings. On mobile, the totals are in the context window details.
 

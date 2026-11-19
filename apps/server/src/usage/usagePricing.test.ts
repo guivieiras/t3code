@@ -428,7 +428,7 @@ describe("usage pricing", () => {
 
     expect(lookupRate(table, "example-model")).toBeNull();
   });
-  it("prices thread token rows at base rates with overrides, aliases, and the 1-hour cache", () => {
+  it("prices thread token rows by custom price, then provider cost, then base table rates", () => {
     const rates = parseRateTable({
       "claude-opus-5-5": {
         input_cost_per_token: 4e-6,
@@ -440,47 +440,51 @@ describe("usage pricing", () => {
         input_cost_per_token_above_200k_tokens: 8e-6,
       },
     });
-    const row = (model: string | null, oneHourCache: boolean, tokens: number) => ({
+    const row = (model: string | null, tokens: number, extra: object = {}) => ({
       model,
-      oneHourCache,
-      turns: 1,
       inputTokens: tokens,
       cacheReadTokens: tokens * 10,
       cacheWriteTokens: tokens,
+      cacheWrite1hTokens: tokens / 2,
       outputTokens: tokens,
-      reasoningTokens: tokens / 2,
-      partial: false,
+      ...extra,
     });
+    const options = {
+      rates,
+      priceOverrides: createOverrideRateTable({
+        "custom-model": { inputCostPerMillionTokens: 1, outputCostPerMillionTokens: 2 },
+        "claude-overridden": { inputCostPerMillionTokens: 1, outputCostPerMillionTokens: 2 },
+      }),
+      modelAliases: new Map([["opus-preview", "claude-opus-5-5"]]),
+    };
 
-    const priced = priceTokenRows(
-      [
-        row("claude-opus-5-5", true, 1_000_000),
-        row("opus-preview", false, 1_000_000),
-        row("custom-model", false, 1_000_000),
-        row(null, false, 1_000),
-      ],
-      {
-        rates,
-        priceOverrides: createOverrideRateTable({
-          "custom-model": { inputCostPerMillionTokens: 1, outputCostPerMillionTokens: 2 },
-        }),
-        modelAliases: new Map([["opus-preview", "claude-opus-5-5"]]),
-      },
+    // 1M each: input $4, cache read $2, cache write 0.5M at $5 + 0.5M at $8, output $20.
+    const table = priceTokenRows([row("claude-opus-5-5", 1_000_000)], options);
+    expect(table.cost?.input).toBeCloseTo(4);
+    expect(table.cost?.cacheRead).toBeCloseTo(2);
+    expect(table.cost?.cacheWrite).toBeCloseTo(6.5);
+    expect(table.cost?.output).toBeCloseTo(20);
+
+    // The provider's per-request cost wins over the table and keeps the table's split.
+    const provider = priceTokenRows(
+      [row("claude-opus-5-5", 1_000_000, { providerCostUsd: 65 })],
+      options,
     );
+    expect(provider.cost?.input).toBeCloseTo(8);
+    expect(provider.cost?.output).toBeCloseTo(40);
 
-    expect(priced.turns).toBe(4);
-    expect(priced.inputTokens).toBe(3_001_000);
-    expect(priced.unpricedTokens).toBe(13_000);
-    expect(priced.cost?.input).toBeCloseTo(4 + 4 + 1);
-    expect(priced.cost?.cacheRead).toBeCloseTo(2 + 2 + 10);
-    expect(priced.cost?.cacheWrite).toBeCloseTo(8 + 5 + 1);
-    expect(priced.cost?.output).toBeCloseTo(20 + 20 + 2);
-    expect(
-      priceTokenRows([row(null, false, 1)], {
-        rates,
-        priceOverrides: new Map(),
-        modelAliases: new Map(),
-      }).cost,
-    ).toBeNull();
+    // A custom price or a mapping replaces the provider's cost; an unknown model is unpriced.
+    const mixed = priceTokenRows(
+      [
+        row("claude-overridden", 1_000_000, { providerCostUsd: 999 }),
+        row("opus-preview", 1_000_000, { providerCostUsd: 999 }),
+        row(null, 1_000),
+      ],
+      options,
+    );
+    expect(mixed.cost?.input).toBeCloseTo(1 + 4);
+    expect(mixed.cost?.output).toBeCloseTo(2 + 20);
+    expect(mixed.unpricedTokens).toBe(13_000);
+    expect(priceTokenRows([row(null, 1)], options).cost).toBeNull();
   });
 });

@@ -2096,7 +2096,7 @@ export const layerWsRpc = (
           ),
         [ORCHESTRATION_V2_WS_METHODS.getThreadTokenUsage]: (input) =>
           threadManagement.getThreadTokenUsage(input.threadId).pipe(
-            Effect.flatMap(usage.priceTokenRows),
+            Effect.flatMap(usage.priceThreadTokenUsage),
             Effect.mapError(
               (cause) =>
                 new OrchestrationV2GetShellSnapshotError({

@@ -53,6 +53,22 @@ export const ThreadTokenUsageSnapshot = Schema.Struct({
 });
 export type ThreadTokenUsageSnapshot = typeof ThreadTokenUsageSnapshot.Type;
 
+/** One model's running totals for a provider session. Input excludes cache reads and writes. */
+export const ProviderSessionModelUsage = Schema.Struct({
+  model: TrimmedNonEmptyString,
+  inputTokens: NonNegativeInt,
+  cacheReadTokens: NonNegativeInt,
+  cacheWriteTokens: NonNegativeInt,
+  /** The part of `cacheWriteTokens` written with a 1-hour lifetime. */
+  cacheWrite1hTokens: Schema.optional(NonNegativeInt),
+  outputTokens: NonNegativeInt,
+  /** The provider's own estimate, cumulative like the token counts. */
+  costUsd: Schema.optional(Schema.Number.check(Schema.isFinite())),
+  /** Price table behind `costUsd`; absent means list prices. */
+  costBasis: Schema.optional(Schema.Literals(["list", "managed", "unknown"])),
+});
+export type ProviderSessionModelUsage = typeof ProviderSessionModelUsage.Type;
+
 // Input includes cache reads/writes; output includes the optional reasoningTokens subset.
 const TurnTokenUsageCommonFields = {
   usageScope: Schema.Literal("main_agent"),
@@ -68,6 +84,11 @@ const TurnTokenUsageCommonFields = {
   otherUsage: Schema.optional(
     Schema.Struct({ inputTokens: NonNegativeInt, outputTokens: NonNegativeInt }),
   ),
+  /**
+   * The native session's running per-model totals after this turn, subagents and compaction
+   * included. Resumed and forked sessions start from the totals they inherit; `/clear` resets them.
+   */
+  sessionModelUsage: Schema.optional(Schema.Array(ProviderSessionModelUsage)),
 };
 export const TurnTokenUsage = Schema.Union([
   Schema.Struct({

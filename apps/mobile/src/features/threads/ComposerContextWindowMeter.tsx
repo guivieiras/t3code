@@ -5,11 +5,12 @@ import {
   latestProviderTurnTokenUsage,
 } from "@t3tools/client-runtime/state/context-window";
 import {
+  threadTokenUsageCost,
   threadTokenUsageRows,
   threadTokenUsageTotal,
 } from "@t3tools/client-runtime/state/thread-token-usage";
 import type { ScopedThreadRef } from "@t3tools/contracts";
-import { formatTokens } from "@t3tools/shared/usageFormat";
+import { formatTokens, formatUsd } from "@t3tools/shared/usageFormat";
 import { useAtomValue } from "@effect/atom-react";
 import { AsyncResult } from "effect/reactivity";
 import { Pressable, View } from "react-native";
@@ -145,15 +146,20 @@ function ThreadTokenTotals(props: { readonly threadRef: ScopedThreadRef }) {
   );
   const usage = AsyncResult.getOrElse(result, () => null);
   if (usage === null || threadTokenUsageTotal(usage) === 0) return null;
+  const withCost = (tokens: number, costUsd: number | null) =>
+    costUsd === null ? formatTokens(tokens) : `${formatTokens(tokens)} · ${formatUsd(costUsd)}`;
   return (
     <View className="gap-1.5">
-      <DetailRow label="Thread tokens" value={formatTokens(threadTokenUsageTotal(usage))} />
+      <DetailRow
+        label="Thread tokens"
+        value={withCost(threadTokenUsageTotal(usage), threadTokenUsageCost(usage))}
+      />
       {threadTokenUsageRows(usage).map((row) => (
         <DetailRow
           key={row.label}
           label={row.subset ? `of which ${row.label.toLowerCase()}` : row.label}
           inset
-          value={formatTokens(row.tokens)}
+          value={withCost(row.tokens, row.costUsd)}
         />
       ))}
     </View>

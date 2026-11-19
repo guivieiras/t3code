@@ -3884,7 +3884,7 @@ it.layer(layerTest)("ProjectionStoreV2", (it) => {
     }),
   );
 
-  it.effect("sums a thread's reported turn token usage by type", () =>
+  it.effect("sums a thread's reported turn token usage by model and cache lifetime", () =>
     Effect.gen(function* () {
       const projectionStore = yield* ProjectionStore.ProjectionStoreV2;
       const now = yield* DateTime.now;
@@ -3896,6 +3896,7 @@ it.layer(layerTest)("ProjectionStoreV2", (it) => {
         ordinal: number,
         owner: ThreadId,
         turnTokenUsage?: TurnTokenUsage,
+        extra: { readonly model?: string; readonly promptCacheTtlMs?: number } = {},
       ) =>
         projectionStore.apply({
           id: EventId.make(`event:token-usage:${key}`),
@@ -3915,11 +3916,22 @@ it.layer(layerTest)("ProjectionStoreV2", (it) => {
             startedAt: now,
             completedAt: now,
             ...(turnTokenUsage === undefined ? {} : { turnTokenUsage }),
+            ...(extra.model === undefined ? {} : { model: extra.model }),
+            ...(extra.promptCacheTtlMs === undefined
+              ? {}
+              : {
+                  tokenUsage: {
+                    usedTokens: 1,
+                    promptCacheTtlMs: extra.promptCacheTtlMs,
+                    updatedAt: DateTime.formatIso(now),
+                  },
+                }),
           },
         });
       const common = { usageScope: "main_agent", hasSubagents: false } as const;
-
-      assert.deepEqual(yield* projectionStore.getThreadTokenUsage(threadId), {
+      const row = {
+        model: null,
+        oneHourCache: false,
         turns: 0,
         inputTokens: 0,
         cacheReadTokens: 0,
@@ -3927,49 +3939,71 @@ it.layer(layerTest)("ProjectionStoreV2", (it) => {
         outputTokens: 0,
         reasoningTokens: 0,
         partial: false,
-      });
+      };
+
+      assert.deepEqual(yield* projectionStore.getThreadTokenUsage(threadId), []);
 
       // Input counts include cache reads and writes.
-      yield* turn("claude", 1, threadId, {
-        ...common,
-        usageStatus: "complete",
-        inputTokens: 1_000,
-        cachedInputTokens: 700,
-        cacheCreationTokens: 200,
-        outputTokens: 50,
-        reasoningTokens: 20,
-        // Process-wide ledger counts beyond this turn are not added.
-        otherUsage: { inputTokens: 9_999_999, outputTokens: 9_999 },
-      });
+      yield* turn(
+        "claude",
+        1,
+        threadId,
+        {
+          ...common,
+          usageStatus: "complete",
+          inputTokens: 1_000,
+          cachedInputTokens: 700,
+          cacheCreationTokens: 200,
+          outputTokens: 50,
+          reasoningTokens: 20,
+          // Process-wide ledger counts beyond this turn are not added.
+          otherUsage: { inputTokens: 9_999_999, outputTokens: 9_999 },
+        },
+        { model: "claude-opus-5-5", promptCacheTtlMs: 3_600_000 },
+      );
+      // Without a reported turn model, the usage's first model names it.
       yield* turn("partial", 2, threadId, {
         ...common,
         usageStatus: "partial",
         outputTokens: 5,
+        models: ["claude-opus-5-5"],
       });
-      yield* turn("local-command", 3, threadId, {
+      yield* turn("unknown-model", 3, threadId, {
+        ...common,
+        usageStatus: "complete",
+        inputTokens: 10,
+        outputTokens: 1,
+      });
+      yield* turn("local-command", 4, threadId, {
         ...common,
         usageStatus: "complete",
         inputTokens: 400,
         outputTokens: 40,
         localCommand: true,
       });
-      yield* turn("running", 4, threadId);
-      yield* turn("other-thread", 5, ThreadId.make("thread:token-usage:other"), {
+      yield* turn("running", 5, threadId);
+      yield* turn("other-thread", 6, ThreadId.make("thread:token-usage:other"), {
         ...common,
         usageStatus: "complete",
         inputTokens: 300,
         outputTokens: 30,
       });
 
-      assert.deepEqual(yield* projectionStore.getThreadTokenUsage(threadId), {
-        turns: 2,
-        inputTokens: 100,
-        cacheReadTokens: 700,
-        cacheWriteTokens: 200,
-        outputTokens: 55,
-        reasoningTokens: 20,
-        partial: true,
-      });
+      assert.deepEqual(yield* projectionStore.getThreadTokenUsage(threadId), [
+        { ...row, turns: 1, inputTokens: 10, outputTokens: 1 },
+        { ...row, model: "claude-opus-5-5", turns: 1, outputTokens: 5, partial: true },
+        {
+          ...row,
+          model: "claude-opus-5-5",
+          oneHourCache: true,
+          turns: 1,
+          inputTokens: 100,
+          cacheReadTokens: 700,
+          cacheWriteTokens: 200,
+          outputTokens: 50,
+          reasoningTokens: 20,
+        },
+      ]);
     }),
   );
 

@@ -7,6 +7,7 @@ import {
   createOverrideRateTable,
   lookupRate,
   parseRateTable,
+  priceTokenRows,
   priceUsage,
 } from "./usagePricing.ts";
 
@@ -426,5 +427,60 @@ describe("usage pricing", () => {
     });
 
     expect(lookupRate(table, "example-model")).toBeNull();
+  });
+  it("prices thread token rows at base rates with overrides, aliases, and the 1-hour cache", () => {
+    const rates = parseRateTable({
+      "claude-opus-5-5": {
+        input_cost_per_token: 4e-6,
+        output_cost_per_token: 2e-5,
+        cache_read_input_token_cost: 2e-7,
+        cache_creation_input_token_cost: 5e-6,
+        cache_creation_input_token_cost_above_1hr: 8e-6,
+        // A thread total sums many requests, so it never reaches this tier.
+        input_cost_per_token_above_200k_tokens: 8e-6,
+      },
+    });
+    const row = (model: string | null, oneHourCache: boolean, tokens: number) => ({
+      model,
+      oneHourCache,
+      turns: 1,
+      inputTokens: tokens,
+      cacheReadTokens: tokens * 10,
+      cacheWriteTokens: tokens,
+      outputTokens: tokens,
+      reasoningTokens: tokens / 2,
+      partial: false,
+    });
+
+    const priced = priceTokenRows(
+      [
+        row("claude-opus-5-5", true, 1_000_000),
+        row("opus-preview", false, 1_000_000),
+        row("custom-model", false, 1_000_000),
+        row(null, false, 1_000),
+      ],
+      {
+        rates,
+        priceOverrides: createOverrideRateTable({
+          "custom-model": { inputCostPerMillionTokens: 1, outputCostPerMillionTokens: 2 },
+        }),
+        modelAliases: new Map([["opus-preview", "claude-opus-5-5"]]),
+      },
+    );
+
+    expect(priced.turns).toBe(4);
+    expect(priced.inputTokens).toBe(3_001_000);
+    expect(priced.unpricedTokens).toBe(13_000);
+    expect(priced.cost?.input).toBeCloseTo(4 + 4 + 1);
+    expect(priced.cost?.cacheRead).toBeCloseTo(2 + 2 + 10);
+    expect(priced.cost?.cacheWrite).toBeCloseTo(8 + 5 + 1);
+    expect(priced.cost?.output).toBeCloseTo(20 + 20 + 2);
+    expect(
+      priceTokenRows([row(null, false, 1)], {
+        rates,
+        priceOverrides: new Map(),
+        modelAliases: new Map(),
+      }).cost,
+    ).toBeNull();
   });
 });

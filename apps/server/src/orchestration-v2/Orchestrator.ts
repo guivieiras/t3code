@@ -1,6 +1,5 @@
 import type {
   OrchestrationV2ThreadLinkMetadata,
-  OrchestrationV2ThreadTokenUsage,
   GuestShareId,
   OrchestrationV2SearchThreadInput,
   OrchestrationV2SearchThreadResult,
@@ -179,6 +178,7 @@ import {
   type ActiveThreadListEntry,
   type OlderSettledThreadsQuery,
   type ShellSnapshotOptions,
+  type ThreadTokenUsageRow,
 } from "./ProjectionStore.ts";
 import { ProviderAdapterRegistryV2 } from "./ProviderAdapterRegistry.ts";
 import * as ProviderContinuationRequests from "@t3tools/provider-core/server/ProviderContinuationRequests";
@@ -535,7 +535,7 @@ export interface OrchestratorV2Shape {
   ) => Effect.Effect<Record<ThreadId, string>, OrchestratorV2Error>;
   readonly getThreadTokenUsage: (
     threadId: ThreadId,
-  ) => Effect.Effect<OrchestrationV2ThreadTokenUsage, OrchestratorV2Error>;
+  ) => Effect.Effect<ReadonlyArray<ThreadTokenUsageRow>, OrchestratorV2Error>;
   readonly getThreadEventSequence: (
     threadId: ThreadId,
   ) => Effect.Effect<number, OrchestratorV2Error>;

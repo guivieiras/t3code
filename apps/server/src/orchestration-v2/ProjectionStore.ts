@@ -1,5 +1,10 @@
 import type { ProjectThreadAwarenessV2Input } from "@t3tools/shared/agentAwareness";
-import { applyOrchestrationV2ThreadVisit, pendingGuestMessageCount } from "@t3tools/contracts";
+import {
+  applyOrchestrationV2ThreadVisit,
+  pendingGuestMessageCount,
+  ProviderSessionModelUsage,
+  TurnTokenUsage,
+} from "@t3tools/contracts";
 import { applyThreadPullRequestLinkUpdate } from "../sourceControl/threadPullRequests.ts";
 import { projectTurnItemForWire } from "./WireProjection.ts";
 import * as Stream from "effect/Stream";
@@ -91,6 +96,7 @@ import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Result from "effect/Result";
+import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import * as SqlClient from "effect/sql/SqlClient";
 import type * as Statement from "effect/sql/Statement";
@@ -506,18 +512,22 @@ export interface OlderSettledThreadsListing {
   readonly counts: ReadonlyArray<OrchestrationV2OlderSettledCount>;
 }
 
-export interface ThreadTokenUsageRow {
+export interface ThreadTokenUsageTurn {
+  readonly providerThreadId: string;
+  /** Orders the thread's provider sessions; the first one is the one a native fork created. */
+  readonly providerThreadFirstRunOrdinal: number;
+  readonly ordinal: number;
   /** Null when the provider did not report which model ran the turn. */
   readonly model: string | null;
-  /** Cache writes in these turns kept the 1-hour prompt-cache lifetime. */
+  /** Cache writes in this turn kept the 1-hour prompt-cache lifetime. */
   readonly oneHourCache: boolean;
-  readonly turns: number;
-  readonly inputTokens: number;
-  readonly cacheReadTokens: number;
-  readonly cacheWriteTokens: number;
-  readonly outputTokens: number;
-  readonly reasoningTokens: number;
-  readonly partial: boolean;
+  readonly usage: TurnTokenUsage;
+}
+
+export interface ThreadTokenUsageSource {
+  readonly turns: ReadonlyArray<ThreadTokenUsageTurn>;
+  /** The parent session's totals at the fork point, which a natively forked session starts from. */
+  readonly forkBaseline: ReadonlyArray<ProviderSessionModelUsage> | null;
 }
 
 export interface ProjectionStoreV2Shape {
@@ -661,10 +671,10 @@ export interface ProjectionStoreV2Shape {
   readonly getThreadTitles: (
     threadIds: ReadonlyArray<ThreadId>,
   ) => Effect.Effect<Record<ThreadId, string>, ProjectionStoreV2Error>;
-  /** The thread's reported turn tokens, one row per model and prompt-cache lifetime. */
+  /** The thread's reported turn usage, in session order, and its native fork's starting totals. */
   readonly getThreadTokenUsage: (
     threadId: ThreadId,
-  ) => Effect.Effect<ReadonlyArray<ThreadTokenUsageRow>, ProjectionStoreV2Error>;
+  ) => Effect.Effect<ThreadTokenUsageSource, ProjectionStoreV2Error>;
   readonly getThreadWorktreePaths: (options?: {
     readonly includeArchived?: boolean;
   }) => Effect.Effect<
@@ -9143,63 +9153,92 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
       return Object.fromEntries(rows.map((row) => [row.thread_id, row.title]));
     }, Effect.mapError(shellSnapshotReadError));
 
+    const decodeTurnTokenUsage = Schema.decodeUnknownOption(Schema.fromJsonString(TurnTokenUsage));
+    const decodeSessionModelUsage = Schema.decodeUnknownOption(
+      Schema.fromJsonString(Schema.Array(ProviderSessionModelUsage)),
+    );
     const getThreadTokenUsage = Effect.fn("ProjectionStore.getThreadTokenUsage")(function* (
       threadId: ThreadId,
     ) {
-      // Provider input counts include cache reads and writes; a local command's counters are not model work.
       const rows = yield* sql<{
+        readonly provider_thread_id: string;
+        readonly first_run_ordinal: number | null;
+        readonly ordinal: number;
         readonly model: string | null;
-        readonly one_hour_cache: number;
-        readonly turns: number;
-        readonly input_tokens: number;
-        readonly cache_read_tokens: number;
-        readonly cache_write_tokens: number;
-        readonly output_tokens: number;
-        readonly reasoning_tokens: number;
-        readonly partial: number;
+        readonly prompt_cache_ttl_ms: number | null;
+        readonly usage: string;
       }>`
         SELECT
-          u.model AS model,
-          u.one_hour_cache AS one_hour_cache,
-          COUNT(*) AS turns,
-          SUM(MAX(0, COALESCE(u.input, 0) - COALESCE(u.cache_read, 0) - COALESCE(u.cache_write, 0))) AS input_tokens,
-          SUM(COALESCE(u.cache_read, 0)) AS cache_read_tokens,
-          SUM(COALESCE(u.cache_write, 0)) AS cache_write_tokens,
-          SUM(COALESCE(u.output, 0)) AS output_tokens,
-          SUM(COALESCE(u.reasoning, 0)) AS reasoning_tokens,
-          MAX(u.status IS NOT 'complete') AS partial
-        FROM (
-          SELECT
-            COALESCE(
-              json_extract(payload_json, '$.model'),
-              json_extract(payload_json, '$.turnTokenUsage.models[0]')
-            ) AS model,
-            COALESCE(json_extract(payload_json, '$.tokenUsage.promptCacheTtlMs'), 0) >= 3600000 AS one_hour_cache,
-            json_extract(payload_json, '$.turnTokenUsage.inputTokens') AS input,
-            json_extract(payload_json, '$.turnTokenUsage.cachedInputTokens') AS cache_read,
-            json_extract(payload_json, '$.turnTokenUsage.cacheCreationTokens') AS cache_write,
-            json_extract(payload_json, '$.turnTokenUsage.outputTokens') AS output,
-            json_extract(payload_json, '$.turnTokenUsage.reasoningTokens') AS reasoning,
-            json_extract(payload_json, '$.turnTokenUsage.usageStatus') AS status
-          FROM orchestration_v2_projection_provider_turns
-          WHERE thread_id = ${threadId}
-            AND json_extract(payload_json, '$.turnTokenUsage') IS NOT NULL
-            AND COALESCE(json_extract(payload_json, '$.turnTokenUsage.localCommand'), 0) = 0
-        ) AS u
-        GROUP BY u.model, u.one_hour_cache
-        ORDER BY u.model, u.one_hour_cache
+          t.provider_thread_id,
+          p.first_run_ordinal,
+          t.ordinal,
+          COALESCE(
+            json_extract(t.payload_json, '$.model'),
+            json_extract(t.payload_json, '$.turnTokenUsage.models[0]')
+          ) AS model,
+          json_extract(t.payload_json, '$.tokenUsage.promptCacheTtlMs') AS prompt_cache_ttl_ms,
+          json_extract(t.payload_json, '$.turnTokenUsage') AS usage
+        FROM orchestration_v2_projection_provider_turns t
+        LEFT JOIN orchestration_v2_projection_provider_threads p
+          ON p.provider_thread_id = t.provider_thread_id
+        WHERE t.thread_id = ${threadId}
+          AND json_extract(t.payload_json, '$.turnTokenUsage') IS NOT NULL
+        ORDER BY COALESCE(p.first_run_ordinal, 0), t.provider_thread_id, t.ordinal
       `;
-      return rows.map((row): ThreadTokenUsageRow => ({
-        model: row.model,
-        oneHourCache: row.one_hour_cache !== 0,
-        turns: row.turns,
-        inputTokens: row.input_tokens,
-        cacheReadTokens: row.cache_read_tokens,
-        cacheWriteTokens: row.cache_write_tokens,
-        outputTokens: row.output_tokens,
-        reasoningTokens: row.reasoning_tokens,
-        partial: row.partial !== 0,
-      }));
+      const turns = rows.flatMap((row): ReadonlyArray<ThreadTokenUsageTurn> => {
+        const usage = decodeTurnTokenUsage(row.usage);
+        return Option.isNone(usage)
+          ? []
+          : [
+              {
+                providerThreadId: row.provider_thread_id,
+                providerThreadFirstRunOrdinal: row.first_run_ordinal ?? 0,
+                ordinal: row.ordinal,
+                model: row.model,
+                oneHourCache: (row.prompt_cache_ttl_ms ?? 0) >= 3_600_000,
+                usage: usage.value,
+              },
+            ];
+      });
+
+      // A native fork continues from the parent session's saved totals at the fork point.
+      const [fork] = yield* sql<{
+        readonly source_thread_id: string;
+        readonly source_run_id: string | null;
+        readonly native_id: string | null;
+      }>`
+        SELECT
+          source_thread_id,
+          json_extract(payload_json, '$.sourcePoint.runId') AS source_run_id,
+          json_extract(payload_json, '$.sourcePoint.providerThreadRef.nativeId') AS native_id
+        FROM orchestration_v2_projection_context_transfers
+        WHERE target_thread_id = ${threadId}
+          AND type = 'fork'
+          AND json_extract(payload_json, '$.resolution.strategy') = 'native_fork'
+        ORDER BY rowid DESC
+        LIMIT 1
+      `;
+      if (fork === undefined || fork.source_run_id === null) return { turns, forkBaseline: null };
+      const [baseline] = yield* sql<{ readonly snapshot: string }>`
+        SELECT json_extract(t.payload_json, '$.turnTokenUsage.sessionModelUsage') AS snapshot
+        FROM orchestration_v2_projection_provider_turns t
+        JOIN orchestration_v2_projection_run_attempts a ON a.attempt_id = t.run_attempt_id
+        JOIN orchestration_v2_projection_runs r ON r.run_id = a.run_id
+        LEFT JOIN orchestration_v2_projection_provider_threads p
+          ON p.provider_thread_id = t.provider_thread_id
+        WHERE t.thread_id = ${fork.source_thread_id}
+          AND r.ordinal <= (
+            SELECT ordinal FROM orchestration_v2_projection_runs WHERE run_id = ${fork.source_run_id}
+          )
+          AND (${fork.native_id} IS NULL
+            OR json_extract(p.payload_json, '$.nativeThreadRef.nativeId') = ${fork.native_id})
+          AND json_extract(t.payload_json, '$.turnTokenUsage.sessionModelUsage') IS NOT NULL
+        ORDER BY r.ordinal DESC, t.ordinal DESC
+        LIMIT 1
+      `;
+      const forkBaseline =
+        baseline === undefined ? Option.none() : decodeSessionModelUsage(baseline.snapshot);
+      return { turns, forkBaseline: Option.getOrNull(forkBaseline) };
     }, Effect.mapError(shellSnapshotReadError));
 
     const findGuestShareThreadId = Effect.fn("ProjectionStore.findGuestShareThreadId")(function* (

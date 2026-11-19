@@ -10385,6 +10385,16 @@ describe("ClaudeAdapterV2 background wake turns", () => {
             cachedInputTokens: 0,
             cacheCreationTokens: 0,
             otherUsage: { inputTokens: 0, outputTokens: 0 },
+            sessionModelUsage: [
+              {
+                model: "gateway-model",
+                inputTokens: 1,
+                cacheReadTokens: 0,
+                cacheWriteTokens: 0,
+                outputTokens: 1,
+                costUsd: 0,
+              },
+            ],
           });
         }
       }).pipe(

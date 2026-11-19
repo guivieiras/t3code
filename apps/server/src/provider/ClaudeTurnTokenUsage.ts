@@ -1,5 +1,9 @@
 import type { SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
-import type { RuntimeTurnState, TurnTokenUsage } from "@t3tools/contracts";
+import type {
+  ProviderSessionModelUsage,
+  RuntimeTurnState,
+  TurnTokenUsage,
+} from "@t3tools/contracts";
 
 function finiteNonNegativeInteger(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) && value >= 0
@@ -77,6 +81,51 @@ export function claudeModelLedger(modelUsage: unknown): ClaudeModelLedger | unde
   return ledger;
 }
 
+/**
+ * The SDK's running per-model totals as a snapshot. Absent or empty when the result carries none;
+ * a crash result's all-zero ledger is dropped, since it says nothing about the session.
+ */
+export function claudeSessionModelUsage(
+  modelUsage: unknown,
+): ReadonlyArray<ProviderSessionModelUsage> | undefined {
+  if (typeof modelUsage !== "object" || modelUsage === null) return undefined;
+  const entries: ProviderSessionModelUsage[] = [];
+  for (const [model, entry] of Object.entries(modelUsage as Record<string, unknown>)) {
+    const fields = (entry ?? {}) as Record<string, unknown>;
+    const inputTokens = finiteNonNegativeInteger(fields.inputTokens);
+    const outputTokens = finiteNonNegativeInteger(fields.outputTokens);
+    if (model.trim().length === 0 || inputTokens === undefined || outputTokens === undefined) {
+      return undefined;
+    }
+    const cacheWrite1hTokens = finiteNonNegativeInteger(fields.cacheCreationEphemeral1hInputTokens);
+    const costUsd =
+      typeof fields.costUSD === "number" && Number.isFinite(fields.costUSD)
+        ? fields.costUSD
+        : undefined;
+    const costBasis =
+      fields.costBasis === "list" ||
+      fields.costBasis === "managed" ||
+      fields.costBasis === "unknown"
+        ? fields.costBasis
+        : undefined;
+    entries.push({
+      model: model.trim(),
+      inputTokens,
+      cacheReadTokens: finiteNonNegativeInteger(fields.cacheReadInputTokens) ?? 0,
+      cacheWriteTokens: finiteNonNegativeInteger(fields.cacheCreationInputTokens) ?? 0,
+      ...(cacheWrite1hTokens === undefined ? {} : { cacheWrite1hTokens }),
+      outputTokens,
+      ...(costUsd === undefined ? {} : { costUsd }),
+      ...(costBasis === undefined ? {} : { costBasis }),
+    });
+  }
+  const worked = entries.some(
+    (entry) =>
+      entry.inputTokens + entry.cacheReadTokens + entry.cacheWriteTokens + entry.outputTokens > 0,
+  );
+  return worked ? entries : undefined;
+}
+
 /** The window each model in the SDK's `modelUsage` is measured against, as Claude Code resolved it. */
 export function claudeReportedContextWindows(modelUsage: unknown): ReadonlyMap<string, number> {
   const windows = new Map<string, number>();
@@ -129,6 +178,8 @@ export interface ClaudeTurnObservations {
   readonly rootModels?: ReadonlySet<string>;
   // Ledger growth across every result this turn consumed, including steered segments.
   readonly ledger?: ClaudeLedgerUsage | undefined;
+  // The session's running per-model totals after the turn's last result.
+  readonly sessionModelUsage?: ReadonlyArray<ProviderSessionModelUsage> | undefined;
 }
 
 export function normalizeClaudeTurnTokenUsage(
@@ -151,6 +202,9 @@ export function normalizeClaudeTurnTokenUsage(
     ...(typeof result?.local_command === "string" && result.local_command.length > 0
       ? { localCommand: true }
       : {}),
+    ...(observed.sessionModelUsage === undefined
+      ? {}
+      : { sessionModelUsage: [...observed.sessionModelUsage] }),
   };
   const finalUsage = result?.usage as Record<string, unknown> | undefined;
   const usage = withEarlierSegmentUsage(finalUsage ?? {}, earlierSegmentUsage);

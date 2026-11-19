@@ -5,12 +5,13 @@ import {
   latestProviderTurnTokenUsage,
 } from "@t3tools/client-runtime/state/context-window";
 import {
+  formatThreadTokenCost,
   threadTokenUsageCost,
   threadTokenUsageRows,
   threadTokenUsageTotal,
 } from "@t3tools/client-runtime/state/thread-token-usage";
 import type { ScopedThreadRef } from "@t3tools/contracts";
-import { formatTokens, formatUsd } from "@t3tools/shared/usageFormat";
+import { formatTokens } from "@t3tools/shared/usageFormat";
 import { useAtomValue } from "@effect/atom-react";
 import { AsyncResult } from "effect/reactivity";
 import { Pressable, View } from "react-native";
@@ -147,7 +148,9 @@ function ThreadTokenTotals(props: { readonly threadRef: ScopedThreadRef }) {
   const usage = AsyncResult.getOrElse(result, () => null);
   if (usage === null || threadTokenUsageTotal(usage) === 0) return null;
   const withCost = (tokens: number, costUsd: number | null) =>
-    costUsd === null ? formatTokens(tokens) : `${formatTokens(tokens)} · ${formatUsd(costUsd)}`;
+    costUsd === null
+      ? formatTokens(tokens)
+      : `${formatTokens(tokens)} · ${formatThreadTokenCost(costUsd)}`;
   return (
     <View className="gap-1.5">
       <DetailRow

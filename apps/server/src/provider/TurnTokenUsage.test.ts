@@ -2,6 +2,7 @@ import { describe, expect, it } from "vite-plus/test";
 import {
   claudeLedgerDelta,
   claudeModelLedger,
+  claudeSessionModelUsage,
   normalizeClaudeTurnTokenUsage,
 } from "./ClaudeTurnTokenUsage.ts";
 import {
@@ -220,6 +221,47 @@ describe("billable native turn usage", () => {
     expect(claudeLedgerDelta(ledger(25), ledger(10))).toBeUndefined();
     expect(claudeLedgerDelta(undefined, ledger(10))).toBeUndefined();
     expect(claudeModelLedger({})).toBeUndefined();
+  });
+
+  it("keeps the SDK's per-model session totals with cache lifetimes and list cost", () => {
+    expect(
+      claudeSessionModelUsage({
+        "claude-opus-5-5": {
+          inputTokens: 1_000,
+          outputTokens: 50,
+          cacheReadInputTokens: 9_000,
+          cacheCreationInputTokens: 700,
+          cacheCreationEphemeral1hInputTokens: 600,
+          costUSD: 0.12,
+          costBasis: "list",
+        },
+        "claude-haiku-5-5": { inputTokens: 10, outputTokens: 1, costUSD: 0.001 },
+      }),
+    ).toEqual([
+      {
+        model: "claude-opus-5-5",
+        inputTokens: 1_000,
+        cacheReadTokens: 9_000,
+        cacheWriteTokens: 700,
+        cacheWrite1hTokens: 600,
+        outputTokens: 50,
+        costUsd: 0.12,
+        costBasis: "list",
+      },
+      {
+        model: "claude-haiku-5-5",
+        inputTokens: 10,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        outputTokens: 1,
+        costUsd: 0.001,
+      },
+    ]);
+    // A crash result's zeroed ledger is not a session total.
+    expect(
+      claudeSessionModelUsage({ "claude-opus-5-5": { inputTokens: 0, outputTokens: 0 } }),
+    ).toBeUndefined();
+    expect(claudeSessionModelUsage(undefined)).toBeUndefined();
   });
 
   it("adds Claude steering segments to the final measured result once", () => {

@@ -1,4 +1,5 @@
 import {
+  type OrchestrationV2ThreadTokenUsage,
   type ProviderInstanceConfig,
   ProviderInstanceId,
   USAGE_CONTRACT_VERSION,
@@ -40,12 +41,12 @@ import type {
   UsageRecord,
 } from "@t3tools/provider-core/server/usage";
 import { canonicalModelFilter, resolveModelAliases, UsageAggregator } from "./usageAggregation.ts";
+import { threadTokenUsageRows } from "./threadTokenUsage.ts";
+import type { ThreadTokenUsageSource } from "../orchestration-v2/ProjectionStore.ts";
 import {
   createOverrideRateTable,
   isUnlistedModel,
-  type ModelTokenRow,
   parseRateTable,
-  type PricedTokenRows,
   priceTokenRows,
   type RateTable,
 } from "./usagePricing.ts";
@@ -165,10 +166,10 @@ export class UsageService extends Context.Service<
   {
     readonly readSummary: (input: UsageSummaryInput) => Effect.Effect<UsageSummary, UsageReadError>;
     readonly refreshRates: Effect.Effect<UsagePricing>;
-    /** Prices token rows with the Usage page's rates, custom prices, and model mappings. */
-    readonly priceTokenRows: (
-      rows: ReadonlyArray<ModelTokenRow>,
-    ) => Effect.Effect<PricedTokenRows, UsageReadError>;
+    /** Totals a thread's usage and prices it with the Usage page's rates, custom prices, and mappings. */
+    readonly priceThreadTokenUsage: (
+      source: ThreadTokenUsageSource,
+    ) => Effect.Effect<OrchestrationV2ThreadTokenUsage, UsageReadError>;
   }
 >()("t3/usage/UsageService") {}
 
@@ -1245,18 +1246,30 @@ export const make = Effect.gen(function* () {
     return yield* Deferred.await(deferred);
   });
 
-  const priceRows = Effect.fn("UsageService.priceTokenRows")(function* (
-    rows: ReadonlyArray<ModelTokenRow>,
+  const priceThreadTokenUsage = Effect.fn("UsageService.priceThreadTokenUsage")(function* (
+    source: ThreadTokenUsageSource,
   ) {
     const [settings] = yield* Effect.all([readSettings, ensureRates(false)], { concurrency: 2 });
-    return priceTokenRows(rows, {
+    const totals = threadTokenUsageRows(source);
+    const priced = priceTokenRows(totals.rows, {
       rates,
       priceOverrides: createOverrideRateTable(settings.usagePriceOverrides),
       modelAliases: resolveModelAliases(settings.usageModelAliases),
     });
+    return {
+      turns: totals.turns,
+      inputTokens: priced.inputTokens,
+      cacheReadTokens: priced.cacheReadTokens,
+      cacheWriteTokens: priced.cacheWriteTokens,
+      outputTokens: priced.outputTokens,
+      reasoningTokens: Math.min(totals.reasoningTokens, priced.outputTokens),
+      partial: totals.partial,
+      cost: priced.cost,
+      unpricedTokens: priced.unpricedTokens,
+    } satisfies OrchestrationV2ThreadTokenUsage;
   });
 
-  return { readSummary, refreshRates, priceTokenRows: priceRows, awaitPersisted } as const;
+  return { readSummary, refreshRates, priceThreadTokenUsage, awaitPersisted } as const;
 });
 
 export const layer = Layer.effect(UsageService, make);

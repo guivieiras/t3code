@@ -3884,19 +3884,25 @@ it.layer(layerTest)("ProjectionStoreV2", (it) => {
     }),
   );
 
-  it.effect("sums a thread's reported turn token usage by model and cache lifetime", () =>
+  it.effect("reads a thread's turn usage and its native fork's starting totals", () =>
     Effect.gen(function* () {
       const projectionStore = yield* ProjectionStore.ProjectionStoreV2;
+      const sql = yield* SqlClient.SqlClient;
       const now = yield* DateTime.now;
+      const nowIso = DateTime.formatIso(now);
       const threadId = ThreadId.make("thread:token-usage");
+      const parentId = ThreadId.make("thread:token-usage:parent");
       const nodeId = NodeId.make("node:token-usage");
-      const providerThreadId = ProviderThreadId.make("provider-thread:token-usage");
       const turn = (
         key: string,
         ordinal: number,
         owner: ThreadId,
         turnTokenUsage?: TurnTokenUsage,
-        extra: { readonly model?: string; readonly promptCacheTtlMs?: number } = {},
+        extra: {
+          readonly model?: string;
+          readonly promptCacheTtlMs?: number;
+          readonly runAttemptId?: string;
+        } = {},
       ) =>
         projectionStore.apply({
           id: EventId.make(`event:token-usage:${key}`),
@@ -3907,9 +3913,10 @@ it.layer(layerTest)("ProjectionStoreV2", (it) => {
           occurredAt: now,
           payload: {
             id: ProviderTurnId.make(`provider-turn:token-usage:${key}`),
-            providerThreadId,
+            providerThreadId: ProviderThreadId.make(`provider-thread:token-usage:${owner}`),
             nodeId,
-            runAttemptId: null,
+            runAttemptId:
+              extra.runAttemptId === undefined ? null : RunAttemptId.make(extra.runAttemptId),
             nativeTurnRef: null,
             ordinal,
             status: "completed",
@@ -3923,27 +3930,27 @@ it.layer(layerTest)("ProjectionStoreV2", (it) => {
                   tokenUsage: {
                     usedTokens: 1,
                     promptCacheTtlMs: extra.promptCacheTtlMs,
-                    updatedAt: DateTime.formatIso(now),
+                    updatedAt: nowIso,
                   },
                 }),
           },
         });
       const common = { usageScope: "main_agent", hasSubagents: false } as const;
-      const row = {
-        model: null,
-        oneHourCache: false,
-        turns: 0,
-        inputTokens: 0,
-        cacheReadTokens: 0,
-        cacheWriteTokens: 0,
-        outputTokens: 0,
-        reasoningTokens: 0,
-        partial: false,
-      };
+      const sessionTotals = (input: number) => [
+        {
+          model: "claude-opus-5-5",
+          inputTokens: input,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          outputTokens: 1,
+        },
+      ];
 
-      assert.deepEqual(yield* projectionStore.getThreadTokenUsage(threadId), []);
+      assert.deepEqual(yield* projectionStore.getThreadTokenUsage(threadId), {
+        turns: [],
+        forkBaseline: null,
+      });
 
-      // Input counts include cache reads and writes.
       yield* turn(
         "claude",
         1,
@@ -3952,12 +3959,8 @@ it.layer(layerTest)("ProjectionStoreV2", (it) => {
           ...common,
           usageStatus: "complete",
           inputTokens: 1_000,
-          cachedInputTokens: 700,
-          cacheCreationTokens: 200,
           outputTokens: 50,
-          reasoningTokens: 20,
-          // Process-wide ledger counts beyond this turn are not added.
-          otherUsage: { inputTokens: 9_999_999, outputTokens: 9_999 },
+          sessionModelUsage: sessionTotals(5_000),
         },
         { model: "claude-opus-5-5", promptCacheTtlMs: 3_600_000 },
       );
@@ -3968,42 +3971,81 @@ it.layer(layerTest)("ProjectionStoreV2", (it) => {
         outputTokens: 5,
         models: ["claude-opus-5-5"],
       });
-      yield* turn("unknown-model", 3, threadId, {
-        ...common,
-        usageStatus: "complete",
-        inputTokens: 10,
-        outputTokens: 1,
-      });
-      yield* turn("local-command", 4, threadId, {
-        ...common,
-        usageStatus: "complete",
-        inputTokens: 400,
-        outputTokens: 40,
-        localCommand: true,
-      });
-      yield* turn("running", 5, threadId);
-      yield* turn("other-thread", 6, ThreadId.make("thread:token-usage:other"), {
+      yield* turn("running", 3, threadId);
+      yield* turn("other-thread", 4, ThreadId.make("thread:token-usage:other"), {
         ...common,
         usageStatus: "complete",
         inputTokens: 300,
         outputTokens: 30,
       });
 
-      assert.deepEqual(yield* projectionStore.getThreadTokenUsage(threadId), [
-        { ...row, turns: 1, inputTokens: 10, outputTokens: 1 },
-        { ...row, model: "claude-opus-5-5", turns: 1, outputTokens: 5, partial: true },
-        {
-          ...row,
-          model: "claude-opus-5-5",
-          oneHourCache: true,
-          turns: 1,
-          inputTokens: 100,
-          cacheReadTokens: 700,
-          cacheWriteTokens: 200,
-          outputTokens: 50,
-          reasoningTokens: 20,
-        },
-      ]);
+      const read = yield* projectionStore.getThreadTokenUsage(threadId);
+      assert.deepEqual(
+        read.turns.map((entry) => [entry.ordinal, entry.model, entry.oneHourCache]),
+        [
+          [1, "claude-opus-5-5", true],
+          [2, "claude-opus-5-5", false],
+        ],
+      );
+      assert.deepEqual(read.turns[0]?.usage.sessionModelUsage, sessionTotals(5_000));
+      assert.strictEqual(read.forkBaseline, null);
+
+      // The parent's totals at the forked run, from the forked native session, start the fork.
+      const parentProviderThread = `provider-thread:token-usage:${parentId}`;
+      yield* sql`
+        INSERT INTO orchestration_v2_projection_provider_threads
+          (provider_thread_id, thread_id, provider, status, first_run_ordinal, updated_at, payload_json)
+        VALUES (${parentProviderThread}, ${parentId}, 'claudeAgent', 'idle', 1, ${nowIso},
+          ${JSON.stringify({ nativeThreadRef: { driver: "claudeAgent", nativeId: "native-parent", strength: "strong" } })})
+      `;
+      for (const ordinal of [1, 2]) {
+        const runId = `run:token-usage:${ordinal}`;
+        yield* sql`
+          INSERT INTO orchestration_v2_projection_runs
+            (run_id, thread_id, ordinal, provider, status, requested_at, payload_json)
+          VALUES (${runId}, ${parentId}, ${ordinal}, 'claudeAgent', 'completed', ${nowIso}, '{}')
+        `;
+        yield* sql`
+          INSERT INTO orchestration_v2_projection_run_attempts
+            (attempt_id, thread_id, run_id, attempt_ordinal, root_node_id, provider, provider_thread_id, status, payload_json)
+          VALUES (${`attempt:token-usage:${ordinal}`}, ${parentId}, ${runId}, 1, ${nodeId}, 'claudeAgent',
+            ${parentProviderThread}, 'completed', '{}')
+        `;
+        yield* turn(
+          `parent-${ordinal}`,
+          ordinal,
+          parentId,
+          {
+            ...common,
+            usageStatus: "complete",
+            inputTokens: 10,
+            outputTokens: 1,
+            sessionModelUsage: sessionTotals(ordinal * 1_000),
+          },
+          { runAttemptId: `attempt:token-usage:${ordinal}` },
+        );
+      }
+      yield* sql`
+        INSERT INTO orchestration_v2_projection_context_transfers
+          (context_transfer_id, source_thread_id, target_thread_id, type, status, updated_at, payload_json)
+        VALUES ('transfer:token-usage', ${parentId}, ${threadId}, 'fork', 'consumed', ${nowIso},
+          ${JSON.stringify({
+            resolution: { strategy: "native_fork" },
+            sourcePoint: {
+              threadId: parentId,
+              runId: "run:token-usage:1",
+              providerThreadRef: {
+                driver: "claudeAgent",
+                nativeId: "native-parent",
+                strength: "strong",
+              },
+            },
+          })})
+      `;
+      assert.deepEqual(
+        (yield* projectionStore.getThreadTokenUsage(threadId)).forkBaseline,
+        sessionTotals(1_000),
+      );
     }),
   );
 

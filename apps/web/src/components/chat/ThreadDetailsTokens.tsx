@@ -1,11 +1,11 @@
 import { useAtomValue } from "@effect/atom-react";
 import {
+  formatThreadTokenCost,
   threadTokenUsageCost,
   threadTokenUsageRows,
   threadTokenUsageTotal,
 } from "@t3tools/client-runtime/state/thread-token-usage";
 import type { EnvironmentId, ThreadId } from "@t3tools/contracts";
-import { formatUsd } from "@t3tools/shared/usageFormat";
 import { AsyncResult } from "effect/reactivity";
 import { ChevronDownIcon } from "lucide-react";
 
@@ -46,14 +46,14 @@ export function ThreadDetailsTokens({
     >
       <Collapsible>
         <CollapsibleTrigger
-          aria-label={`Tokens: ${total.toLocaleString("en-US")} used${cost === null ? "" : `, about ${formatUsd(cost)}`}`}
+          aria-label={`Tokens: ${total.toLocaleString("en-US")} used${cost === null ? "" : `, about ${formatThreadTokenCost(cost)}`}`}
           className="group/tokens flex h-6 w-full items-center justify-between gap-3 rounded-lg px-2.5 text-xs outline-none hover:bg-black/[0.035] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring data-panel-open:bg-black/[0.035] dark:hover:bg-white/[0.08] dark:data-panel-open:bg-white/[0.08]"
         >
           <span className="text-muted-foreground">Tokens</span>
           <span className="flex items-center gap-1 font-medium text-foreground/80 tabular-nums">
             {formatContextWindowTokens(total)}
             {cost === null ? null : (
-              <span className="text-muted-foreground">· {formatUsd(cost)}</span>
+              <span className="text-muted-foreground">· {formatThreadTokenCost(cost)}</span>
             )}
             <ChevronDownIcon
               aria-hidden
@@ -72,7 +72,7 @@ export function ThreadDetailsTokens({
                 <dt className={row.subset ? "truncate ps-2.5" : "truncate"}>{row.label}</dt>
                 <dd className="tabular-nums">{formatContextWindowTokens(row.tokens)}</dd>
                 <dd className="text-end tabular-nums">
-                  {row.costUsd === null ? null : formatUsd(row.costUsd)}
+                  {row.costUsd === null ? null : formatThreadTokenCost(row.costUsd)}
                 </dd>
               </div>
             ))}

@@ -416,31 +416,58 @@ export function cacheSavingsUsd(
 
 export interface ModelTokenRow {
   readonly model: string | null;
-  readonly oneHourCache: boolean;
-  readonly turns: number;
   readonly inputTokens: number;
   readonly cacheReadTokens: number;
   readonly cacheWriteTokens: number;
+  /** The part of `cacheWriteTokens` written with a 1-hour lifetime. */
+  readonly cacheWrite1hTokens: number;
   readonly outputTokens: number;
-  readonly reasoningTokens: number;
-  readonly partial: boolean;
+  /** The provider's own list-price cost for these tokens, priced per request. */
+  readonly providerCostUsd?: number;
 }
 
 export interface PricedTokenRows {
-  readonly turns: number;
   readonly inputTokens: number;
   readonly cacheReadTokens: number;
   readonly cacheWriteTokens: number;
   readonly outputTokens: number;
-  readonly reasoningTokens: number;
-  readonly partial: boolean;
   readonly cost: UsageCategoryCost | null;
   readonly unpricedTokens: number;
 }
 
+// Relative Anthropic list rates, used only to split a provider cost the table has no rate for.
+const FALLBACK_COST_WEIGHTS = {
+  input: 1,
+  cacheRead: 0.1,
+  cacheWrite: 1.25,
+  cacheWrite1h: 2,
+  output: 5,
+};
+
+function rowCostAtRates(row: ModelTokenRow, rates: TokenRates): UsageCategoryCost {
+  const oneHour = Math.min(row.cacheWrite1hTokens, row.cacheWriteTokens);
+  return {
+    input: row.inputTokens * rates.inputCostPerToken,
+    cacheRead: row.cacheReadTokens * rates.cacheReadCostPerToken,
+    cacheWrite:
+      (row.cacheWriteTokens - oneHour) * rates.cacheCreationCostPerToken +
+      oneHour * rates.cacheCreation1hCostPerToken,
+    output: row.outputTokens * rates.outputCostPerToken,
+  };
+}
+
+const FALLBACK_RATES: TokenRates = {
+  inputCostPerToken: FALLBACK_COST_WEIGHTS.input,
+  cacheReadCostPerToken: FALLBACK_COST_WEIGHTS.cacheRead,
+  cacheCreationCostPerToken: FALLBACK_COST_WEIGHTS.cacheWrite,
+  cacheCreation1hCostPerToken: FALLBACK_COST_WEIGHTS.cacheWrite1h,
+  outputCostPerToken: FALLBACK_COST_WEIGHTS.output,
+};
+
 /**
- * Sums per-model token rows and prices them like the Usage page: overrides first, then the
- * table, after aliases. A sum over many requests has no single prompt size, so it uses base rates.
+ * Prices per-model token rows like the Usage page: a custom price or model mapping wins, then the
+ * provider's own per-request cost, then the table. Table prices use base rates, since a sum over
+ * many requests has no single prompt size to pick a long-context tier by.
  */
 export function priceTokenRows(
   rows: ReadonlyArray<ModelTokenRow>,
@@ -450,51 +477,52 @@ export function priceTokenRows(
     readonly modelAliases: ReadonlyMap<string, string>;
   },
 ): PricedTokenRows {
-  let turns = 0;
   let inputTokens = 0;
   let cacheReadTokens = 0;
   let cacheWriteTokens = 0;
   let outputTokens = 0;
-  let reasoningTokens = 0;
-  let partial = false;
   let unpricedTokens = 0;
   let priced = false;
   const cost = { input: 0, cacheRead: 0, cacheWrite: 0, output: 0 };
+  const add = (part: UsageCategoryCost, scale = 1) => {
+    priced = true;
+    cost.input += part.input * scale;
+    cost.cacheRead += part.cacheRead * scale;
+    cost.cacheWrite += part.cacheWrite * scale;
+    cost.output += part.output * scale;
+  };
   for (const row of rows) {
-    turns += row.turns;
     inputTokens += row.inputTokens;
     cacheReadTokens += row.cacheReadTokens;
     cacheWriteTokens += row.cacheWriteTokens;
     outputTokens += row.outputTokens;
-    reasoningTokens += row.reasoningTokens;
-    partial ||= row.partial;
-    const model =
-      row.model === null ? null : (options.modelAliases.get(row.model) ?? row.model).trim();
-    const rate =
-      model === null
-        ? null
-        : (options.priceOverrides.get(model) ?? lookupRate(options.rates, model));
+    const original = row.model?.trim() ?? null;
+    const alias = original === null ? undefined : options.modelAliases.get(original);
+    const model = alias?.trim() ?? original;
+    const override = model === null ? undefined : options.priceOverrides.get(model);
+    const tableRate = model === null ? null : lookupRate(options.rates, model);
+    if (override === undefined && alias === undefined && row.providerCostUsd !== undefined) {
+      const estimate = rowCostAtRates(row, tableRate ?? FALLBACK_RATES);
+      const estimateUsd =
+        estimate.input + estimate.cacheRead + estimate.cacheWrite + estimate.output;
+      if (estimateUsd > 0) {
+        add(estimate, row.providerCostUsd / estimateUsd);
+        continue;
+      }
+    }
+    const rate = override ?? tableRate;
     if (rate === null) {
       unpricedTokens +=
         row.inputTokens + row.cacheReadTokens + row.cacheWriteTokens + row.outputTokens;
       continue;
     }
-    priced = true;
-    cost.input += row.inputTokens * rate.inputCostPerToken;
-    cost.cacheRead += row.cacheReadTokens * rate.cacheReadCostPerToken;
-    cost.cacheWrite +=
-      row.cacheWriteTokens *
-      (row.oneHourCache ? rate.cacheCreation1hCostPerToken : rate.cacheCreationCostPerToken);
-    cost.output += row.outputTokens * rate.outputCostPerToken;
+    add(rowCostAtRates(row, rate));
   }
   return {
-    turns,
     inputTokens,
     cacheReadTokens,
     cacheWriteTokens,
     outputTokens,
-    reasoningTokens,
-    partial,
     cost: priced ? cost : null,
     unpricedTokens,
   };

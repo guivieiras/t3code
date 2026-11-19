@@ -387,6 +387,10 @@
       "types": "./src/state/contextWindow.ts",
       "default": "./src/state/contextWindow.ts"
     },
+    "./state/thread-token-usage": {
+      "types": "./src/state/threadTokenUsage.ts",
+      "default": "./src/state/threadTokenUsage.ts"
+    },
     "./state/thread-subagents": {
       "types": "./src/state/threadSubagents.ts",
       "default": "./src/state/threadSubagents.ts"

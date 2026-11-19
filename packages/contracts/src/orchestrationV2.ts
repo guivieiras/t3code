@@ -3824,6 +3824,7 @@ export const ORCHESTRATION_V2_WS_METHODS = {
   getArchivedShellSnapshot: "orchestration.getArchivedShellSnapshot",
   getThreadFamily: "orchestration.getThreadFamily",
   getThreadTitles: "orchestration.getThreadTitles",
+  getThreadTokenUsage: "orchestration.getThreadTokenUsage",
   getThreadLinkMetadata: "orchestration.getThreadLinkMetadata",
   getWorktreeThreadIds: "orchestration.getWorktreeThreadIds",
   getOlderSettledThreads: "orchestration.getOlderSettledThreads",
@@ -3976,6 +3977,26 @@ export const OrchestrationV2GetThreadTitlesInput = Schema.Struct({
 
 /** Titles of the requested threads that exist, archived ones included. Deleted and unknown ids are absent. */
 export const OrchestrationV2ThreadTitles = Schema.Record(ThreadId, Schema.String);
+
+export const OrchestrationV2GetThreadTokenUsageInput = Schema.Struct({
+  threadId: ThreadId,
+});
+
+/**
+ * Tokens the thread's finished provider turns reported for their main agent, summed by type. Input
+ * excludes cache reads and writes; output includes reasoning.
+ */
+export const OrchestrationV2ThreadTokenUsage = Schema.Struct({
+  turns: NonNegativeInt,
+  inputTokens: NonNegativeInt,
+  cacheReadTokens: NonNegativeInt,
+  cacheWriteTokens: NonNegativeInt,
+  outputTokens: NonNegativeInt,
+  reasoningTokens: NonNegativeInt,
+  /** Some counted turns reported only part of their usage. */
+  partial: Schema.Boolean,
+});
+export type OrchestrationV2ThreadTokenUsage = typeof OrchestrationV2ThreadTokenUsage.Type;
 
 export const OrchestrationV2ThreadLinkMetadata = Schema.Struct({
   title: Schema.String,
@@ -4508,6 +4529,10 @@ export const OrchestrationV2RpcSchemas = {
   getThreadTitles: {
     input: OrchestrationV2GetThreadTitlesInput,
     output: OrchestrationV2ThreadTitles,
+  },
+  getThreadTokenUsage: {
+    input: OrchestrationV2GetThreadTokenUsageInput,
+    output: OrchestrationV2ThreadTokenUsage,
   },
   getThreadLinkMetadata: {
     input: OrchestrationV2GetThreadTitlesInput,

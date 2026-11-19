@@ -2094,6 +2094,16 @@ export const layerWsRpc = (
                 }),
             ),
           ),
+        [ORCHESTRATION_V2_WS_METHODS.getThreadTokenUsage]: (input) =>
+          threadManagement.getThreadTokenUsage(input.threadId).pipe(
+            Effect.mapError(
+              (cause) =>
+                new OrchestrationV2GetShellSnapshotError({
+                  message: "Failed to load thread token usage",
+                  cause,
+                }),
+            ),
+          ),
         [ORCHESTRATION_V2_WS_METHODS.getOlderSettledThreads]: (input) =>
           loadOlderSettledThreadsPage({
             sql,

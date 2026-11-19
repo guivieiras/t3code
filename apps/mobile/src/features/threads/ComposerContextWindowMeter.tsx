@@ -4,8 +4,14 @@ import {
   formatContextWindowCompactionMessage,
   latestProviderTurnTokenUsage,
 } from "@t3tools/client-runtime/state/context-window";
+import {
+  threadTokenUsageRows,
+  threadTokenUsageTotal,
+} from "@t3tools/client-runtime/state/thread-token-usage";
 import type { ScopedThreadRef } from "@t3tools/contracts";
 import { formatTokens } from "@t3tools/shared/usageFormat";
+import { useAtomValue } from "@effect/atom-react";
+import { AsyncResult } from "effect/reactivity";
 import { Pressable, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import { withUniwind } from "uniwind";
@@ -13,6 +19,7 @@ import { withUniwind } from "uniwind";
 import { SymbolView } from "../../components/ui/AppSymbol";
 import { AppText as Text } from "../../components/ui/AppText";
 import { useAndroidControlSizing } from "../../components/ui/useAndroidControlSizing";
+import { orchestrationEnvironment } from "../../state/orchestration";
 import { useQuietThreadStructure } from "../../state/use-thread-detail";
 
 const STROKE_WIDTH = 3;
@@ -107,13 +114,48 @@ export function ComposerContextWindowMeter(props: {
   );
 }
 
-function DetailRow(props: { readonly label: string; readonly value: string }) {
+function DetailRow(props: {
+  readonly label: string;
+  readonly value: string;
+  readonly inset?: boolean;
+}) {
   return (
-    <View className="flex-row items-center justify-between gap-3">
+    <View
+      className={
+        props.inset
+          ? "flex-row items-center justify-between gap-3 ps-3"
+          : "flex-row items-center justify-between gap-3"
+      }
+    >
       <Text className="text-xs text-foreground-muted">{props.label}</Text>
       <Text className="font-t3-medium text-xs text-foreground-secondary tabular-nums">
         {props.value}
       </Text>
+    </View>
+  );
+}
+
+/** Tokens the thread's finished turns used, one row per type. Hidden on servers without totals. */
+function ThreadTokenTotals(props: { readonly threadRef: ScopedThreadRef }) {
+  const result = useAtomValue(
+    orchestrationEnvironment.threadTokenUsage({
+      environmentId: props.threadRef.environmentId,
+      input: { threadId: props.threadRef.threadId },
+    }),
+  );
+  const usage = AsyncResult.getOrElse(result, () => null);
+  if (usage === null || threadTokenUsageTotal(usage) === 0) return null;
+  return (
+    <View className="gap-1.5">
+      <DetailRow label="Thread tokens" value={formatTokens(threadTokenUsageTotal(usage))} />
+      {threadTokenUsageRows(usage).map((row) => (
+        <DetailRow
+          key={row.label}
+          label={row.subset ? `of which ${row.label.toLowerCase()}` : row.label}
+          inset
+          value={formatTokens(row.tokens)}
+        />
+      ))}
     </View>
   );
 }
@@ -176,6 +218,7 @@ export function ComposerContextWindowPanel(props: {
           {usage.cost != null ? <DetailRow label="Cost" value={formatCost(usage.cost)} /> : null}
         </View>
       ) : null}
+      {props.threadRef !== null ? <ThreadTokenTotals threadRef={props.threadRef} /> : null}
       {usage.compactsAutomatically ? (
         <Text className="text-xs text-foreground-muted">
           {formatContextWindowCompactionMessage(usage.autoCompactThreshold)}
